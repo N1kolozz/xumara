@@ -2,10 +2,11 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Card } from "@/components/ui/card";
 import { Button } from "@/components/ui/button";
-import { Trophy, Users } from "lucide-react";
+import { Trophy, Users, ChevronLeft, ChevronRight } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import GameCard from "./GameCard";
 import Scoreboard from "./Scoreboard";
+import useEmblaCarousel from "embla-carousel-react";
 
 interface Player {
   id: string;
@@ -47,12 +48,29 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [submittedCards, setSubmittedCards] = useState<CardData[]>([]);
+  const [emblaRef, emblaApi] = useEmblaCarousel({ loop: false, align: "center" });
+  const [currentCardIndex, setCurrentCardIndex] = useState(0);
 
   useEffect(() => {
     if (!gameState) return;
     loadGameData();
     subscribeToSubmissions();
   }, [gameState]);
+
+  useEffect(() => {
+    if (!emblaApi) return;
+
+    const onSelect = () => {
+      setCurrentCardIndex(emblaApi.selectedScrollSnap());
+    };
+
+    emblaApi.on("select", onSelect);
+    onSelect();
+
+    return () => {
+      emblaApi.off("select", onSelect);
+    };
+  }, [emblaApi]);
 
   const loadGameData = async () => {
     if (!gameState) return;
@@ -334,32 +352,64 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
 
             {!hasSubmitted && (
               <>
-                <div className="relative flex items-center justify-center h-[280px] my-8">
-                  {playerCards.slice(0, 6).map((card, index) => {
-                    const totalCards = Math.min(playerCards.length, 6);
-                    const rotation = ((index - (totalCards - 1) / 2) * 8);
-                    const translateY = Math.abs(index - (totalCards - 1) / 2) * 15;
-                    
-                    return (
-                      <GameCard
-                        key={card.id}
-                        text={card.text_ge}
-                        type="reply"
-                        isSelected={selectedCard === card.id}
-                        onClick={() => setSelectedCard(card.id)}
-                        className="cursor-pointer absolute transition-all hover:translate-y-[-40px] hover:z-20"
-                        style={{ 
-                          transform: `rotate(${rotation}deg) translateY(${translateY}px)`,
-                          left: `${40 + index * 12}%`,
-                          animationDelay: `${index * 0.1}s`,
-                          zIndex: selectedCard === card.id ? 30 : 10 + index,
-                        }}
+                <div className="relative w-full max-w-md mx-auto">
+                  {/* Carousel Container */}
+                  <div className="overflow-hidden" ref={emblaRef}>
+                    <div className="flex">
+                      {playerCards.slice(0, 6).map((card) => (
+                        <div
+                          key={card.id}
+                          className="flex-[0_0_100%] min-w-0 flex justify-center items-center px-4"
+                        >
+                          <GameCard
+                            text={card.text_ge}
+                            type="reply"
+                            isSelected={selectedCard === card.id}
+                            onClick={() => setSelectedCard(card.id)}
+                            className="cursor-pointer w-48 h-64"
+                          />
+                        </div>
+                      ))}
+                    </div>
+                  </div>
+
+                  {/* Navigation Buttons */}
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute left-0 top-1/2 -translate-y-1/2 z-10"
+                    onClick={() => emblaApi?.scrollPrev()}
+                    disabled={currentCardIndex === 0}
+                  >
+                    <ChevronLeft className="h-6 w-6" />
+                  </Button>
+                  <Button
+                    variant="outline"
+                    size="icon"
+                    className="absolute right-0 top-1/2 -translate-y-1/2 z-10"
+                    onClick={() => emblaApi?.scrollNext()}
+                    disabled={currentCardIndex === playerCards.slice(0, 6).length - 1}
+                  >
+                    <ChevronRight className="h-6 w-6" />
+                  </Button>
+
+                  {/* Card Indicators */}
+                  <div className="flex justify-center gap-2 mt-4">
+                    {playerCards.slice(0, 6).map((_, index) => (
+                      <button
+                        key={index}
+                        className={`w-2 h-2 rounded-full transition-all ${
+                          index === currentCardIndex
+                            ? "bg-primary w-6"
+                            : "bg-muted-foreground/30"
+                        }`}
+                        onClick={() => emblaApi?.scrollTo(index)}
                       />
-                    );
-                  })}
+                    ))}
+                  </div>
                 </div>
 
-                <div className="flex justify-center">
+                <div className="flex justify-center mt-6">
                   <Button
                     onClick={handleSubmitCard}
                     disabled={!selectedCard}
