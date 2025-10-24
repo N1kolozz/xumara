@@ -10,11 +10,13 @@ import { Sparkles, Users, Gamepad2 } from "lucide-react";
 const Index = () => {
   const navigate = useNavigate();
   const { toast } = useToast();
-  const [playerName, setPlayerName] = useState("");
+  const [createPlayerName, setCreatePlayerName] = useState("");
+  const [joinPlayerName, setJoinPlayerName] = useState("");
   const [roomPin, setRoomPin] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [selectedRole, setSelectedRole] = useState<"player" | "judge" | null>(null);
+  const [createRole, setCreateRole] = useState<"player" | "judge" | null>(null);
+  const [joinRole, setJoinRole] = useState<"player" | "judge" | null>(null);
   const [showRoleError, setShowRoleError] = useState(false);
 
   const generatePin = () => {
@@ -22,7 +24,7 @@ const Index = () => {
   };
 
   const createRoom = async () => {
-    if (!playerName.trim()) {
+    if (!createPlayerName.trim()) {
       toast({
         title: "შეიყვანეთ სახელი",
         description: "თამაშის დასაწყებად სახელი აუცილებელია",
@@ -31,7 +33,7 @@ const Index = () => {
       return;
     }
 
-    if (!selectedRole) {
+    if (!createRole) {
       toast({
         title: "აირჩიეთ როლი",
         description: "თამაშის დასაწყებად როლის არჩევა აუცილებელია",
@@ -57,9 +59,9 @@ const Index = () => {
         .from("players")
         .insert({
           room_id: room.id,
-          name: playerName,
+          name: createPlayerName,
           is_host: true,
-          is_judge: selectedRole === "judge",
+          is_judge: createRole === "judge",
         })
         .select()
         .single();
@@ -90,7 +92,7 @@ const Index = () => {
   };
 
   const joinRoom = async () => {
-    if (!playerName.trim() || !roomPin.trim()) {
+    if (!joinPlayerName.trim() || !roomPin.trim()) {
       toast({
         title: "შეავსეთ ყველა ველი",
         description: "სახელი და PIN აუცილებელია",
@@ -99,7 +101,7 @@ const Index = () => {
       return;
     }
 
-    if (!selectedRole) {
+    if (!joinRole) {
       toast({
         title: "აირჩიეთ როლი",
         description: "თამაშში შესასვლელად როლის არჩევა აუცილებელია",
@@ -151,7 +153,7 @@ const Index = () => {
       }
 
       // Check if judge already exists when trying to join as judge
-      if (selectedRole === "judge") {
+      if (joinRole === "judge") {
         const existingJudge = existingPlayers?.find(p => p.is_judge);
         if (existingJudge) {
           setShowRoleError(true);
@@ -164,9 +166,9 @@ const Index = () => {
         .from("players")
         .insert({
           room_id: room.id,
-          name: playerName,
+          name: joinPlayerName,
           is_host: false,
-          is_judge: selectedRole === "judge",
+          is_judge: joinRole === "judge",
         })
         .select()
         .single();
@@ -245,8 +247,8 @@ const Index = () => {
             <div className="space-y-4">
               <Input
                 placeholder="შენი სახელი"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+                value={createPlayerName}
+                onChange={(e) => setCreatePlayerName(e.target.value)}
                 className="h-12 text-lg"
                 maxLength={20}
               />
@@ -256,16 +258,16 @@ const Index = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     type="button"
-                    variant={selectedRole === "player" ? "default" : "outline"}
-                    onClick={() => setSelectedRole("player")}
+                    variant={createRole === "player" ? "default" : "outline"}
+                    onClick={() => setCreateRole("player")}
                     className="h-12"
                   >
                     მოთამაშე
                   </Button>
                   <Button
                     type="button"
-                    variant={selectedRole === "judge" ? "default" : "outline"}
-                    onClick={() => setSelectedRole("judge")}
+                    variant={createRole === "judge" ? "default" : "outline"}
+                    onClick={() => setCreateRole("judge")}
                     className="h-12"
                   >
                     მსაჯული
@@ -300,8 +302,8 @@ const Index = () => {
             <div className="space-y-4">
               <Input
                 placeholder="შენი სახელი"
-                value={playerName}
-                onChange={(e) => setPlayerName(e.target.value)}
+                value={joinPlayerName}
+                onChange={(e) => setJoinPlayerName(e.target.value)}
                 className="h-12 text-lg"
                 maxLength={20}
               />
@@ -322,9 +324,9 @@ const Index = () => {
                 <div className="grid grid-cols-2 gap-3">
                   <Button
                     type="button"
-                    variant={selectedRole === "player" ? "default" : "outline"}
+                    variant={joinRole === "player" ? "default" : "outline"}
                     onClick={() => {
-                      setSelectedRole("player");
+                      setJoinRole("player");
                       setShowRoleError(false);
                     }}
                     className="h-12"
@@ -333,9 +335,9 @@ const Index = () => {
                   </Button>
                   <Button
                     type="button"
-                    variant={selectedRole === "judge" ? "default" : "outline"}
+                    variant={joinRole === "judge" ? "default" : "outline"}
                     onClick={() => {
-                      setSelectedRole("judge");
+                      setJoinRole("judge");
                       setShowRoleError(false);
                     }}
                     className="h-12"
