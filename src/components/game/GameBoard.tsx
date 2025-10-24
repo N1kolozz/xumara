@@ -55,8 +55,9 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
   useEffect(() => {
     if (!gameState) return;
     loadGameData();
-    subscribeToSubmissions();
-  }, [gameState]);
+    const unsubscribe = subscribeToSubmissions();
+    return unsubscribe;
+  }, [gameState?.round_number, gameState?.phase, currentPlayer.id]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -88,65 +89,37 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
 
     // Load player's hand (only if not judge)
     if (!currentPlayer.is_judge) {
-      const { data: handData } = await supabase
+      // First, clear any existing cards for this player in this room
+      // This prevents duplicate cards from race conditions
+      await supabase
         .from("player_hands")
-        .select("card_id, cards(*)")
+        .delete()
         .eq("player_id", currentPlayer.id)
         .eq("room_id", room.id);
 
-      const cards = handData?.map((h: any) => h.cards).filter(Boolean) || [];
-      const currentCardCount = cards.length;
+      // Get all reply cards
+      const { data: replyCards } = await supabase
+        .from("cards")
+        .select("*")
+        .eq("type", "reply");
       
-      console.log(`Player ${currentPlayer.name} has ${currentCardCount} cards`);
-      
-      // If player has fewer than 6 cards, deal new ones
-      if (currentCardCount < 6) {
-        const cardsNeeded = 6 - currentCardCount;
+      if (replyCards) {
+        // Shuffle and take 6 random cards
+        const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
+        const newCards = shuffled.slice(0, 6);
         
-        // Get all reply cards
-        const { data: replyCards } = await supabase
-          .from("cards")
-          .select("*")
-          .eq("type", "reply");
+        console.log(`Dealing 6 cards to player ${currentPlayer.name} for round ${gameState.round_number}`);
         
-        if (replyCards) {
-          // Get all cards currently in use by any player
-          const { data: allHands } = await supabase
-            .from("player_hands")
-            .select("card_id")
-            .eq("room_id", room.id);
-          
-          const usedCardIds = new Set(allHands?.map(h => h.card_id) || []);
-          
-          // Filter out already used cards
-          const availableCards = replyCards.filter(card => !usedCardIds.has(card.id));
-          
-          // Shuffle and take needed cards
-          const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
-          const newCards = shuffled.slice(0, cardsNeeded);
-          
-          // Add new cards to player's hand
-          for (const card of newCards) {
-            await supabase.from("player_hands").insert({
-              player_id: currentPlayer.id,
-              card_id: card.id,
-              room_id: room.id,
-            });
-          }
-          
-          // Reload hand data after adding cards
-          const { data: updatedHandData } = await supabase
-            .from("player_hands")
-            .select("card_id, cards(*)")
-            .eq("player_id", currentPlayer.id)
-            .eq("room_id", room.id);
-          
-          const updatedCards = updatedHandData?.map((h: any) => h.cards).filter(Boolean) || [];
-          console.log(`Player ${currentPlayer.name} now has ${updatedCards.length} cards`);
-          setPlayerCards(updatedCards.slice(0, 6));
+        // Add new cards to player's hand
+        for (const card of newCards) {
+          await supabase.from("player_hands").insert({
+            player_id: currentPlayer.id,
+            card_id: card.id,
+            room_id: room.id,
+          });
         }
-      } else {
-        setPlayerCards(cards.slice(0, 6));
+        
+        setPlayerCards(newCards);
       }
     }
 
@@ -167,7 +140,7 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
   };
 
   const subscribeToSubmissions = () => {
-    const channel = supabase
+    const submissionsChannel = supabase
       .channel(`submissions_${room.id}`)
       .on(
         "postgres_changes",
@@ -183,8 +156,26 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
       )
       .subscribe();
 
+    const gameStateChannel = supabase
+      .channel(`game_state_${room.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "game_state",
+          filter: `room_id=eq.${room.id}`,
+        },
+        () => {
+          console.log("Game state changed, reloading data");
+          loadGameData();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(submissionsChannel);
+      supabase.removeChannel(gameStateChannel);
     };
   };
 
@@ -259,12 +250,18 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
           .eq("id", winner.id);
       }
 
-      // Clear submissions for next round first
+      // Clear submissions for next round
       await supabase
         .from("submissions")
         .delete()
         .eq("room_id", room.id)
         .eq("round_number", gameState.round_number);
+
+      // Clear all players' hands so they get new cards in next round
+      await supabase
+        .from("player_hands")
+        .delete()
+        .eq("room_id", room.id);
 
       // Check if this was the last round
       if (gameState.round_number >= gameState.max_rounds) {
