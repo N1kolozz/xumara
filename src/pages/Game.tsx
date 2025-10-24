@@ -151,9 +151,23 @@ const Game = () => {
           table: "rooms",
           filter: `id=eq.${roomId}`,
         },
-        (payload) => {
+        async (payload) => {
           if (payload.eventType === "UPDATE") {
-            setRoom(payload.new as Room);
+            const newRoom = payload.new as Room;
+            setRoom(newRoom);
+            
+            // If room status changed to playing, load game state
+            if (newRoom.status === "playing" && room?.status !== "playing") {
+              const { data: gameStateData } = await supabase
+                .from("game_state")
+                .select("*")
+                .eq("room_id", roomId)
+                .single();
+
+              if (gameStateData) {
+                setGameState(gameStateData);
+              }
+            }
           }
         }
       )
