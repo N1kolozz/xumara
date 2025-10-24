@@ -55,8 +55,9 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
   useEffect(() => {
     if (!gameState) return;
     loadGameData();
-    subscribeToSubmissions();
-  }, [gameState]);
+    const unsubscribe = subscribeToSubmissions();
+    return unsubscribe;
+  }, [gameState?.round_number, gameState?.phase, currentPlayer.id]);
 
   useEffect(() => {
     if (!emblaApi) return;
@@ -166,7 +167,7 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
   };
 
   const subscribeToSubmissions = () => {
-    const channel = supabase
+    const submissionsChannel = supabase
       .channel(`submissions_${room.id}`)
       .on(
         "postgres_changes",
@@ -182,8 +183,26 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
       )
       .subscribe();
 
+    const gameStateChannel = supabase
+      .channel(`game_state_${room.id}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "game_state",
+          filter: `room_id=eq.${room.id}`,
+        },
+        () => {
+          console.log("Game state changed, reloading data");
+          loadGameData();
+        }
+      )
+      .subscribe();
+
     return () => {
-      supabase.removeChannel(channel);
+      supabase.removeChannel(submissionsChannel);
+      supabase.removeChannel(gameStateChannel);
     };
   };
 
