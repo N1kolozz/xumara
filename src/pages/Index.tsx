@@ -45,6 +45,10 @@ const Index = () => {
     setIsCreating(true);
 
     try {
+      // Sign in anonymously
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+      if (authError) throw authError;
+
       const pin = generatePin();
 
       const { data: room, error: roomError } = await supabase
@@ -62,6 +66,7 @@ const Index = () => {
           name: createPlayerName,
           is_host: true,
           is_judge: createRole === "judge",
+          user_id: authData.user.id,
         })
         .select()
         .single();
@@ -81,6 +86,7 @@ const Index = () => {
 
       navigate(`/game/${room.id}`);
     } catch (error) {
+      console.error("Error creating room:", error);
       toast({
         title: "შეცდომა",
         description: "ოთახის შექმნა ვერ მოხერხდა",
@@ -114,6 +120,10 @@ const Index = () => {
     setShowRoleError(false);
 
     try {
+      // Sign in anonymously
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+      if (authError) throw authError;
+
       const { data: room, error: roomError } = await supabase
         .from("rooms")
         .select("*")
@@ -169,6 +179,7 @@ const Index = () => {
           name: joinPlayerName,
           is_host: false,
           is_judge: joinRole === "judge",
+          user_id: authData.user.id,
         })
         .select()
         .single();
@@ -186,6 +197,7 @@ const Index = () => {
 
       navigate(`/game/${room.id}`);
     } catch (error) {
+      console.error("Error joining room:", error);
       toast({
         title: "შეცდომა",
         description: "ოთახში შესვლა ვერ მოხერხდა",
