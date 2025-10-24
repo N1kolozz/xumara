@@ -269,6 +269,47 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
         const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
         const topScore = sortedPlayers[0]?.score || 0;
         const winners = sortedPlayers.filter(p => p.score === topScore && !p.is_judge);
+        
+        // The highest scorer becomes the judge for next game
+        const newJudge = winners.length > 0 ? winners[0] : sortedPlayers.find(p => !p.is_judge);
+
+        if (newJudge) {
+          // Set all players as non-judge
+          await supabase
+            .from("players")
+            .update({ is_judge: false })
+            .eq("room_id", room.id);
+          
+          // Set new judge
+          await supabase
+            .from("players")
+            .update({ is_judge: true })
+            .eq("id", newJudge.id);
+        }
+
+        // Reset all scores
+        await supabase
+          .from("players")
+          .update({ score: 0 })
+          .eq("room_id", room.id);
+
+        // Delete game state
+        await supabase
+          .from("game_state")
+          .delete()
+          .eq("room_id", room.id);
+
+        // Clear all player hands
+        await supabase
+          .from("player_hands")
+          .delete()
+          .eq("room_id", room.id);
+
+        // Return to lobby
+        await supabase
+          .from("rooms")
+          .update({ status: "lobby" })
+          .eq("id", room.id);
 
         toast({
           title: "თამაში დასრულდა!",
@@ -276,18 +317,6 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
             ? `${winners[0].name} არის გამარჯვებული! ${topScore} ქულით!`
             : `გამარჯვებულები: ${winners.map(w => w.name).join(", ")} - ${topScore} ქულით!`,
         });
-
-        // Clean up all game data after a short delay for toast to show
-        setTimeout(async () => {
-          await Promise.all([
-            supabase.from("player_hands").delete().eq("room_id", room.id),
-            supabase.from("submissions").delete().eq("room_id", room.id),
-            supabase.from("game_state").delete().eq("room_id", room.id),
-            supabase.from("players").delete().eq("room_id", room.id),
-            supabase.from("rooms").delete().eq("id", room.id),
-          ]);
-          console.log("All game data deleted after game end");
-        }, 2000);
       } else {
         // Continue to next round
         // Judge stays the same
