@@ -89,21 +89,37 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
 
     // Load player's hand (only if not judge)
     if (!currentPlayer.is_judge) {
-      // Check if cards already dealt for this round
-      const { data: existingHand } = await supabase
+      // First, clear any existing cards for this player in this room
+      // This prevents duplicate cards from race conditions
+      await supabase
         .from("player_hands")
-        .select("card_id, cards(*)")
+        .delete()
         .eq("player_id", currentPlayer.id)
         .eq("room_id", room.id);
 
-      if (existingHand && existingHand.length === 6) {
-        // Cards already dealt, just load them
-        console.log(`Cards already dealt for player ${currentPlayer.name}, loading existing hand`);
-        const cards = existingHand.map((h: any) => h.cards).filter(Boolean);
-        setPlayerCards(cards);
-      } else {
-        // No cards yet, they will be dealt by the host when game starts
-        console.log(`Waiting for cards to be dealt to player ${currentPlayer.name}`);
+      // Get all reply cards
+      const { data: replyCards } = await supabase
+        .from("cards")
+        .select("*")
+        .eq("type", "reply");
+      
+      if (replyCards) {
+        // Shuffle and take 6 random cards
+        const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
+        const newCards = shuffled.slice(0, 6);
+        
+        console.log(`Dealing 6 cards to player ${currentPlayer.name} for round ${gameState.round_number}`);
+        
+        // Add new cards to player's hand
+        for (const card of newCards) {
+          await supabase.from("player_hands").insert({
+            player_id: currentPlayer.id,
+            card_id: card.id,
+            room_id: room.id,
+          });
+        }
+        
+        setPlayerCards(newCards);
       }
     }
 

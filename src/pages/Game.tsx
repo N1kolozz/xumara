@@ -58,18 +58,6 @@ const Game = () => {
   }, [roomId]);
 
   const loadRoomData = async () => {
-    // Ensure user is authenticated
-    const { data: { session } } = await supabase.auth.getSession();
-    if (!session) {
-      // Sign in anonymously if not authenticated
-      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
-      if (authError) {
-        console.error("Auth error:", authError);
-        navigate("/");
-        return;
-      }
-    }
-
     const { data: roomData, error: roomError } = await supabase
       .from("rooms")
       .select("*")
@@ -163,23 +151,9 @@ const Game = () => {
           table: "rooms",
           filter: `id=eq.${roomId}`,
         },
-        async (payload) => {
+        (payload) => {
           if (payload.eventType === "UPDATE") {
-            const newRoom = payload.new as Room;
-            setRoom(newRoom);
-            
-            // If room status changed to playing, load game state
-            if (newRoom.status === "playing" && room?.status !== "playing") {
-              const { data: gameStateData } = await supabase
-                .from("game_state")
-                .select("*")
-                .eq("room_id", roomId)
-                .single();
-
-              if (gameStateData) {
-                setGameState(gameStateData);
-              }
-            }
+            setRoom(payload.new as Room);
           }
         }
       )
