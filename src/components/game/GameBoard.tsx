@@ -277,12 +277,18 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
           .eq("id", winner.id);
       }
 
-      // Clear submissions for next round first
+      // Clear submissions for next round
       await supabase
         .from("submissions")
         .delete()
         .eq("room_id", room.id)
         .eq("round_number", gameState.round_number);
+
+      // Clear all players' hands so they get new cards in next round
+      await supabase
+        .from("player_hands")
+        .delete()
+        .eq("room_id", room.id);
 
       // Check if this was the last round
       if (gameState.round_number >= gameState.max_rounds) {
