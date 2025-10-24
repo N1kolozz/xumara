@@ -233,19 +233,24 @@ const Game = () => {
           .select("*")
           .eq("type", "reply");
 
-        if (replyCards) {
+        if (replyCards && replyCards.length >= 6 * players.filter(p => !p.is_judge).length) {
           // Filter out judge players - only regular players get cards
           const nonJudgePlayers = players.filter(p => !p.is_judge);
+          
+          console.log(`Dealing cards to ${nonJudgePlayers.length} non-judge players`);
+          console.log(`Available reply cards: ${replyCards.length}`);
           
           // Shuffle all reply cards once
           const shuffledCards = [...replyCards].sort(() => Math.random() - 0.5);
           let cardIndex = 0;
           
           for (const player of nonJudgePlayers) {
-            // Give each player 6 unique cards
+            // Give each player exactly 6 unique cards
             const playerCards = shuffledCards.slice(cardIndex, cardIndex + 6);
             cardIndex += 6;
 
+            console.log(`Dealing ${playerCards.length} cards to player ${player.name}`);
+            
             for (const card of playerCards) {
               await supabase.from("player_hands").insert({
                 player_id: player.id,
@@ -254,6 +259,13 @@ const Game = () => {
               });
             }
           }
+        } else {
+          toast({
+            title: "არასაკმარისი ბარათები",
+            description: "ბაზაში არ არის საკმარისი ბარათები თამაშისთვის",
+            variant: "destructive",
+          });
+          return;
         }
       }
 

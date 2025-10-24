@@ -77,7 +77,95 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
 
       if (handData) {
         const cards = handData.map((h: any) => h.cards).filter(Boolean);
-        setPlayerCards(cards);
+        console.log(`Player ${currentPlayer.name} has ${cards.length} cards:`, cards);
+        
+        // If player has less than 6 cards, deal new ones
+        if (cards.length < 6) {
+          console.log(`Player needs ${6 - cards.length} more cards`);
+          const { data: allReplyCards } = await supabase
+            .from("cards")
+            .select("*")
+            .eq("type", "reply");
+
+          if (allReplyCards) {
+            // Get all currently used cards
+            const { data: allHands } = await supabase
+              .from("player_hands")
+              .select("card_id")
+              .eq("room_id", room.id);
+            
+            const usedCardIds = new Set(allHands?.map(h => h.card_id) || []);
+            const availableCards = allReplyCards.filter(card => !usedCardIds.has(card.id));
+            
+            // Shuffle and take needed cards
+            const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
+            const cardsNeeded = 6 - cards.length;
+            const newCards = shuffled.slice(0, cardsNeeded);
+            
+            // Insert new cards
+            for (const card of newCards) {
+              await supabase.from("player_hands").insert({
+                player_id: currentPlayer.id,
+                card_id: card.id,
+                room_id: room.id,
+              });
+            }
+            
+            // Reload hand data
+            const { data: updatedHandData } = await supabase
+              .from("player_hands")
+              .select("card_id, cards(*)")
+              .eq("player_id", currentPlayer.id)
+              .eq("room_id", room.id);
+            
+            if (updatedHandData) {
+              const updatedCards = updatedHandData.map((h: any) => h.cards).filter(Boolean);
+              console.log(`Player now has ${updatedCards.length} cards after dealing`);
+              setPlayerCards(updatedCards);
+            }
+          }
+        } else {
+          setPlayerCards(cards);
+        }
+      } else {
+        // No cards at all, deal 6 new ones
+        console.log(`Player has no cards, dealing 6 new cards`);
+        const { data: allReplyCards } = await supabase
+          .from("cards")
+          .select("*")
+          .eq("type", "reply");
+
+        if (allReplyCards) {
+          const { data: allHands } = await supabase
+            .from("player_hands")
+            .select("card_id")
+            .eq("room_id", room.id);
+          
+          const usedCardIds = new Set(allHands?.map(h => h.card_id) || []);
+          const availableCards = allReplyCards.filter(card => !usedCardIds.has(card.id));
+          const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
+          const newCards = shuffled.slice(0, 6);
+          
+          for (const card of newCards) {
+            await supabase.from("player_hands").insert({
+              player_id: currentPlayer.id,
+              card_id: card.id,
+              room_id: room.id,
+            });
+          }
+          
+          // Reload
+          const { data: updatedHandData } = await supabase
+            .from("player_hands")
+            .select("card_id, cards(*)")
+            .eq("player_id", currentPlayer.id)
+            .eq("room_id", room.id);
+          
+          if (updatedHandData) {
+            const updatedCards = updatedHandData.map((h: any) => h.cards).filter(Boolean);
+            setPlayerCards(updatedCards);
+          }
+        }
       }
     }
 
