@@ -1,0 +1,258 @@
+import { useEffect, useState } from "react";
+import { useParams, useNavigate } from "react-router-dom";
+import { supabase } from "@/integrations/supabase/client";
+import { Button } from "@/components/ui/button";
+import { useToast } from "@/hooks/use-toast";
+import GameLobby from "@/components/game/GameLobby";
+import GameBoard from "@/components/game/GameBoard";
+
+interface Room {
+  id: string;
+  pin: string;
+  status: string;
+}
+
+interface Player {
+  id: string;
+  name: string;
+  score: number;
+  is_judge: boolean;
+  is_host: boolean;
+}
+
+interface GameState {
+  phase: string;
+  current_judge_id: string | null;
+  current_inbox_card_id: string | null;
+  round_number: number;
+}
+
+const Game = () => {
+  const { roomId } = useParams();
+  const navigate = useNavigate();
+  const { toast } = useToast();
+  const [room, setRoom] = useState<Room | null>(null);
+  const [players, setPlayers] = useState<Player[]>([]);
+  const [gameState, setGameState] = useState<GameState | null>(null);
+  const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+
+  useEffect(() => {
+    if (!roomId) {
+      navigate("/");
+      return;
+    }
+
+    loadRoomData();
+    subscribeToRealtime();
+  }, [roomId]);
+
+  const loadRoomData = async () => {
+    const { data: roomData, error: roomError } = await supabase
+      .from("rooms")
+      .select("*")
+      .eq("id", roomId)
+      .single();
+
+    if (roomError || !roomData) {
+      toast({
+        title: "ოთახი ვერ მოიძებნა",
+        description: "ასეთი ოთახი არ არსებობს",
+        variant: "destructive",
+      });
+      navigate("/");
+      return;
+    }
+
+    setRoom(roomData);
+
+    const { data: playersData } = await supabase
+      .from("players")
+      .select("*")
+      .eq("room_id", roomId)
+      .order("joined_at", { ascending: true });
+
+    if (playersData) {
+      setPlayers(playersData);
+      
+      const playerId = localStorage.getItem(`player_${roomId}`);
+      if (playerId) {
+        const player = playersData.find(p => p.id === playerId);
+        setCurrentPlayer(player || null);
+      }
+    }
+
+    if (roomData.status === "playing") {
+      const { data: gameStateData } = await supabase
+        .from("game_state")
+        .select("*")
+        .eq("room_id", roomId)
+        .single();
+
+      if (gameStateData) {
+        setGameState(gameStateData);
+      }
+    }
+  };
+
+  const subscribeToRealtime = () => {
+    const channel = supabase
+      .channel(`room_${roomId}`)
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "rooms",
+          filter: `id=eq.${roomId}`,
+        },
+        (payload) => {
+          if (payload.eventType === "UPDATE") {
+            setRoom(payload.new as Room);
+          }
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "players",
+          filter: `room_id=eq.${roomId}`,
+        },
+        () => {
+          loadRoomData();
+        }
+      )
+      .on(
+        "postgres_changes",
+        {
+          event: "*",
+          schema: "public",
+          table: "game_state",
+          filter: `room_id=eq.${roomId}`,
+        },
+        (payload) => {
+          if (payload.new) {
+            setGameState(payload.new as GameState);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  };
+
+  const handleStartGame = async () => {
+    if (!currentPlayer?.is_host || !room) return;
+
+    if (players.length < 3) {
+      toast({
+        title: "არასაკმარისი მოთამაშეები",
+        description: "თამაშის დასაწყებად მინიმუმ 3 მოთამაშე არის საჭირო",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    try {
+      // Update room status
+      await supabase
+        .from("rooms")
+        .update({ status: "playing" })
+        .eq("id", room.id);
+
+      // Set first judge (host)
+      await supabase
+        .from("players")
+        .update({ is_judge: true })
+        .eq("id", currentPlayer.id);
+
+      // Get random inbox card
+      const { data: inboxCards } = await supabase
+        .from("cards")
+        .select("*")
+        .eq("type", "inbox");
+
+      if (inboxCards && inboxCards.length > 0) {
+        const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
+
+        // Create game state
+        await supabase.from("game_state").insert({
+          room_id: room.id,
+          current_judge_id: currentPlayer.id,
+          current_inbox_card_id: randomInbox.id,
+          round_number: 1,
+          phase: "submitting",
+        });
+
+        // Deal cards to all players
+        const { data: replyCards } = await supabase
+          .from("cards")
+          .select("*")
+          .eq("type", "reply");
+
+        if (replyCards) {
+          for (const player of players) {
+            // Give each player 6 random reply cards
+            const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
+            const playerCards = shuffled.slice(0, 6);
+
+            for (const card of playerCards) {
+              await supabase.from("player_hands").insert({
+                player_id: player.id,
+                card_id: card.id,
+                room_id: room.id,
+              });
+            }
+          }
+        }
+      }
+
+      toast({
+        title: "თამაში დაიწყო!",
+        description: "გისურვებთ წარმატებას!",
+      });
+    } catch (error) {
+      toast({
+        title: "შეცდომა",
+        description: "თამაშის დაწყება ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    }
+  };
+
+  if (!room || !currentPlayer) {
+    return (
+      <div className="min-h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-muted-foreground">იტვირთება...</p>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
+      {room.status === "lobby" ? (
+        <GameLobby
+          room={room}
+          players={players}
+          currentPlayer={currentPlayer}
+          onStartGame={handleStartGame}
+        />
+      ) : (
+        <GameBoard
+          room={room}
+          players={players}
+          currentPlayer={currentPlayer}
+          gameState={gameState}
+        />
+      )}
+    </div>
+  );
+};
+
+export default Game;
