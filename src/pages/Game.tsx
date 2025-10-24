@@ -58,6 +58,18 @@ const Game = () => {
   }, [roomId]);
 
   const loadRoomData = async () => {
+    // Ensure user is authenticated
+    const { data: { session } } = await supabase.auth.getSession();
+    if (!session) {
+      // Sign in anonymously if not authenticated
+      const { data: authData, error: authError } = await supabase.auth.signInAnonymously();
+      if (authError) {
+        console.error("Auth error:", authError);
+        navigate("/");
+        return;
+      }
+    }
+
     const { data: roomData, error: roomError } = await supabase
       .from("rooms")
       .select("*")
