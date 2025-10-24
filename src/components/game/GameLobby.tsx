@@ -98,21 +98,32 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame }: GameLobbyProps
           )}
         </Card>
 
-        {/* Start Button */}
-        {currentPlayer.is_host && (
-          <Button
-            onClick={onStartGame}
-            disabled={players.length < 3}
-            className="w-full h-14 text-lg font-bold bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity glow-effect"
-          >
-            {players.length < 3 ? "დაელოდეთ მეტ მოთამაშეს" : "თამაშის დაწყება 🎮"}
-          </Button>
-        )}
-
-        {!currentPlayer.is_host && (
-          <div className="text-center py-4">
-            <p className="text-muted-foreground">
+        {/* Start Button - Always visible for host */}
+        {currentPlayer.is_host ? (
+          <div className="space-y-3">
+            <Button
+              onClick={onStartGame}
+              disabled={players.length < 3}
+              className="w-full h-16 text-xl font-bold bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity glow-effect animate-pulse-glow"
+            >
+              {players.length < 3 
+                ? `დაელოდეთ კიდევ ${3 - players.length} მოთამაშეს...` 
+                : "თამაშის დაწყება! 🎮"}
+            </Button>
+            {players.length >= 3 && (
+              <p className="text-center text-sm text-accent font-medium animate-pulse">
+                ✅ მზად ხართ! დააჭირეთ ღილაკს თამაშის დასაწყებად
+              </p>
+            )}
+          </div>
+        ) : (
+          <div className="text-center py-8 space-y-2">
+            <div className="text-4xl mb-2">⏳</div>
+            <p className="text-lg font-medium">
               დაელოდეთ რომ მასპინძელმა დაიწყოს თამაში...
+            </p>
+            <p className="text-sm text-muted-foreground">
+              მასპინძელი: {players.find(p => p.is_host)?.name}
             </p>
           </div>
         )}
