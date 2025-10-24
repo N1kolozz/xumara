@@ -75,9 +75,14 @@ const Game = () => {
       setPlayers(playersData);
       
       const playerId = localStorage.getItem(`player_${roomId}`);
+      console.log("Current player ID from storage:", playerId);
       if (playerId) {
         const player = playersData.find(p => p.id === playerId);
-        setCurrentPlayer(player || null);
+        console.log("Found current player:", player);
+        if (player) {
+          setCurrentPlayer(player);
+          console.log("Is host:", player.is_host);
+        }
       }
     }
 
