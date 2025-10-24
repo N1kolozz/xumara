@@ -39,6 +39,7 @@ export type Database = {
         Row: {
           current_inbox_card_id: string | null
           current_judge_id: string | null
+          max_rounds: number
           phase: string
           room_id: string
           round_number: number
@@ -47,6 +48,7 @@ export type Database = {
         Insert: {
           current_inbox_card_id?: string | null
           current_judge_id?: string | null
+          max_rounds?: number
           phase?: string
           room_id: string
           round_number?: number
@@ -55,6 +57,7 @@ export type Database = {
         Update: {
           current_inbox_card_id?: string | null
           current_judge_id?: string | null
+          max_rounds?: number
           phase?: string
           room_id?: string
           round_number?: number

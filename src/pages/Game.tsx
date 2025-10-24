@@ -25,6 +25,7 @@ interface GameState {
   current_judge_id: string | null;
   current_inbox_card_id: string | null;
   round_number: number;
+  max_rounds: number;
 }
 
 const Game = () => {
@@ -178,7 +179,7 @@ const Game = () => {
     };
   };
 
-  const handleStartGame = async () => {
+  const handleStartGame = async (maxRounds: number) => {
     if (!currentPlayer?.is_host || !room) return;
 
     if (players.length < 3) {
@@ -218,13 +219,14 @@ const Game = () => {
       if (inboxCards && inboxCards.length > 0) {
         const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
 
-        // Create game state with the correct judge
+        // Create game state with the correct judge and max rounds
         await supabase.from("game_state").insert({
           room_id: room.id,
           current_judge_id: judgePlayer.id,
           current_inbox_card_id: randomInbox.id,
           round_number: 1,
           phase: "submitting",
+          max_rounds: maxRounds,
         });
 
         // Deal cards to all players except judges

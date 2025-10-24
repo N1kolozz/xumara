@@ -1,5 +1,7 @@
+import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
+import { Input } from "@/components/ui/input";
 import { Users, Copy, Crown } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
@@ -18,11 +20,12 @@ interface GameLobbyProps {
   room: Room;
   players: Player[];
   currentPlayer: Player;
-  onStartGame: () => void;
+  onStartGame: (maxRounds: number) => void;
 }
 
 const GameLobby = ({ room, players, currentPlayer, onStartGame }: GameLobbyProps) => {
   const { toast } = useToast();
+  const [maxRounds, setMaxRounds] = useState(5);
 
   // Debug logging
   console.log("GameLobby - Current Player:", currentPlayer);
@@ -103,6 +106,28 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame }: GameLobbyProps
           )}
         </Card>
 
+        {/* Rounds Selection - Only for host */}
+        {currentPlayer.is_host && (
+          <Card className="p-6 bg-card/50 backdrop-blur-sm border-primary/20">
+            <div className="space-y-3">
+              <label className="text-sm font-medium text-foreground">
+                რაუნდების რაოდენობა:
+              </label>
+              <Input
+                type="number"
+                min={1}
+                max={20}
+                value={maxRounds}
+                onChange={(e) => setMaxRounds(Math.max(1, parseInt(e.target.value) || 1))}
+                className="text-center text-xl font-bold"
+              />
+              <p className="text-xs text-muted-foreground text-center">
+                აირჩიეთ 1-დან 20-მდე რაუნდი
+              </p>
+            </div>
+          </Card>
+        )}
+
         {/* Start Button - Always visible for host */}
         <div className="space-y-3">
           {currentPlayer.is_host ? (
@@ -111,14 +136,15 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame }: GameLobbyProps
                 onClick={() => {
                   console.log("Start game button clicked!");
                   console.log("Players:", players);
-                  onStartGame();
+                  console.log("Max rounds:", maxRounds);
+                  onStartGame(maxRounds);
                 }}
                 disabled={players.length < 3}
                 className="w-full h-16 text-xl font-bold bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity shadow-xl animate-pulse-glow"
               >
                 {players.length < 3 
                   ? `დაელოდეთ კიდევ ${3 - players.length} მოთამაშეს...` 
-                  : "🎮 თამაშის დაწყება!"}
+                  : `🎮 თამაშის დაწყება (${maxRounds} რაუნდი)`}
               </Button>
               {players.length >= 3 && (
                 <div className="text-center space-y-2 p-4 bg-accent/10 rounded-lg animate-pulse">
