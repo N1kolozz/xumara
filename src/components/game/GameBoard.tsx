@@ -94,11 +94,59 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
         .eq("room_id", room.id);
 
       const cards = handData?.map((h: any) => h.cards).filter(Boolean) || [];
-      console.log(`Player ${currentPlayer.name} has ${cards.length} cards`);
+      const currentCardCount = cards.length;
       
-      // Always ensure exactly 6 cards - limit to 6 to prevent duplicates
-      const limitedCards = cards.slice(0, 6);
-      setPlayerCards(limitedCards);
+      console.log(`Player ${currentPlayer.name} has ${currentCardCount} cards`);
+      
+      // If player has fewer than 6 cards, deal new ones
+      if (currentCardCount < 6) {
+        const cardsNeeded = 6 - currentCardCount;
+        
+        // Get all reply cards
+        const { data: replyCards } = await supabase
+          .from("cards")
+          .select("*")
+          .eq("type", "reply");
+        
+        if (replyCards) {
+          // Get all cards currently in use by any player
+          const { data: allHands } = await supabase
+            .from("player_hands")
+            .select("card_id")
+            .eq("room_id", room.id);
+          
+          const usedCardIds = new Set(allHands?.map(h => h.card_id) || []);
+          
+          // Filter out already used cards
+          const availableCards = replyCards.filter(card => !usedCardIds.has(card.id));
+          
+          // Shuffle and take needed cards
+          const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
+          const newCards = shuffled.slice(0, cardsNeeded);
+          
+          // Add new cards to player's hand
+          for (const card of newCards) {
+            await supabase.from("player_hands").insert({
+              player_id: currentPlayer.id,
+              card_id: card.id,
+              room_id: room.id,
+            });
+          }
+          
+          // Reload hand data after adding cards
+          const { data: updatedHandData } = await supabase
+            .from("player_hands")
+            .select("card_id, cards(*)")
+            .eq("player_id", currentPlayer.id)
+            .eq("room_id", room.id);
+          
+          const updatedCards = updatedHandData?.map((h: any) => h.cards).filter(Boolean) || [];
+          console.log(`Player ${currentPlayer.name} now has ${updatedCards.length} cards`);
+          setPlayerCards(updatedCards.slice(0, 6));
+        }
+      } else {
+        setPlayerCards(cards.slice(0, 6));
+      }
     }
 
     // Load submissions for judging phase
