@@ -89,64 +89,37 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
 
     // Load player's hand (only if not judge)
     if (!currentPlayer.is_judge) {
-      const { data: handData } = await supabase
+      // First, clear any existing cards for this player in this room
+      // This prevents duplicate cards from race conditions
+      await supabase
         .from("player_hands")
-        .select("card_id, cards(*)")
+        .delete()
         .eq("player_id", currentPlayer.id)
         .eq("room_id", room.id);
 
-      const currentCards = handData?.map((h: any) => h.cards).filter(Boolean) || [];
-      const currentCardCount = currentCards.length;
+      // Get all reply cards
+      const { data: replyCards } = await supabase
+        .from("cards")
+        .select("*")
+        .eq("type", "reply");
       
-      console.log(`Player ${currentPlayer.name} has ${currentCardCount} cards at round ${gameState.round_number}`);
-      
-      // If player has fewer than 6 cards, deal new ones
-      if (currentCardCount < 6) {
-        const cardsNeeded = 6 - currentCardCount;
+      if (replyCards) {
+        // Shuffle and take 6 random cards
+        const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
+        const newCards = shuffled.slice(0, 6);
         
-        // Get all reply cards
-        const { data: replyCards } = await supabase
-          .from("cards")
-          .select("*")
-          .eq("type", "reply");
+        console.log(`Dealing 6 cards to player ${currentPlayer.name} for round ${gameState.round_number}`);
         
-        if (replyCards) {
-          // Get current player's card IDs to avoid duplicates in their hand
-          const currentCardIds = new Set(currentCards.map(c => c.id));
-          
-          // Filter out cards that are already in THIS player's hand
-          // Cards can repeat across different players or rounds, but not in same hand
-          const availableCards = replyCards.filter(card => !currentCardIds.has(card.id));
-          
-          // Shuffle and take needed cards
-          const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
-          const newCards = shuffled.slice(0, cardsNeeded);
-          
-          console.log(`Adding ${newCards.length} new cards to player ${currentPlayer.name}`);
-          
-          // Add new cards to player's hand
-          for (const card of newCards) {
-            await supabase.from("player_hands").insert({
-              player_id: currentPlayer.id,
-              card_id: card.id,
-              room_id: room.id,
-            });
-          }
-          
-          // Reload hand data after adding cards
-          const { data: updatedHandData } = await supabase
-            .from("player_hands")
-            .select("card_id, cards(*)")
-            .eq("player_id", currentPlayer.id)
-            .eq("room_id", room.id);
-          
-          const updatedCards = updatedHandData?.map((h: any) => h.cards).filter(Boolean) || [];
-          console.log(`Player ${currentPlayer.name} now has ${updatedCards.length} cards after dealing`);
-          setPlayerCards(updatedCards);
+        // Add new cards to player's hand
+        for (const card of newCards) {
+          await supabase.from("player_hands").insert({
+            player_id: currentPlayer.id,
+            card_id: card.id,
+            room_id: room.id,
+          });
         }
-      } else {
-        console.log(`Player ${currentPlayer.name} already has enough cards`);
-        setPlayerCards(currentCards);
+        
+        setPlayerCards(newCards);
       }
     }
 
