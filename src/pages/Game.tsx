@@ -197,11 +197,17 @@ const Game = () => {
         .update({ status: "playing" })
         .eq("id", room.id);
 
-      // Set first judge (host)
-      await supabase
-        .from("players")
-        .update({ is_judge: true })
-        .eq("id", currentPlayer.id);
+      // Find the judge player - the one who selected judge role
+      const judgePlayer = players.find(p => p.is_judge);
+      
+      if (!judgePlayer) {
+        toast({
+          title: "შეცდომა",
+          description: "მსაჯული არ არის არჩეული",
+          variant: "destructive",
+        });
+        return;
+      }
 
       // Get random inbox card
       const { data: inboxCards } = await supabase
@@ -212,23 +218,26 @@ const Game = () => {
       if (inboxCards && inboxCards.length > 0) {
         const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
 
-        // Create game state
+        // Create game state with the correct judge
         await supabase.from("game_state").insert({
           room_id: room.id,
-          current_judge_id: currentPlayer.id,
+          current_judge_id: judgePlayer.id,
           current_inbox_card_id: randomInbox.id,
           round_number: 1,
           phase: "submitting",
         });
 
-        // Deal cards to all players
+        // Deal cards to all players except judges
         const { data: replyCards } = await supabase
           .from("cards")
           .select("*")
           .eq("type", "reply");
 
         if (replyCards) {
-          for (const player of players) {
+          // Filter out judge players - only regular players get cards
+          const nonJudgePlayers = players.filter(p => !p.is_judge);
+          
+          for (const player of nonJudgePlayers) {
             // Give each player 6 random reply cards
             const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
             const playerCards = shuffled.slice(0, 6);

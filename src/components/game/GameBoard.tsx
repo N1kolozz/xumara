@@ -67,16 +67,18 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
       if (inboxData) setInboxCard(inboxData);
     }
 
-    // Load player's hand
-    const { data: handData } = await supabase
-      .from("player_hands")
-      .select("card_id, cards(*)")
-      .eq("player_id", currentPlayer.id)
-      .eq("room_id", room.id);
+    // Load player's hand (only if not judge)
+    if (!currentPlayer.is_judge) {
+      const { data: handData } = await supabase
+        .from("player_hands")
+        .select("card_id, cards(*)")
+        .eq("player_id", currentPlayer.id)
+        .eq("room_id", room.id);
 
-    if (handData) {
-      const cards = handData.map((h: any) => h.cards).filter(Boolean);
-      setPlayerCards(cards);
+      if (handData) {
+        const cards = handData.map((h: any) => h.cards).filter(Boolean);
+        setPlayerCards(cards);
+      }
     }
 
     // Load submissions for judging phase
@@ -121,12 +123,21 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
     if (!selectedCard || !gameState) return;
 
     try {
+      // Submit the card
       await supabase.from("submissions").insert({
         room_id: room.id,
         player_id: currentPlayer.id,
         card_id: selectedCard,
         round_number: gameState.round_number,
       });
+
+      // Remove the card from player's hand
+      await supabase
+        .from("player_hands")
+        .delete()
+        .eq("player_id", currentPlayer.id)
+        .eq("card_id", selectedCard)
+        .eq("room_id", room.id);
 
       toast({
         title: "ბარათი გაგზავნილია!",
@@ -180,21 +191,9 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
           .eq("id", winner.id);
       }
 
-      // Move to next round
-      const nextJudgeIndex = (players.findIndex((p) => p.is_judge) + 1) % players.length;
-      const nextJudge = players[nextJudgeIndex];
+      // Judge stays the same - don't rotate judges
 
-      await supabase
-        .from("players")
-        .update({ is_judge: false })
-        .eq("room_id", room.id);
-
-      await supabase
-        .from("players")
-        .update({ is_judge: true })
-        .eq("id", nextJudge.id);
-
-      // Get new inbox card
+      // Get new inbox card for next round
       const { data: inboxCards } = await supabase
         .from("cards")
         .select("*")
@@ -207,11 +206,46 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
           .from("game_state")
           .update({
             phase: "submitting",
-            current_judge_id: nextJudge.id,
             current_inbox_card_id: randomInbox.id,
             round_number: gameState.round_number + 1,
           })
           .eq("room_id", room.id);
+      }
+      
+      // Deal new cards to all non-judge players to replace their submitted cards
+      const { data: replyCards } = await supabase
+        .from("cards")
+        .select("*")
+        .eq("type", "reply");
+
+      if (replyCards) {
+        const nonJudgePlayers = players.filter(p => !p.is_judge);
+        
+        for (const player of nonJudgePlayers) {
+          // Get current hand count
+          const { data: currentHand } = await supabase
+            .from("player_hands")
+            .select("*")
+            .eq("player_id", player.id)
+            .eq("room_id", room.id);
+          
+          const currentCount = currentHand?.length || 0;
+          
+          // Give them new cards to bring them back to 6
+          if (currentCount < 6) {
+            const cardsNeeded = 6 - currentCount;
+            const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
+            const newCards = shuffled.slice(0, cardsNeeded);
+            
+            for (const card of newCards) {
+              await supabase.from("player_hands").insert({
+                player_id: player.id,
+                card_id: card.id,
+                room_id: room.id,
+              });
+            }
+          }
+        }
       }
 
       // Clear submissions for next round
