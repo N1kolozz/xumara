@@ -14,6 +14,8 @@ const Index = () => {
   const [roomPin, setRoomPin] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
+  const [selectedRole, setSelectedRole] = useState<"player" | "judge" | null>(null);
+  const [showRoleError, setShowRoleError] = useState(false);
 
   const generatePin = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -24,6 +26,15 @@ const Index = () => {
       toast({
         title: "შეიყვანეთ სახელი",
         description: "თამაშის დასაწყებად სახელი აუცილებელია",
+        variant: "destructive",
+      });
+      return;
+    }
+
+    if (!selectedRole) {
+      toast({
+        title: "აირჩიეთ როლი",
+        description: "თამაშის დასაწყებად როლის არჩევა აუცილებელია",
         variant: "destructive",
       });
       return;
@@ -48,6 +59,7 @@ const Index = () => {
           room_id: room.id,
           name: playerName,
           is_host: true,
+          is_judge: selectedRole === "judge",
         })
         .select()
         .single();
@@ -87,7 +99,17 @@ const Index = () => {
       return;
     }
 
+    if (!selectedRole) {
+      toast({
+        title: "აირჩიეთ როლი",
+        description: "თამაშში შესასვლელად როლის არჩევა აუცილებელია",
+        variant: "destructive",
+      });
+      return;
+    }
+
     setIsJoining(true);
+    setShowRoleError(false);
 
     try {
       const { data: room, error: roomError } = await supabase
@@ -128,12 +150,23 @@ const Index = () => {
         return;
       }
 
+      // Check if judge already exists when trying to join as judge
+      if (selectedRole === "judge") {
+        const existingJudge = existingPlayers?.find(p => p.is_judge);
+        if (existingJudge) {
+          setShowRoleError(true);
+          setIsJoining(false);
+          return;
+        }
+      }
+
       const { data: player, error: playerError } = await supabase
         .from("players")
         .insert({
           room_id: room.id,
           name: playerName,
           is_host: false,
+          is_judge: selectedRole === "judge",
         })
         .select()
         .single();
@@ -214,10 +247,31 @@ const Index = () => {
                 placeholder="შენი სახელი"
                 value={playerName}
                 onChange={(e) => setPlayerName(e.target.value)}
-                onKeyPress={(e) => e.key === "Enter" && createRoom()}
                 className="h-12 text-lg"
                 maxLength={20}
               />
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">აირჩიეთ როლი:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={selectedRole === "player" ? "default" : "outline"}
+                    onClick={() => setSelectedRole("player")}
+                    className="h-12"
+                  >
+                    მოთამაშე
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={selectedRole === "judge" ? "default" : "outline"}
+                    onClick={() => setSelectedRole("judge")}
+                    className="h-12"
+                  >
+                    მსაჯული
+                  </Button>
+                </div>
+              </div>
 
               <Button
                 onClick={createRoom}
@@ -255,11 +309,46 @@ const Index = () => {
               <Input
                 placeholder="ოთახის PIN"
                 value={roomPin}
-                onChange={(e) => setRoomPin(e.target.value.toUpperCase())}
-                onKeyPress={(e) => e.key === "Enter" && joinRoom()}
+                onChange={(e) => {
+                  setRoomPin(e.target.value.toUpperCase());
+                  setShowRoleError(false);
+                }}
                 className="h-12 text-lg font-mono tracking-wider"
                 maxLength={6}
               />
+
+              <div className="space-y-2">
+                <p className="text-sm font-medium">აირჩიეთ როლი:</p>
+                <div className="grid grid-cols-2 gap-3">
+                  <Button
+                    type="button"
+                    variant={selectedRole === "player" ? "default" : "outline"}
+                    onClick={() => {
+                      setSelectedRole("player");
+                      setShowRoleError(false);
+                    }}
+                    className="h-12"
+                  >
+                    მოთამაშე
+                  </Button>
+                  <Button
+                    type="button"
+                    variant={selectedRole === "judge" ? "default" : "outline"}
+                    onClick={() => {
+                      setSelectedRole("judge");
+                      setShowRoleError(false);
+                    }}
+                    className="h-12"
+                  >
+                    მსაჯული
+                  </Button>
+                </div>
+                {showRoleError && (
+                  <p className="text-sm text-destructive font-medium">
+                    მსაჯული უკვე არსებობს! გთხოვთ აირჩიოთ მოთამაშის როლი
+                  </p>
+                )}
+              </div>
 
               <Button
                 onClick={joinRoom}
