@@ -141,7 +141,6 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
 
       toast({
         title: "ბარათი გაგზავნილია!",
-        description: "დაელოდეთ სხვა მოთამაშეებს",
       });
 
       setSelectedCard(null);
@@ -221,6 +220,21 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
       if (replyCards) {
         const nonJudgePlayers = players.filter(p => !p.is_judge);
         
+        // Get all currently used cards across all players
+        const { data: allCurrentHands } = await supabase
+          .from("player_hands")
+          .select("card_id")
+          .eq("room_id", room.id);
+        
+        const usedCardIds = new Set(allCurrentHands?.map(h => h.card_id) || []);
+        
+        // Filter out cards that are already in any player's hand
+        const availableCards = replyCards.filter(card => !usedCardIds.has(card.id));
+        
+        // Shuffle available cards once
+        const shuffledCards = [...availableCards].sort(() => Math.random() - 0.5);
+        let cardIndex = 0;
+        
         for (const player of nonJudgePlayers) {
           // Get current hand count
           const { data: currentHand } = await supabase
@@ -231,11 +245,11 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
           
           const currentCount = currentHand?.length || 0;
           
-          // Give them new cards to bring them back to 6
+          // Give them unique new cards to bring them back to 6
           if (currentCount < 6) {
             const cardsNeeded = 6 - currentCount;
-            const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
-            const newCards = shuffled.slice(0, cardsNeeded);
+            const newCards = shuffledCards.slice(cardIndex, cardIndex + cardsNeeded);
+            cardIndex += cardsNeeded;
             
             for (const card of newCards) {
               await supabase.from("player_hands").insert({
@@ -313,9 +327,7 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
         {gameState.phase === "submitting" && !isJudge && (
           <div className="space-y-4">
             <p className="text-center text-lg">
-              {hasSubmitted
-                ? "დაელოდეთ სხვა მოთამაშეებს..."
-                : "აირჩიე შენი ყველაზე სასაცილო პასუხი:"}
+              აირჩიე შენი ყველაზე სასაცილო პასუხი:
             </p>
 
             {!hasSubmitted && (

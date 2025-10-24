@@ -237,10 +237,14 @@ const Game = () => {
           // Filter out judge players - only regular players get cards
           const nonJudgePlayers = players.filter(p => !p.is_judge);
           
+          // Shuffle all reply cards once
+          const shuffledCards = [...replyCards].sort(() => Math.random() - 0.5);
+          let cardIndex = 0;
+          
           for (const player of nonJudgePlayers) {
-            // Give each player 6 random reply cards
-            const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
-            const playerCards = shuffled.slice(0, 6);
+            // Give each player 6 unique cards
+            const playerCards = shuffledCards.slice(cardIndex, cardIndex + 6);
+            cardIndex += 6;
 
             for (const card of playerCards) {
               await supabase.from("player_hands").insert({
