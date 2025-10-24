@@ -54,6 +54,8 @@ const Index = () => {
 
       if (playerError) throw playerError;
 
+      // Use sessionStorage instead of localStorage to keep player per tab
+      sessionStorage.setItem(`player_${room.id}`, player.id);
       localStorage.setItem(`player_${room.id}`, player.id);
 
       await supabase.from("rooms").update({ host_id: player.id }).eq("id", room.id);
@@ -138,6 +140,8 @@ const Index = () => {
 
       if (playerError) throw playerError;
 
+      // Use sessionStorage instead of localStorage to keep player per tab
+      sessionStorage.setItem(`player_${room.id}`, player.id);
       localStorage.setItem(`player_${room.id}`, player.id);
 
       toast({

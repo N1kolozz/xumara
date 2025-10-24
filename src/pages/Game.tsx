@@ -74,7 +74,16 @@ const Game = () => {
     if (playersData) {
       setPlayers(playersData);
       
-      const playerId = localStorage.getItem(`player_${roomId}`);
+      // Try sessionStorage first (tab-specific), fallback to localStorage
+      let playerId = sessionStorage.getItem(`player_${roomId}`);
+      if (!playerId) {
+        playerId = localStorage.getItem(`player_${roomId}`);
+        // If found in localStorage, copy to sessionStorage for this tab
+        if (playerId) {
+          sessionStorage.setItem(`player_${roomId}`, playerId);
+        }
+      }
+      
       console.log("Current player ID from storage:", playerId);
       if (playerId) {
         const player = playersData.find(p => p.id === playerId);
@@ -124,8 +133,28 @@ const Game = () => {
           table: "players",
           filter: `room_id=eq.${roomId}`,
         },
-        () => {
-          loadRoomData();
+        async (payload) => {
+          console.log("Player change detected:", payload.eventType);
+          
+          // Just reload players list, don't change currentPlayer
+          const { data: playersData } = await supabase
+            .from("players")
+            .select("*")
+            .eq("room_id", roomId)
+            .order("joined_at", { ascending: true });
+
+          if (playersData) {
+            setPlayers(playersData);
+            
+            // Update currentPlayer data if their info changed
+            if (currentPlayer) {
+              const updatedCurrentPlayer = playersData.find(p => p.id === currentPlayer.id);
+              if (updatedCurrentPlayer) {
+                setCurrentPlayer(updatedCurrentPlayer);
+                console.log("Updated current player:", updatedCurrentPlayer);
+              }
+            }
+          }
         }
       )
       .on(
