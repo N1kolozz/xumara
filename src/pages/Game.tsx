@@ -44,7 +44,17 @@ const Game = () => {
     }
 
     loadRoomData();
-    subscribeToRealtime();
+    const unsubscribe = subscribeToRealtime();
+
+    // Cleanup function when component unmounts (player leaves)
+    return () => {
+      if (currentPlayer && room) {
+        cleanupGameData();
+      }
+      if (unsubscribe) {
+        unsubscribe();
+      }
+    };
   }, [roomId]);
 
   const loadRoomData = async () => {
@@ -106,6 +116,27 @@ const Game = () => {
       if (gameStateData) {
         setGameState(gameStateData);
       }
+    }
+  };
+
+  const cleanupGameData = async () => {
+    if (!room || !currentPlayer) return;
+
+    console.log("Cleaning up game data for room:", room.id);
+
+    try {
+      // Delete all game-related data for this room
+      await Promise.all([
+        supabase.from("player_hands").delete().eq("room_id", room.id),
+        supabase.from("submissions").delete().eq("room_id", room.id),
+        supabase.from("game_state").delete().eq("room_id", room.id),
+        supabase.from("players").delete().eq("room_id", room.id),
+        supabase.from("rooms").delete().eq("id", room.id),
+      ]);
+
+      console.log("Game data cleaned up successfully");
+    } catch (error) {
+      console.error("Error cleaning up game data:", error);
     }
   };
 
