@@ -94,10 +94,10 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
         .eq("player_id", currentPlayer.id)
         .eq("room_id", room.id);
 
-      const cards = handData?.map((h: any) => h.cards).filter(Boolean) || [];
-      const currentCardCount = cards.length;
+      const currentCards = handData?.map((h: any) => h.cards).filter(Boolean) || [];
+      const currentCardCount = currentCards.length;
       
-      console.log(`Player ${currentPlayer.name} has ${currentCardCount} cards`);
+      console.log(`Player ${currentPlayer.name} has ${currentCardCount} cards at round ${gameState.round_number}`);
       
       // If player has fewer than 6 cards, deal new ones
       if (currentCardCount < 6) {
@@ -110,20 +110,18 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
           .eq("type", "reply");
         
         if (replyCards) {
-          // Get all cards currently in use by any player
-          const { data: allHands } = await supabase
-            .from("player_hands")
-            .select("card_id")
-            .eq("room_id", room.id);
+          // Get current player's card IDs to avoid duplicates in their hand
+          const currentCardIds = new Set(currentCards.map(c => c.id));
           
-          const usedCardIds = new Set(allHands?.map(h => h.card_id) || []);
-          
-          // Filter out already used cards
-          const availableCards = replyCards.filter(card => !usedCardIds.has(card.id));
+          // Filter out cards that are already in THIS player's hand
+          // Cards can repeat across different players or rounds, but not in same hand
+          const availableCards = replyCards.filter(card => !currentCardIds.has(card.id));
           
           // Shuffle and take needed cards
           const shuffled = [...availableCards].sort(() => Math.random() - 0.5);
           const newCards = shuffled.slice(0, cardsNeeded);
+          
+          console.log(`Adding ${newCards.length} new cards to player ${currentPlayer.name}`);
           
           // Add new cards to player's hand
           for (const card of newCards) {
@@ -142,11 +140,12 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
             .eq("room_id", room.id);
           
           const updatedCards = updatedHandData?.map((h: any) => h.cards).filter(Boolean) || [];
-          console.log(`Player ${currentPlayer.name} now has ${updatedCards.length} cards`);
-          setPlayerCards(updatedCards.slice(0, 6));
+          console.log(`Player ${currentPlayer.name} now has ${updatedCards.length} cards after dealing`);
+          setPlayerCards(updatedCards);
         }
       } else {
-        setPlayerCards(cards.slice(0, 6));
+        console.log(`Player ${currentPlayer.name} already has enough cards`);
+        setPlayerCards(currentCards);
       }
     }
 
