@@ -260,6 +260,13 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
 
       // Judge stays the same - don't rotate judges
 
+      // Clear submissions for next round first
+      await supabase
+        .from("submissions")
+        .delete()
+        .eq("room_id", room.id)
+        .eq("round_number", gameState.round_number);
+
       // Get new inbox card for next round
       const { data: inboxCards } = await supabase
         .from("cards")
@@ -278,64 +285,6 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
           })
           .eq("room_id", room.id);
       }
-      
-      // Deal new cards to all non-judge players to replace their submitted cards
-      const { data: replyCards } = await supabase
-        .from("cards")
-        .select("*")
-        .eq("type", "reply");
-
-      if (replyCards) {
-        const nonJudgePlayers = players.filter(p => !p.is_judge);
-        
-        // Get all currently used cards across all players
-        const { data: allCurrentHands } = await supabase
-          .from("player_hands")
-          .select("card_id")
-          .eq("room_id", room.id);
-        
-        const usedCardIds = new Set(allCurrentHands?.map(h => h.card_id) || []);
-        
-        // Filter out cards that are already in any player's hand
-        const availableCards = replyCards.filter(card => !usedCardIds.has(card.id));
-        
-        // Shuffle available cards once
-        const shuffledCards = [...availableCards].sort(() => Math.random() - 0.5);
-        let cardIndex = 0;
-        
-        for (const player of nonJudgePlayers) {
-          // Get current hand count
-          const { data: currentHand } = await supabase
-            .from("player_hands")
-            .select("*")
-            .eq("player_id", player.id)
-            .eq("room_id", room.id);
-          
-          const currentCount = currentHand?.length || 0;
-          
-          // Give them unique new cards to bring them back to 6
-          if (currentCount < 6) {
-            const cardsNeeded = 6 - currentCount;
-            const newCards = shuffledCards.slice(cardIndex, cardIndex + cardsNeeded);
-            cardIndex += cardsNeeded;
-            
-            for (const card of newCards) {
-              await supabase.from("player_hands").insert({
-                player_id: player.id,
-                card_id: card.id,
-                room_id: room.id,
-              });
-            }
-          }
-        }
-      }
-
-      // Clear submissions for next round
-      await supabase
-        .from("submissions")
-        .delete()
-        .eq("room_id", room.id)
-        .eq("round_number", gameState.round_number);
 
       toast({
         title: "გამარჯვებული შეირჩა!",
