@@ -27,12 +27,12 @@ const GameCard = ({
       onClick={onClick}
       className={cn(
         "relative overflow-hidden transition-all duration-300 animate-card-deal",
-        size === "large" ? "w-full max-w-xl p-8" : "p-6 aspect-[3/4]",
+        size === "large" ? "w-full max-w-xl p-8" : "w-32 h-44 p-3",
         isInbox
           ? "bg-gradient-to-br from-muted to-muted/50 border-muted-foreground/20"
           : "bg-gradient-to-br from-primary to-primary/80 border-primary/30",
-        isSelected && "ring-4 ring-accent scale-105 shadow-2xl",
-        onClick && "cursor-pointer hover:scale-105 hover:shadow-xl",
+        isSelected && "ring-4 ring-accent shadow-2xl",
+        onClick && "cursor-pointer hover:shadow-xl",
         "card-flip",
         className
       )}
@@ -42,8 +42,8 @@ const GameCard = ({
         <div className="flex-1 flex items-center justify-center">
           <p
             className={cn(
-              "text-center font-medium leading-relaxed",
-              size === "large" ? "text-2xl md:text-3xl" : "text-base md:text-lg",
+              "text-center font-medium leading-tight",
+              size === "large" ? "text-2xl md:text-3xl" : "text-xs",
               isInbox ? "text-foreground" : "text-white"
             )}
           >
@@ -51,10 +51,10 @@ const GameCard = ({
           </p>
         </div>
 
-        <div className="flex items-center justify-between mt-4">
+        <div className="flex items-center justify-between mt-2">
           <div
             className={cn(
-              "px-3 py-1 rounded-full text-xs font-bold uppercase",
+              "px-1.5 py-0.5 rounded-full text-[8px] font-bold uppercase",
               isInbox
                 ? "bg-muted-foreground/10 text-muted-foreground"
                 : "bg-white/20 text-white"
@@ -64,10 +64,10 @@ const GameCard = ({
           </div>
 
           {isInbox && (
-            <div className="text-4xl opacity-20">📬</div>
+            <div className="text-xl opacity-20">📬</div>
           )}
           {!isInbox && (
-            <div className="text-4xl opacity-20">💬</div>
+            <div className="text-xl opacity-20">💬</div>
           )}
         </div>
       </div>
@@ -75,7 +75,8 @@ const GameCard = ({
       {/* Decorative corner elements */}
       <div
         className={cn(
-          "absolute top-0 right-0 w-20 h-20 opacity-10",
+          "absolute top-0 right-0 opacity-10",
+          size === "large" ? "w-20 h-20" : "w-8 h-8",
           isInbox ? "bg-muted-foreground" : "bg-white"
         )}
         style={{
