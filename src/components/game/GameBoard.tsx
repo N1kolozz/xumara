@@ -542,7 +542,7 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
                   text={card.text_ge}
                   type="reply"
                   onClick={() => handleSelectWinner(card.id)}
-                  className="cursor-pointer hover:scale-105 transition-transform"
+                  className="cursor-pointer"
                   style={{ animationDelay: `${index * 0.1}s` }}
                 />
               ))}
