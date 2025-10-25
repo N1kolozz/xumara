@@ -159,16 +159,22 @@ const Game = () => {
             const leftPlayerId = (payload.old as { id: string }).id;
             console.log("Player left with ID:", leftPlayerId);
             console.log("Current player ID:", currentPlayerId);
+            console.log("Current players state:", players);
             
             // Find the player in current state before updating
             const leftPlayer = players.find(p => p.id === leftPlayerId);
+            console.log("Found left player:", leftPlayer);
+            console.log("Condition check - currentPlayerId:", currentPlayerId, "leftPlayerId !== currentPlayerId:", leftPlayerId !== currentPlayerId, "leftPlayer:", !!leftPlayer);
             
             // Don't show toast if it's the current player leaving
             if (currentPlayerId && leftPlayerId !== currentPlayerId && leftPlayer) {
+              console.log("Showing toast for player:", leftPlayer.name);
               toast({
                 title: "მოთამაშე გავიდა",
                 description: `${leftPlayer.name} დატოვა ოთახი`,
               });
+            } else {
+              console.log("NOT showing toast - one of conditions failed");
             }
           }
           
