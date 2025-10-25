@@ -5,7 +5,7 @@ import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Sparkles, Users, Gamepad2 } from "lucide-react";
+import { Laugh, Users, Gamepad2, Sparkles } from "lucide-react";
 const Index = () => {
   const navigate = useNavigate();
   const {
@@ -223,7 +223,7 @@ const Index = () => {
               <span className="text-sm font-medium">ითამაშე ონლაინში</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full">
-              <Sparkles className="h-5 w-5 text-accent" />
+              <Laugh className="h-5 w-5 text-accent" />
               <span className="text-sm font-medium">ხუმარა ხუმრობები</span>
             </div>
           </div>
