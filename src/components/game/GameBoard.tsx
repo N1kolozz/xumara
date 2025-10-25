@@ -464,10 +464,6 @@ const GameBoard = ({
             </p>
           </div>}
 
-        {gameState.phase === "submitting" && isJudge && <div className="text-center py-12">
-            <p className="text-xl">შენ ხარ მსაჯული ამ რაუნდში</p>
-            <p className="text-muted-foreground mt-2">დაელოდე სანამ ყველა ხუმარა გამოაგზავნის ბარათს</p>
-          </div>}
 
         {gameState.phase === "judging" && !isJudge && <div className="text-center py-12">
             <Users className="h-16 w-16 mx-auto mb-4 text-primary animate-pulse" />
