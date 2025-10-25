@@ -26,7 +26,7 @@ const GameCard = ({
     <Card
       onClick={onClick}
       className={cn(
-        "relative overflow-hidden transition-all duration-300 animate-card-deal",
+        "relative overflow-hidden animate-card-deal",
         size === "large" ? "w-full max-w-xl p-8" : "w-full h-full p-4",
         isInbox
           ? "bg-gradient-to-br from-muted to-muted/50 border-muted-foreground/20"
