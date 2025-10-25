@@ -237,6 +237,9 @@ const Game = () => {
     if (!currentPlayer || !room) return;
 
     try {
+      // Check if the leaving player is the host
+      const isHost = currentPlayer.is_host;
+
       // Delete current player from the room
       await supabase
         .from("players")
@@ -246,7 +249,7 @@ const Game = () => {
       // Check how many players are left in the room
       const { data: remainingPlayers } = await supabase
         .from("players")
-        .select("id")
+        .select("*")
         .eq("room_id", room.id);
 
       // If no players left, delete the room (CASCADE will clean up all related data)
@@ -255,6 +258,28 @@ const Game = () => {
           .from("rooms")
           .delete()
           .eq("id", room.id);
+      } else if (isHost && remainingPlayers.length > 0) {
+        // If the leaving player was the host, assign a new random host
+        const newHost = remainingPlayers[Math.floor(Math.random() * remainingPlayers.length)];
+        
+        // Update the room with new host_id
+        await supabase
+          .from("rooms")
+          .update({ host_id: newHost.id })
+          .eq("id", room.id);
+
+        // Update the new host player's is_host status
+        await supabase
+          .from("players")
+          .update({ is_host: true })
+          .eq("id", newHost.id);
+
+        // Make sure all other players have is_host set to false
+        await supabase
+          .from("players")
+          .update({ is_host: false })
+          .eq("room_id", room.id)
+          .neq("id", newHost.id);
       }
 
       // Clear storage
