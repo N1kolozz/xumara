@@ -207,7 +207,7 @@ const Index = () => {
         {/* Hero Section */}
         <div className="text-center space-y-4">
           <div className="inline-block">
-            <h1 className="text-6xl md:text-7xl font-bold gradient-text mb-2">ხუმარ</h1>
+            <h1 className="text-6xl md:text-7xl font-bold gradient-text mb-2 text-stone-800">ხუმარა</h1>
             <div className="h-1 w-full bg-gradient-to-r from-primary via-secondary to-accent rounded-full"></div>
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground">
