@@ -1,4 +1,4 @@
-import { useEffect, useState } from "react";
+import { useEffect, useState, useRef } from "react";
 import { useParams, useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
@@ -36,6 +36,9 @@ const Game = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
+  
+  // Use ref to always have access to latest players list in callbacks
+  const playersRef = useRef<Player[]>([]);
 
   useEffect(() => {
     if (!roomId) {
@@ -74,6 +77,7 @@ const Game = () => {
 
     if (playersData) {
       setPlayers(playersData);
+      playersRef.current = playersData;
       
       // Try sessionStorage first (tab-specific), fallback to localStorage
       let playerId = sessionStorage.getItem(`player_${roomId}`);
@@ -159,10 +163,10 @@ const Game = () => {
             const leftPlayerId = (payload.old as { id: string }).id;
             console.log("Player left with ID:", leftPlayerId);
             console.log("Current player ID:", currentPlayerId);
-            console.log("Current players state:", players);
+            console.log("Current players from ref:", playersRef.current);
             
-            // Find the player in current state before updating
-            const leftPlayer = players.find(p => p.id === leftPlayerId);
+            // Find the player in current state before updating - use ref to get latest data
+            const leftPlayer = playersRef.current.find(p => p.id === leftPlayerId);
             console.log("Found left player:", leftPlayer);
             console.log("Condition check - currentPlayerId:", currentPlayerId, "leftPlayerId !== currentPlayerId:", leftPlayerId !== currentPlayerId, "leftPlayer:", !!leftPlayer);
             
@@ -203,6 +207,7 @@ const Game = () => {
           if (playersData) {
             console.log("Updated players list:", playersData.length, "players");
             setPlayers(playersData);
+            playersRef.current = playersData;
             
             // Update currentPlayer data if their info changed
             if (currentPlayerId) {
