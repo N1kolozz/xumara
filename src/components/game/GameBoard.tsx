@@ -471,7 +471,7 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
         </div>
 
         {/* Round Table - Shows submitted cards for all players */}
-        {submissions.length > 0 && (gameState.phase === "submitting" || gameState.phase === "judging") && (
+        {(gameState.phase === "submitting" || gameState.phase === "judging") && (
           <div className="flex justify-center my-8">
             <div className="relative w-96 h-96 rounded-full bg-gradient-to-br from-green-600 to-green-800 shadow-2xl flex items-center justify-center">
               {/* Table surface shine effect */}
