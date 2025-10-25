@@ -28,6 +28,7 @@ interface GameBoardProps {
   players: Player[];
   currentPlayer: Player;
   gameState: GameState | null;
+  onLeaveGame: () => void;
 }
 
 interface CardData {
@@ -42,7 +43,7 @@ interface Submission {
   card_id: string;
 }
 
-const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) => {
+const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: GameBoardProps) => {
   const { toast } = useToast();
   const [inboxCard, setInboxCard] = useState<CardData | null>(null);
   const [playerCards, setPlayerCards] = useState<CardData[]>([]);
@@ -369,6 +370,17 @@ const GameBoard = ({ room, players, currentPlayer, gameState }: GameBoardProps) 
   return (
     <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto space-y-6">
+        {/* Leave Game Button */}
+        <div className="flex justify-start">
+          <Button
+            variant="outline"
+            onClick={onLeaveGame}
+            className="hover:bg-destructive hover:text-destructive-foreground"
+          >
+            ← გასვლა
+          </Button>
+        </div>
+
         {/* Header with Round and Scoreboard */}
         <div className="flex items-center justify-between">
           <div className="flex items-center gap-4">

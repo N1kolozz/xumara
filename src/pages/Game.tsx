@@ -179,6 +179,35 @@ const Game = () => {
     };
   };
 
+  const handleLeaveGame = async () => {
+    if (!currentPlayer || !room) return;
+
+    try {
+      // Delete current player from the room
+      await supabase
+        .from("players")
+        .delete()
+        .eq("id", currentPlayer.id);
+
+      // Clear storage
+      sessionStorage.removeItem(`player_${room.id}`);
+      localStorage.removeItem(`player_${room.id}`);
+
+      toast({
+        title: "გასული ხართ თამაშიდან",
+        description: "წარმატებით დატოვეთ ოთახი",
+      });
+
+      navigate("/");
+    } catch (error) {
+      toast({
+        title: "შეცდომა",
+        description: "ოთახიდან გასვლა ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleStartGame = async (maxRounds: number) => {
     if (!currentPlayer?.is_host || !room) return;
 
@@ -328,6 +357,7 @@ const Game = () => {
           players={players}
           currentPlayer={currentPlayer}
           onStartGame={handleStartGame}
+          onLeaveGame={handleLeaveGame}
         />
       ) : (
         <GameBoard
@@ -335,6 +365,7 @@ const Game = () => {
           players={players}
           currentPlayer={currentPlayer}
           gameState={gameState}
+          onLeaveGame={handleLeaveGame}
         />
       )}
     </div>

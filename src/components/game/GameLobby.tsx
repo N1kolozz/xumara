@@ -21,9 +21,10 @@ interface GameLobbyProps {
   players: Player[];
   currentPlayer: Player;
   onStartGame: (maxRounds: number) => void;
+  onLeaveGame: () => void;
 }
 
-const GameLobby = ({ room, players, currentPlayer, onStartGame }: GameLobbyProps) => {
+const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: GameLobbyProps) => {
   const { toast } = useToast();
   const [maxRounds, setMaxRounds] = useState(5);
 
@@ -45,6 +46,16 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame }: GameLobbyProps
       <div className="max-w-2xl mx-auto space-y-6 animate-slide-in">
         {/* Header */}
         <div className="text-center space-y-4">
+          <div className="flex items-center justify-between mb-4">
+            <Button
+              variant="outline"
+              onClick={onLeaveGame}
+              className="hover:bg-destructive hover:text-destructive-foreground"
+            >
+              ← გასვლა
+            </Button>
+            <div className="flex-1" />
+          </div>
           <h1 className="text-5xl font-bold gradient-text">Chat-ლახი</h1>
           <p className="text-xl text-muted-foreground">მოთამაშეები რომლებიც ელოდებიან თამაშის დაწყებას</p>
         </div>
