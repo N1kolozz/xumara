@@ -192,6 +192,22 @@ const Game = () => {
     }
 
     try {
+      // Check if game already started
+      const { data: existingGameState } = await supabase
+        .from("game_state")
+        .select("*")
+        .eq("room_id", room.id)
+        .maybeSingle();
+
+      if (existingGameState) {
+        toast({
+          title: "თამაში უკვე დაწყებულია",
+          description: "თამაში უკვე მიმდინარეობს",
+          variant: "destructive",
+        });
+        return;
+      }
+
       // Update room status
       await supabase
         .from("rooms")
@@ -220,7 +236,7 @@ const Game = () => {
         const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
 
         // Create game state with the correct judge and max rounds
-        await supabase.from("game_state").insert({
+        const { error: gameStateError } = await supabase.from("game_state").insert({
           room_id: room.id,
           current_judge_id: judgePlayer.id,
           current_inbox_card_id: randomInbox.id,
@@ -228,6 +244,11 @@ const Game = () => {
           phase: "submitting",
           max_rounds: maxRounds,
         });
+
+        if (gameStateError) {
+          console.error("Game state error:", gameStateError);
+          throw gameStateError;
+        }
 
         // Deal cards to all players except judges
         const { data: replyCards } = await supabase
@@ -254,11 +275,15 @@ const Game = () => {
             console.log(`Dealing ${playerCards.length} cards to player ${player.name}`);
             
             for (const card of playerCards) {
-              await supabase.from("player_hands").insert({
+              const { error: handError } = await supabase.from("player_hands").insert({
                 player_id: player.id,
                 card_id: card.id,
                 room_id: room.id,
               });
+              
+              if (handError) {
+                console.error("Hand insert error:", handError);
+              }
             }
           }
         } else {
