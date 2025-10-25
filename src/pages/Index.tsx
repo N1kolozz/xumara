@@ -260,13 +260,8 @@ const Index = () => {
                 </div>
               </div>
 
-              <Button onClick={createRoom} disabled={isCreating} className="w-full h-12 text-lg font-bold bg-primary hover:bg-primary/90 transition-colors flex items-center justify-center gap-2">
-                {isCreating ? "იქმნება..." : (
-                  <>
-                    ოთახის შექმნა
-                    <Gamepad2 className="h-6 w-6" />
-                  </>
-                )}
+              <Button onClick={createRoom} disabled={isCreating} className="w-full h-12 text-lg font-bold bg-primary hover:bg-primary/90 transition-colors">
+                {isCreating ? "იქმნება..." : "ოთახის შექმნა"}
               </Button>
             </div>
           </Card>
