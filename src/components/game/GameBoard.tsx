@@ -150,7 +150,7 @@ const GameBoard = ({
       schema: "public",
       table: "submissions",
       filter: `room_id=eq.${room.id}`
-    }, async () => {
+    }, async (payload) => {
       // Reload submissions in real-time so all players see cards on table
       if (!gameState) return;
       const {
@@ -160,6 +160,17 @@ const GameBoard = ({
         setSubmissions(submissionsData);
         const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
         setSubmittedCards(cards);
+        
+        // Check if a winner was just selected (for all players to see)
+        if (payload.eventType === "UPDATE" && payload.new.is_winner === true) {
+          const winnerSubmission = submissionsData.find((s: any) => s.id === payload.new.id);
+          if (winnerSubmission && winnerSubmission.players) {
+            toast({
+              title: "გამარჯვებული შეირჩა!",
+              description: `${winnerSubmission.players.name} მოიგო ეს რაუნდი!`
+            });
+          }
+        }
       }
     }).subscribe();
     const gameStateChannel = supabase.channel(`game_state_${room.id}`).on("postgres_changes", {
@@ -318,10 +329,6 @@ const GameBoard = ({
             round_number: gameState.round_number + 1
           }).eq("room_id", room.id);
         }
-        toast({
-          title: "გამარჯვებული შეირჩა!",
-          description: `${winner?.name} მოიგო ეს რაუნდი!`
-        });
       }
     } catch (error) {
       toast({
