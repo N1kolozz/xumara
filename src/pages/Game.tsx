@@ -313,6 +313,17 @@ const Game = () => {
       return;
     }
 
+    // Check if there is at least one judge
+    const hasJudge = players.some(p => p.is_judge);
+    if (!hasJudge) {
+      toast({
+        title: "მსაჯული აკლია",
+        description: "თამაშის დასაწყებად აუცილებელია მსაჯული",
+        variant: "destructive",
+      });
+      return;
+    }
+
     try {
       // Check if game already started
       const { data: existingGameState } = await supabase
