@@ -220,7 +220,7 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-secondary/10 rounded-full">
               <Gamepad2 className="h-5 w-5 text-secondary" />
-              <span className="text-sm font-medium">ითამაშე ონალინში</span>
+              <span className="text-sm font-medium">ითამაშე ონლაინში</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full">
               <Sparkles className="h-5 w-5 text-accent" />
