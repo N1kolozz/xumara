@@ -44,6 +44,8 @@ export type Database = {
           room_id: string
           round_number: number
           updated_at: string
+          winner_name: string | null
+          winner_score: number | null
         }
         Insert: {
           current_inbox_card_id?: string | null
@@ -53,6 +55,8 @@ export type Database = {
           room_id: string
           round_number?: number
           updated_at?: string
+          winner_name?: string | null
+          winner_score?: number | null
         }
         Update: {
           current_inbox_card_id?: string | null
@@ -62,6 +66,8 @@ export type Database = {
           room_id?: string
           round_number?: number
           updated_at?: string
+          winner_name?: string | null
+          winner_score?: number | null
         }
         Relationships: [
           {
