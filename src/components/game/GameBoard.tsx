@@ -301,58 +301,64 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
 
       // Check if this was the last round
       if (gameState.round_number >= gameState.max_rounds) {
-        // Game is over, find the winner(s)
-        const sortedPlayers = [...players].sort((a, b) => b.score - a.score);
-        const topScore = sortedPlayers[0]?.score || 0;
-        const winners = sortedPlayers.filter(p => p.score === topScore && !p.is_judge);
-        
-        // The highest scorer becomes the judge for next game
-        const newJudge = winners.length > 0 ? winners[0] : sortedPlayers.find(p => !p.is_judge);
-
-        if (newJudge) {
-          // Set all players as non-judge
-          await supabase
-            .from("players")
-            .update({ is_judge: false })
-            .eq("room_id", room.id);
-          
-          // Set new judge
-          await supabase
-            .from("players")
-            .update({ is_judge: true })
-            .eq("id", newJudge.id);
-        }
-
-        // Reset all scores
-        await supabase
+        // Game is over, find the winner
+        // Get updated scores from database after winner's score was incremented
+        const { data: updatedPlayers } = await supabase
           .from("players")
-          .update({ score: 0 })
+          .select("*")
           .eq("room_id", room.id);
+        
+        if (updatedPlayers) {
+          const sortedPlayers = [...updatedPlayers].sort((a, b) => b.score - a.score);
+          const topScore = sortedPlayers[0]?.score || 0;
+          const gameWinner = sortedPlayers[0];
+          
+          // The highest scorer becomes the judge for next game
+          const newJudge = gameWinner || sortedPlayers.find(p => !p.is_judge);
 
-        // Delete game state
-        await supabase
-          .from("game_state")
-          .delete()
-          .eq("room_id", room.id);
+          if (newJudge) {
+            // Set all players as non-judge
+            await supabase
+              .from("players")
+              .update({ is_judge: false })
+              .eq("room_id", room.id);
+            
+            // Set new judge
+            await supabase
+              .from("players")
+              .update({ is_judge: true })
+              .eq("id", newJudge.id);
+          }
 
-        // Clear all player hands
-        await supabase
-          .from("player_hands")
-          .delete()
-          .eq("room_id", room.id);
+          // Reset all scores
+          await supabase
+            .from("players")
+            .update({ score: 0 })
+            .eq("room_id", room.id);
 
-        // Return to lobby
-        await supabase
-          .from("rooms")
-          .update({ status: "lobby" })
-          .eq("id", room.id);
+          // Delete game state
+          await supabase
+            .from("game_state")
+            .delete()
+            .eq("room_id", room.id);
 
-        toast({
-          title: "თამაში დასრულდა!",
-          description: winners.length === 1 
-            ? `${winners[0].name} არის გამარჯვებული! ${topScore} ქულით!`
-            : `გამარჯვებულები: ${winners.map(w => w.name).join(", ")} - ${topScore} ქულით!`,
-        });
+          // Clear all player hands
+          await supabase
+            .from("player_hands")
+            .delete()
+            .eq("room_id", room.id);
+
+          // Return to lobby
+          await supabase
+            .from("rooms")
+            .update({ status: "lobby" })
+            .eq("id", room.id);
+
+          toast({
+            title: "თამაში დასრულდა!",
+            description: `${gameWinner?.name} არის გამარჯვებული ${topScore} ქულით!`,
+          });
+        }
       } else {
         // Continue to next round
         // Judge stays the same
