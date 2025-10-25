@@ -264,7 +264,7 @@ const Index = () => {
                 {isCreating ? "იქმნება..." : (
                   <>
                     ოთახის შექმნა
-                    <Gamepad2 className="h-5 w-5" />
+                    <Gamepad2 className="h-6 w-6" />
                   </>
                 )}
               </Button>
