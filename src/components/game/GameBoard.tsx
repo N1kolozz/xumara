@@ -148,19 +148,17 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
       }
     }
 
-    // Load submissions for judging phase
-    if (gameState.phase === "judging" || gameState.phase === "revealing") {
-      const { data: submissionsData } = await supabase
-        .from("submissions")
-        .select("*, cards(*)")
-        .eq("room_id", room.id)
-        .eq("round_number", gameState.round_number);
+    // Load submissions for all phases (so players can see cards on table)
+    const { data: submissionsData } = await supabase
+      .from("submissions")
+      .select("*, cards(*), players(name)")
+      .eq("room_id", room.id)
+      .eq("round_number", gameState.round_number);
 
-      if (submissionsData) {
-        setSubmissions(submissionsData);
-        const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
-        setSubmittedCards(cards);
-      }
+    if (submissionsData) {
+      setSubmissions(submissionsData);
+      const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
+      setSubmittedCards(cards);
     }
   };
 
@@ -176,22 +174,19 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
           filter: `room_id=eq.${room.id}`,
         },
         async () => {
-          // Only reload submissions if we're in judging phase
-          // Don't reload player cards to prevent re-dealing
+          // Reload submissions in real-time so all players see cards on table
           if (!gameState) return;
           
-          if (gameState.phase === "judging" || gameState.phase === "revealing") {
-            const { data: submissionsData } = await supabase
-              .from("submissions")
-              .select("*, cards(*)")
-              .eq("room_id", room.id)
-              .eq("round_number", gameState.round_number);
+          const { data: submissionsData } = await supabase
+            .from("submissions")
+            .select("*, cards(*), players(name)")
+            .eq("room_id", room.id)
+            .eq("round_number", gameState.round_number);
 
-            if (submissionsData) {
-              setSubmissions(submissionsData);
-              const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
-              setSubmittedCards(cards);
-            }
+          if (submissionsData) {
+            setSubmissions(submissionsData);
+            const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
+            setSubmittedCards(cards);
           }
         }
       )
@@ -443,6 +438,50 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
             className="animate-card-deal"
           />
         </div>
+
+        {/* Round Table - Shows submitted cards during submitting phase */}
+        {gameState.phase === "submitting" && submissions.length > 0 && (
+          <div className="flex justify-center my-8">
+            <div className="relative w-96 h-96 rounded-full bg-gradient-to-br from-green-600 to-green-800 shadow-2xl flex items-center justify-center">
+              {/* Table surface shine effect */}
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 to-transparent"></div>
+              
+              {/* Submitted cards arranged in a circle */}
+              <div className="relative w-full h-full">
+                {submissions.map((submission: any, index) => {
+                  const angle = (index * 360) / Math.max(players.length - 1, 3);
+                  const radius = 140;
+                  const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
+                  const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
+                  
+                  return (
+                    <div
+                      key={submission.id}
+                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-card-deal"
+                      style={{
+                        transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
+                        animationDelay: `${index * 0.2}s`
+                      }}
+                    >
+                      <div className="flex flex-col items-center gap-1">
+                        <div className="w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-2 border-2 border-gray-200">
+                          <span className="text-xs text-center font-medium text-gray-800 line-clamp-4">
+                            {submission.cards?.text_ge}
+                          </span>
+                        </div>
+                      </div>
+                    </div>
+                  );
+                })}
+              </div>
+              
+              {/* Center decoration */}
+              <div className="absolute inset-0 flex items-center justify-center">
+                <div className="w-16 h-16 rounded-full bg-green-900/50 border-4 border-green-700/30"></div>
+              </div>
+            </div>
+          </div>
+        )}
 
         {/* Game Phase Content */}
         {gameState.phase === "submitting" && !isJudge && (
