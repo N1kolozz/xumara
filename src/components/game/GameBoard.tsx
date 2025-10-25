@@ -267,6 +267,9 @@ const GameBoard = ({
             score: 0
           }).eq("room_id", room.id);
 
+          // Clear all submissions from all rounds
+          await supabase.from("submissions").delete().eq("room_id", room.id);
+
           // Delete game state
           await supabase.from("game_state").delete().eq("room_id", room.id);
 
