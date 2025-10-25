@@ -32,7 +32,7 @@ const GameCard = ({
           ? "bg-gradient-to-br from-muted to-muted/50 border-muted-foreground/20"
           : "bg-gradient-to-br from-primary to-primary/80 border-primary/30",
         isSelected && "ring-4 ring-accent shadow-2xl",
-        onClick && "cursor-pointer hover:shadow-xl",
+        onClick && "cursor-pointer hover:border-accent/60",
         "card-flip",
         className
       )}
