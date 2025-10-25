@@ -144,6 +144,30 @@ const Game = () => {
         async (payload) => {
           console.log("Player change detected:", payload.eventType);
           
+          // Show toast when player leaves
+          if (payload.eventType === "DELETE" && payload.old) {
+            const leftPlayer = payload.old as Player;
+            // Don't show toast if it's the current player leaving (they'll see their own message)
+            if (currentPlayer && leftPlayer.id !== currentPlayer.id) {
+              toast({
+                title: "მოთამაშე გავიდა",
+                description: `${leftPlayer.name} დატოვა ოთახი`,
+              });
+            }
+          }
+          
+          // Show toast when new player joins
+          if (payload.eventType === "INSERT" && payload.new) {
+            const newPlayer = payload.new as Player;
+            // Don't show toast if it's the current player joining
+            if (currentPlayer && newPlayer.id !== currentPlayer.id) {
+              toast({
+                title: "ახალი მოთამაშე",
+                description: `${newPlayer.name} შემოუერთდა ოთახს`,
+              });
+            }
+          }
+          
           // Just reload players list, don't change currentPlayer
           const { data: playersData } = await supabase
             .from("players")
