@@ -32,7 +32,7 @@ const GameCard = ({
           ? "bg-gradient-to-br from-muted to-muted/50 border-muted-foreground/20"
           : "bg-gradient-to-br from-primary to-primary/80 border-primary/30",
         isSelected && "ring-4 ring-accent shadow-2xl",
-        onClick && "cursor-pointer hover:brightness-90",
+        onClick && "cursor-pointer",
         className
       )}
       style={style}
