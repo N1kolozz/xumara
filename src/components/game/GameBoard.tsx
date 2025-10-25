@@ -361,7 +361,32 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
         }
       } else {
         // Continue to next round
-        // Judge stays the same
+        // Get updated scores to determine new judge
+        const { data: updatedPlayers } = await supabase
+          .from("players")
+          .select("*")
+          .eq("room_id", room.id);
+        
+        if (updatedPlayers) {
+          // Sort by score descending
+          const sortedPlayers = [...updatedPlayers].sort((a, b) => b.score - a.score);
+          const newJudge = sortedPlayers[0];
+          
+          if (newJudge) {
+            // Set all players as non-judge
+            await supabase
+              .from("players")
+              .update({ is_judge: false })
+              .eq("room_id", room.id);
+            
+            // Set new judge (player with highest score)
+            await supabase
+              .from("players")
+              .update({ is_judge: true })
+              .eq("id", newJudge.id);
+          }
+        }
+
         const { data: inboxCards } = await supabase
           .from("cards")
           .select("*")
