@@ -439,8 +439,8 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
           />
         </div>
 
-        {/* Round Table - Shows submitted cards during submitting phase */}
-        {gameState.phase === "submitting" && submissions.length > 0 && (
+        {/* Round Table - Shows submitted cards for all players */}
+        {submissions.length > 0 && (gameState.phase === "submitting" || gameState.phase === "judging") && (
           <div className="flex justify-center my-8">
             <div className="relative w-96 h-96 rounded-full bg-gradient-to-br from-green-600 to-green-800 shadow-2xl flex items-center justify-center">
               {/* Table surface shine effect */}
@@ -464,7 +464,16 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
                       }}
                     >
                       <div className="flex flex-col items-center gap-1">
-                        <div className="w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-2 border-2 border-gray-200">
+                        <div 
+                          className={`w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-2 border-2 border-gray-200 ${
+                            isJudge && gameState.phase === "judging" ? "cursor-pointer hover:scale-105 hover:border-primary transition-all" : ""
+                          }`}
+                          onClick={() => {
+                            if (isJudge && gameState.phase === "judging") {
+                              handleSelectWinner(submission.card_id);
+                            }
+                          }}
+                        >
                           <span className="text-xs text-center font-medium text-gray-800 line-clamp-4">
                             {submission.cards?.text_ge}
                           </span>
@@ -569,20 +578,8 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
         {gameState.phase === "judging" && isJudge && (
           <div className="space-y-4">
             <p className="text-center text-lg font-semibold">
-              აირჩიე ყველაზე სასაცილო პასუხი:
+              აირჩიე ყველაზე სასაცილო პასუხი მაგიდიდან:
             </p>
-            <div className="grid grid-cols-2 md:grid-cols-3 gap-4">
-              {submittedCards.map((card, index) => (
-                <GameCard
-                  key={card.id}
-                  text={card.text_ge}
-                  type="reply"
-                  onClick={() => handleSelectWinner(card.id)}
-                  className="cursor-pointer"
-                  style={{ animationDelay: `${index * 0.1}s` }}
-                />
-              ))}
-            </div>
           </div>
         )}
 
