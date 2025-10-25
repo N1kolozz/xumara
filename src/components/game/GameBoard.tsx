@@ -457,19 +457,29 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
                   return (
                     <div
                       key={submission.id}
-                      className="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 animate-card-deal"
+                      className="absolute animate-card-deal"
                       style={{
+                        top: '50%',
+                        left: '50%',
                         transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
                         animationDelay: `${index * 0.2}s`
                       }}
                     >
                       <div className="flex flex-col items-center gap-1">
                         <div 
-                          className={`w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-2 border-2 border-gray-200 ${
-                            isJudge && gameState.phase === "judging" ? "cursor-pointer hover:scale-105 hover:border-primary transition-all" : ""
+                          className={`w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-2 border-2 ${
+                            isJudge && gameState.phase === "judging" 
+                              ? "cursor-pointer hover:scale-110 hover:shadow-2xl hover:border-primary border-gray-200 transition-all duration-200 active:scale-95" 
+                              : "border-gray-200"
                           }`}
-                          onClick={() => {
+                          onClick={(e) => {
+                            console.log('Card clicked!', { 
+                              isJudge, 
+                              phase: gameState.phase, 
+                              cardId: submission.card_id 
+                            });
                             if (isJudge && gameState.phase === "judging") {
+                              e.stopPropagation();
                               handleSelectWinner(submission.card_id);
                             }
                           }}
