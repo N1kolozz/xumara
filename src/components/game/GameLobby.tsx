@@ -180,12 +180,7 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
               >
                 {players.length < 3 
                   ? `დაელოდეთ კიდევ ${3 - players.length} მოთამაშეს...` 
-                  : (
-                    <span className="flex items-center justify-center gap-2">
-                      <Gamepad2 className="h-6 w-6" />
-                      თამაშის დაწყება ({maxRounds} რაუნდი)
-                    </span>
-                  )}
+                  : `თამაშის დაწყება (${maxRounds} რაუნდი)`}
               </Button>
             </>
           ) : (
