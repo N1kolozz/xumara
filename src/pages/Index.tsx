@@ -218,7 +218,7 @@ const Index = () => {
               <Users className="h-5 w-5 text-primary" />
               <span className="text-sm font-medium">3-8 ხუმარა</span>
             </div>
-            <div className="flex items-center gap-2 px-4 py-2 bg-secondary/10 rounded-full">
+            <div className="flex items-center gap-2 px-4 py-2 bg-secondary/20 rounded-full">
               <Gamepad2 className="h-5 w-5 text-secondary" />
               <span className="text-sm font-medium">ითამაშე ონლაინში</span>
             </div>
