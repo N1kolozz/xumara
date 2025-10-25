@@ -2,13 +2,14 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Users, Copy, Crown } from "lucide-react";
+import { Users, Copy, Crown, Gavel } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Player {
   id: string;
   name: string;
   is_host: boolean;
+  is_judge: boolean;
 }
 
 interface Room {
@@ -100,12 +101,20 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
                   </div>
                   <span className="font-medium">{player.name}</span>
                 </div>
-                {player.is_host && (
-                  <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-accent/20 text-accent text-sm font-medium">
-                    <Crown className="h-4 w-4" />
-                    <span>მასპინძელი</span>
-                  </div>
-                )}
+                <div className="flex items-center gap-2">
+                  {player.is_host && (
+                    <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-accent/20 text-accent text-sm font-medium">
+                      <Crown className="h-4 w-4" />
+                      <span>მასპინძელი</span>
+                    </div>
+                  )}
+                  {player.is_judge && (
+                    <div className="flex items-center gap-1 px-3 py-1 rounded-full bg-primary/20 text-primary text-sm font-medium">
+                      <Gavel className="h-4 w-4" />
+                      <span>მსაჯული</span>
+                    </div>
+                  )}
+                </div>
               </div>
             ))}
           </div>
