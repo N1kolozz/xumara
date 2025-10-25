@@ -251,10 +251,10 @@ const Index = () => {
               <div className="space-y-2">
                 <p className="text-sm font-medium">აირჩიეთ როლი:</p>
                 <div className="grid grid-cols-2 gap-3">
-                  <Button type="button" variant={createRole === "player" ? "default" : "outline"} onClick={() => setCreateRole("player")} className="h-12">
+                  <Button type="button" variant={createRole === "player" ? "default" : "outline"} onClick={() => setCreateRole("player")} className="h-12 hover:!bg-primary hover:!text-primary-foreground">
                     ხუმარა
                   </Button>
-                  <Button type="button" variant={createRole === "judge" ? "default" : "outline"} onClick={() => setCreateRole("judge")} className="h-12">
+                  <Button type="button" variant={createRole === "judge" ? "default" : "outline"} onClick={() => setCreateRole("judge")} className="h-12 hover:!bg-primary hover:!text-primary-foreground">
                     მსაჯული
                   </Button>
                 </div>
