@@ -552,7 +552,7 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
 
         {gameState.phase === "submitting" && isJudge && (
           <div className="text-center py-12">
-            <Trophy className="h-16 w-16 mx-auto mb-4 text-accent animate-pulse-glow" />
+            <Trophy className="h-16 w-16 mx-auto mb-4 text-accent" />
             <p className="text-xl">შენ ხარ მსაჯული ამ რაუნდში</p>
             <p className="text-muted-foreground mt-2">
               დაელოდე სანამ ყველა მოთამაშე გააგზავნის ბარათს
