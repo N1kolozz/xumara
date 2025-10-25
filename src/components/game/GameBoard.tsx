@@ -88,39 +88,53 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
       if (inboxData) setInboxCard(inboxData);
     }
 
-    // Load player's hand (only if not judge)
-    if (!currentPlayer.is_judge) {
-      // First, clear any existing cards for this player in this room
-      // This prevents duplicate cards from race conditions
-      await supabase
+    // Load player's hand (only if not judge and only if they don't have cards yet)
+    if (!currentPlayer.is_judge && gameState.phase === "submitting") {
+      // Check if player already has cards in their hand
+      const { data: existingHand } = await supabase
         .from("player_hands")
-        .delete()
+        .select("card_id")
         .eq("player_id", currentPlayer.id)
         .eq("room_id", room.id);
 
-      // Get all reply cards
-      const { data: replyCards } = await supabase
-        .from("cards")
-        .select("*")
-        .eq("type", "reply");
-      
-      if (replyCards) {
-        // Shuffle and take 6 random cards
-        const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
-        const newCards = shuffled.slice(0, 6);
+      // Only deal new cards if the player has no cards
+      if (!existingHand || existingHand.length === 0) {
+        // Get all reply cards
+        const { data: replyCards } = await supabase
+          .from("cards")
+          .select("*")
+          .eq("type", "reply");
         
-        console.log(`Dealing 6 cards to player ${currentPlayer.name} for round ${gameState.round_number}`);
-        
-        // Add new cards to player's hand
-        for (const card of newCards) {
-          await supabase.from("player_hands").insert({
-            player_id: currentPlayer.id,
-            card_id: card.id,
-            room_id: room.id,
-          });
+        if (replyCards) {
+          // Shuffle and take 6 random cards
+          const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
+          const newCards = shuffled.slice(0, 6);
+          
+          console.log(`Dealing 6 cards to player ${currentPlayer.name} for round ${gameState.round_number}`);
+          
+          // Add new cards to player's hand
+          for (const card of newCards) {
+            await supabase.from("player_hands").insert({
+              player_id: currentPlayer.id,
+              card_id: card.id,
+              room_id: room.id,
+            });
+          }
+          
+          setPlayerCards(newCards);
         }
-        
-        setPlayerCards(newCards);
+      } else {
+        // Load existing cards from database
+        const { data: handData } = await supabase
+          .from("player_hands")
+          .select("card_id, cards(*)")
+          .eq("player_id", currentPlayer.id)
+          .eq("room_id", room.id);
+
+        if (handData) {
+          const cards = handData.map((h: any) => h.cards).filter(Boolean);
+          setPlayerCards(cards);
+        }
       }
     }
 
@@ -410,12 +424,15 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
         {/* Game Phase Content */}
         {gameState.phase === "submitting" && !isJudge && (
           <div className="space-y-4">
-            <p className="text-center text-lg">
-              აირჩიე შენი ყველაზე სასაცილო პასუხი:
-            </p>
-
-            {!hasSubmitted && (
+            {hasSubmitted ? (
+              <p className="text-center text-lg text-muted-foreground">
+                იცადე სანამ ყველა მოთამაშე აირჩევს ბარათს...
+              </p>
+            ) : (
               <>
+                <p className="text-center text-lg">
+                  აირჩიე შენი ყველაზე სასაცილო პასუხი:
+                </p>
                 <div className="relative w-full max-w-md mx-auto">
                   {/* Carousel Container */}
                   <div className="overflow-hidden" ref={emblaRef}>
