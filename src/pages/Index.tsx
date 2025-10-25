@@ -152,7 +152,7 @@ const Index = () => {
       if (existingPlayers && existingPlayers.length >= 8) {
         toast({
           title: "ოთახი სავსეა",
-          description: "ამ ოთახში მეტი მოთამაშე ვეღარ დაემატება",
+          description: "ამ ოთახში მეტი ხუმარა ვეღარ დაემატება",
           variant: "destructive"
         });
         return;
@@ -216,7 +216,7 @@ const Index = () => {
           <div className="flex flex-wrap justify-center gap-4 mt-6">
             <div className="flex items-center gap-2 px-4 py-2 bg-primary/10 rounded-full">
               <Users className="h-5 w-5 text-primary" />
-              <span className="text-sm font-medium">3-8 მოთამაშე</span>
+              <span className="text-sm font-medium">3-8 ხუმარა</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-secondary/10 rounded-full">
               <Gamepad2 className="h-5 w-5 text-secondary" />
@@ -252,7 +252,7 @@ const Index = () => {
                 <p className="text-sm font-medium">აირჩიეთ როლი:</p>
                 <div className="grid grid-cols-2 gap-3">
                   <Button type="button" variant={createRole === "player" ? "default" : "outline"} onClick={() => setCreateRole("player")} className="h-12">
-                    მოთამაშე
+                    ხუმარა
                   </Button>
                   <Button type="button" variant={createRole === "judge" ? "default" : "outline"} onClick={() => setCreateRole("judge")} className="h-12">
                     მსაჯული
@@ -295,7 +295,7 @@ const Index = () => {
                   setJoinRole("player");
                   setShowRoleError(false);
                 }} className="h-12">
-                    მოთამაშე
+                    ხუმარა
                   </Button>
                   <Button type="button" variant={joinRole === "judge" ? "default" : "outline"} onClick={() => {
                   setJoinRole("judge");
@@ -305,7 +305,7 @@ const Index = () => {
                   </Button>
                 </div>
                 {showRoleError && <p className="text-sm text-destructive font-medium">
-                    მსაჯული უკვე არსებობს! გთხოვთ აირჩიოთ მოთამაშის როლი
+                    მსაჯული უკვე არსებობს! გთხოვთ აირჩიოთ ხუმარას როლი
                   </p>}
               </div>
 
@@ -324,11 +324,11 @@ const Index = () => {
           </h3>
           <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
             <li>შექმენით ოთახი ან შეუერთდით PIN-ით</li>
-            <li>ერთი მოთამაშე არის მსაჯული და კითხულობს "INBOX" კითხვას</li>
+            <li>ერთი ხუმარა არის მსაჯული და კითხულობს "INBOX" კითხვას</li>
             <li>სხვები ირჩევენ ყველაზე სასაცილო "REPLY" პასუხს</li>
             <li>მსაჯული ირჩევს ყველაზე კარგ პასუხს</li>
             <li>გამარჯვებული იღებს 1 ქულას ყოველ რაუნდში</li>
-            <li>ყველა რაუნდის დასრულების შემდეგ, ყველაზე მეტ ქულიანი მოთამაშე იგებს და შემდეგ ის ხდება მსაჯული</li>
+            <li>ყველა რაუნდის დასრულების შემდეგ, ყველაზე მეტ ქულიანი ხუმარა იგებს და შემდეგ ის ხდება მსაჯული</li>
           </ol>
         </Card>
       </div>

@@ -213,8 +213,8 @@ const Game = () => {
 
     if (players.length < 3) {
       toast({
-        title: "არასაკმარისი მოთამაშეები",
-        description: "თამაშის დასაწყებად მინიმუმ 3 მოთამაშე არის საჭირო",
+        title: "არასაკმარისი ხუმარები",
+        description: "თამაშის დასაწყებად მინიმუმ 3 ხუმარა არის საჭირო",
         variant: "destructive",
       });
       return;

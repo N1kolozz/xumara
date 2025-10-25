@@ -427,12 +427,10 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
             <h2 className="text-2xl font-bold">
               რაუნდი {gameState.round_number} / {gameState.max_rounds}
             </h2>
-            {isJudge && (
-              <div className="px-4 py-2 bg-accent/20 text-accent rounded-full text-sm font-medium flex items-center gap-2">
-                <Trophy className="h-4 w-4" />
-                <span>შენ ხარ მსაჯული</span>
-              </div>
-            )}
+            <div className="px-4 py-2 bg-accent/20 text-accent rounded-full text-sm font-medium flex items-center gap-2">
+              <Trophy className="h-4 w-4" />
+              <span>შენ ხარ {isJudge ? "მსაჯული" : "ხუმარა"}</span>
+            </div>
           </div>
           <Scoreboard players={players} />
         </div>
@@ -452,7 +450,7 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
           <div className="space-y-4">
             {hasSubmitted ? (
               <p className="text-center text-lg text-muted-foreground">
-                იცადე სანამ ყველა მოთამაშე აირჩევს ბარათს...
+                იცადე სანამ ყველა ხუმარა აირჩევს ბარათს...
               </p>
             ) : (
               <>
@@ -555,7 +553,7 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
             <Trophy className="h-16 w-16 mx-auto mb-4 text-accent" />
             <p className="text-xl">შენ ხარ მსაჯული ამ რაუნდში</p>
             <p className="text-muted-foreground mt-2">
-              დაელოდე სანამ ყველა მოთამაშე გააგზავნის ბარათს
+              დაელოდე სანამ ყველა ხუმარა გააგზავნის ბარათს
             </p>
           </div>
         )}
