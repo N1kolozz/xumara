@@ -97,8 +97,18 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
         .eq("player_id", currentPlayer.id)
         .eq("room_id", room.id);
 
-      // Only deal new cards if the player has no cards
-      if (!existingHand || existingHand.length === 0) {
+      // Check if player has submitted in this round
+      const { data: hasSubmittedData } = await supabase
+        .from("submissions")
+        .select("id")
+        .eq("player_id", currentPlayer.id)
+        .eq("room_id", room.id)
+        .eq("round_number", gameState.round_number);
+
+      const playerHasSubmitted = hasSubmittedData && hasSubmittedData.length > 0;
+
+      // Only deal new cards if the player has no cards AND hasn't submitted yet
+      if ((!existingHand || existingHand.length === 0) && !playerHasSubmitted) {
         // Get all reply cards
         const { data: replyCards } = await supabase
           .from("cards")
@@ -165,8 +175,24 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
           table: "submissions",
           filter: `room_id=eq.${room.id}`,
         },
-        () => {
-          loadGameData();
+        async () => {
+          // Only reload submissions if we're in judging phase
+          // Don't reload player cards to prevent re-dealing
+          if (!gameState) return;
+          
+          if (gameState.phase === "judging" || gameState.phase === "revealing") {
+            const { data: submissionsData } = await supabase
+              .from("submissions")
+              .select("*, cards(*)")
+              .eq("room_id", room.id)
+              .eq("round_number", gameState.round_number);
+
+            if (submissionsData) {
+              setSubmissions(submissionsData);
+              const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
+              setSubmittedCards(cards);
+            }
+          }
         }
       )
       .subscribe();
