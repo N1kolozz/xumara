@@ -145,36 +145,32 @@ const GameBoard = ({
     }
   };
   const subscribeToSubmissions = () => {
-    const submissionsChannel = supabase.channel(`submissions_${room.id}`).on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "submissions",
-      filter: `room_id=eq.${room.id}`
-    }, async (payload) => {
-      // Check if a winner was just selected (for all players to see)
-      if (payload.eventType === "UPDATE" && payload.new.is_winner === true) {
-        // Find the winner player from the payload
-        const winnerId = payload.new.player_id;
-        const winner = players.find(p => p.id === winnerId);
-        if (winner) {
-          toast({
-            title: "გამარჯვებული შეირჩა!",
-            description: `${winner.name} მოიგო ეს რაუნდი!`
-          });
+    const submissionsChannel = supabase.channel(`submissions_${room.id}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "submissions",
+        filter: `room_id=eq.${room.id}`
+      }, async () => {
+        // Reload submissions in real-time so all players see cards on table
+        if (!gameState) return;
+        const {
+          data: submissionsData
+        } = await supabase.from("submissions").select("*, cards(*), players(name)").eq("room_id", room.id).eq("round_number", gameState.round_number);
+        if (submissionsData) {
+          setSubmissions(submissionsData);
+          const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
+          setSubmittedCards(cards);
         }
-      }
-      
-      // Reload submissions in real-time so all players see cards on table
-      if (!gameState) return;
-      const {
-        data: submissionsData
-      } = await supabase.from("submissions").select("*, cards(*), players(name)").eq("room_id", room.id).eq("round_number", gameState.round_number);
-      if (submissionsData) {
-        setSubmissions(submissionsData);
-        const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
-        setSubmittedCards(cards);
-      }
-    }).subscribe();
+      })
+      .on("broadcast", { event: "round_winner" }, (payload) => {
+        // Show toast when judge selects a winner
+        toast({
+          title: "გამარჯვებული შეირჩა!",
+          description: `${payload.payload.winnerName} მოიგო ეს რაუნდი!`
+        });
+      })
+      .subscribe();
     const gameStateChannel = supabase.channel(`game_state_${room.id}`).on("postgres_changes", {
       event: "*",
       schema: "public",
@@ -250,6 +246,14 @@ const GameBoard = ({
         await supabase.from("players").update({
           score: winner.score + 1
         }).eq("id", winner.id);
+        
+        // Broadcast winner to all players in the room
+        const channel = supabase.channel(`submissions_${room.id}`);
+        await channel.send({
+          type: "broadcast",
+          event: "round_winner",
+          payload: { winnerName: winner.name }
+        });
       }
 
       // Clear submissions for next round
