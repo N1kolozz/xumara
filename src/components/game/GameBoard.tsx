@@ -279,6 +279,21 @@ const GameBoard = ({
           const { data: replyCards } = await supabase.from("cards").select("*").eq("type", "reply");
           
           if (replyCards && replyCards.length >= 6 * players.filter(p => !p.is_judge).length) {
+            // First, wait a bit for the delete operation to complete
+            await new Promise(resolve => setTimeout(resolve, 100));
+            
+            // Double check that hands are cleared before dealing
+            const { data: existingHands } = await supabase
+              .from("player_hands")
+              .select("id")
+              .eq("room_id", room.id);
+            
+            if (existingHands && existingHands.length > 0) {
+              // Force delete again if needed
+              await supabase.from("player_hands").delete().eq("room_id", room.id);
+              await new Promise(resolve => setTimeout(resolve, 100));
+            }
+            
             // Shuffle all reply cards once
             const shuffledCards = [...replyCards].sort(() => Math.random() - 0.5);
             let cardIndex = 0;
@@ -301,18 +316,14 @@ const GameBoard = ({
               }
             }
             
-            // Insert all cards at once
+            // Insert all cards at once - ignore duplicate key errors
             const { error: handError } = await supabase
               .from("player_hands")
               .insert(allCardInserts);
             
-            if (handError) {
+            if (handError && handError.code !== "23505") {
+              // Only show error if it's not a duplicate key error
               console.error("Failed to deal cards:", handError);
-              toast({
-                title: "შეცდომა",
-                description: "ბარათების დარიგება ვერ მოხერხდა",
-                variant: "destructive",
-              });
               return;
             }
           }
