@@ -202,13 +202,13 @@ const Index = () => {
       setIsJoining(false);
     }
   };
-  return <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10 flex items-center justify-center p-4">
+  return <div className="min-h-screen bg-background flex items-center justify-center p-4">
       <div className="w-full max-w-4xl space-y-8 animate-slide-in">
         {/* Hero Section */}
         <div className="text-center space-y-4">
           <div className="inline-block">
-            <h1 className="text-6xl md:text-7xl font-bold gradient-text mb-2 text-stone-800">ხუმარა</h1>
-            <div className="h-1 w-full bg-gradient-to-r from-primary via-secondary to-accent rounded-full"></div>
+            <h1 className="text-6xl md:text-7xl font-bold text-primary mb-2">ხუმარა</h1>
+            <div className="h-1 w-full bg-primary rounded-full"></div>
           </div>
           <p className="text-xl md:text-2xl text-muted-foreground">წაიხუმრე სამეგობროში შენებურად</p>
 
@@ -235,8 +235,8 @@ const Index = () => {
           <Card className="p-8 bg-card/50 backdrop-blur-sm border-primary/20 space-y-6 hover:border-primary/40 transition-all">
             <div className="space-y-2">
               <h2 className="text-2xl font-bold flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center">
-                  <Sparkles className="h-5 w-5 text-white" />
+                <div className="w-10 h-10 rounded-full bg-primary flex items-center justify-center">
+                  <Sparkles className="h-5 w-5 text-primary-foreground" />
                 </div>
                 ახალი ოთახი
               </h2>
@@ -260,7 +260,7 @@ const Index = () => {
                 </div>
               </div>
 
-              <Button onClick={createRoom} disabled={isCreating} className="w-full h-12 text-lg font-bold bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity glow-effect">
+              <Button onClick={createRoom} disabled={isCreating} className="w-full h-12 text-lg font-bold bg-primary hover:bg-primary/90 transition-colors">
                 {isCreating ? "იქმნება..." : "ოთახის შექმნა 🎮"}
               </Button>
             </div>
@@ -270,8 +270,8 @@ const Index = () => {
           <Card className="p-8 bg-card/50 backdrop-blur-sm border-secondary/20 space-y-6 hover:border-secondary/40 transition-all">
             <div className="space-y-2">
               <h2 className="text-2xl font-bold flex items-center gap-2">
-                <div className="w-10 h-10 rounded-full bg-gradient-to-br from-secondary to-accent flex items-center justify-center">
-                  <Users className="h-5 w-5 text-white" />
+                <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
+                  <Users className="h-5 w-5 text-accent-foreground" />
                 </div>
                 შეუერთდი ოთახს
               </h2>
@@ -309,7 +309,7 @@ const Index = () => {
                   </p>}
               </div>
 
-              <Button onClick={joinRoom} disabled={isJoining} className="w-full h-12 text-lg font-bold bg-gradient-to-r from-secondary to-accent hover:opacity-90 transition-opacity">
+              <Button onClick={joinRoom} disabled={isJoining} className="w-full h-12 text-lg font-bold bg-accent hover:bg-accent/90 transition-colors">
                 {isJoining ? "ემატება..." : "შეუერთდი თამაშს 🎯"}
               </Button>
             </div>
