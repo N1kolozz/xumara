@@ -248,23 +248,29 @@ const Game = () => {
         .delete()
         .eq("room_id", room.id);
 
+      // Determine who should be judge: previous game winner (highest score) or first player
+      const previousWinner = players.reduce((max, player) => 
+        player.score > max.score ? player : max
+      , players[0]);
+      
+      const newJudgeId = previousWinner.score > 0 ? previousWinner.id : players[0].id;
+
+      // Reset all players: scores to 0 and update judge status
+      for (const player of players) {
+        await supabase
+          .from("players")
+          .update({ 
+            score: 0,
+            is_judge: player.id === newJudgeId
+          })
+          .eq("id", player.id);
+      }
+
       // Update room status
       await supabase
         .from("rooms")
         .update({ status: "playing" })
         .eq("id", room.id);
-
-      // Find the judge player - the one who selected judge role
-      const judgePlayer = players.find(p => p.is_judge);
-      
-      if (!judgePlayer) {
-        toast({
-          title: "შეცდომა",
-          description: "მსაჯული არ არის არჩეული",
-          variant: "destructive",
-        });
-        return;
-      }
 
       // Get random inbox card
       const { data: inboxCards } = await supabase
@@ -278,7 +284,7 @@ const Game = () => {
         // Create game state with the correct judge and max rounds
         const { error: gameStateError } = await supabase.from("game_state").insert({
           room_id: room.id,
-          current_judge_id: judgePlayer.id,
+          current_judge_id: newJudgeId,
           current_inbox_card_id: randomInbox.id,
           round_number: 1,
           phase: "submitting",
