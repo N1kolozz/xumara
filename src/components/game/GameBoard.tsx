@@ -413,14 +413,18 @@ const GameBoard = ({
               }}>
                       <div className="flex flex-col items-center gap-1">
                         <button type="button" disabled={!(isJudge && gameState.phase === "judging")} className={`w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-2 border-2 ${isJudge && gameState.phase === "judging" ? "cursor-pointer hover:scale-110 hover:shadow-2xl hover:border-primary border-gray-200 transition-all duration-200 active:scale-95" : "border-gray-200 cursor-default"}`} onClick={e => {
+                    const canClick = isJudge && gameState.phase === "judging";
                     console.log('Card clicked!', {
                       isJudge,
                       phase: gameState.phase,
+                      canClick,
                       cardId: submission.card_id
                     });
-                    if (isJudge && gameState.phase === "judging") {
+                    if (canClick) {
                       e.stopPropagation();
                       handleSelectWinner(submission.card_id);
+                    } else {
+                      console.log('Cannot click: isJudge=', isJudge, 'phase=', gameState.phase);
                     }
                   }}>
                           <span className="text-xs text-center font-medium text-gray-800 line-clamp-4 pointer-events-none">
@@ -435,6 +439,14 @@ const GameBoard = ({
           </div>}
 
         {/* Game Phase Content */}
+        {gameState.phase === "submitting" && isJudge && <div className="text-center">
+            <p className="text-lg text-muted-foreground">
+              მოიცადე სანამ ყველა ხუმარა აირჩევს ბარათს...
+            </p>
+            <p className="text-sm text-muted-foreground mt-2">
+              გაგზავნილია: {submissions.length} / {players.filter(p => !p.is_judge).length}
+            </p>
+          </div>}
         {gameState.phase === "submitting" && !isJudge && <div className="space-y-4">
             {hasSubmitted ? <p className="text-center text-lg text-muted-foreground">მოიცადე სანამ ყველა ხუმარა აირჩევს ბარათს...</p> : <>
                 <p className="text-center text-lg">
