@@ -294,13 +294,13 @@ const Index = () => {
                   <Button type="button" variant={joinRole === "player" ? "default" : "outline"} onClick={() => {
                   setJoinRole("player");
                   setShowRoleError(false);
-                }} className="h-12">
+                }} className={`h-12 hover:!bg-accent hover:!text-accent-foreground ${joinRole === "player" ? "!bg-accent !text-accent-foreground" : ""}`}>
                     ხუმარა
                   </Button>
                   <Button type="button" variant={joinRole === "judge" ? "default" : "outline"} onClick={() => {
                   setJoinRole("judge");
                   setShowRoleError(false);
-                }} className="h-12">
+                }} className={`h-12 hover:!bg-accent hover:!text-accent-foreground ${joinRole === "judge" ? "!bg-accent !text-accent-foreground" : ""}`}>
                     მსაჯული
                   </Button>
                 </div>
