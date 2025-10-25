@@ -444,10 +444,15 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
           <div className="flex justify-center my-8">
             <div className="relative w-96 h-96 rounded-full bg-gradient-to-br from-green-600 to-green-800 shadow-2xl flex items-center justify-center">
               {/* Table surface shine effect */}
-              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 to-transparent"></div>
+              <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 to-transparent pointer-events-none"></div>
+              
+              {/* Center decoration */}
+              <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
+                <div className="w-16 h-16 rounded-full bg-green-900/50 border-4 border-green-700/30"></div>
+              </div>
               
               {/* Submitted cards arranged in a circle */}
-              <div className="relative w-full h-full">
+              <div className="relative w-full h-full z-10">
                 {submissions.map((submission: any, index) => {
                   const angle = (index * 360) / Math.max(players.length - 1, 3);
                   const radius = 140;
@@ -457,7 +462,7 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
                   return (
                     <div
                       key={submission.id}
-                      className="absolute animate-card-deal"
+                      className="absolute animate-card-deal z-20"
                       style={{
                         top: '50%',
                         left: '50%',
@@ -466,11 +471,13 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
                       }}
                     >
                       <div className="flex flex-col items-center gap-1">
-                        <div 
+                        <button
+                          type="button"
+                          disabled={!(isJudge && gameState.phase === "judging")}
                           className={`w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-2 border-2 ${
                             isJudge && gameState.phase === "judging" 
                               ? "cursor-pointer hover:scale-110 hover:shadow-2xl hover:border-primary border-gray-200 transition-all duration-200 active:scale-95" 
-                              : "border-gray-200"
+                              : "border-gray-200 cursor-default"
                           }`}
                           onClick={(e) => {
                             console.log('Card clicked!', { 
@@ -484,19 +491,14 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
                             }
                           }}
                         >
-                          <span className="text-xs text-center font-medium text-gray-800 line-clamp-4">
+                          <span className="text-xs text-center font-medium text-gray-800 line-clamp-4 pointer-events-none">
                             {submission.cards?.text_ge}
                           </span>
-                        </div>
+                        </button>
                       </div>
                     </div>
                   );
                 })}
-              </div>
-              
-              {/* Center decoration */}
-              <div className="absolute inset-0 flex items-center justify-center">
-                <div className="w-16 h-16 rounded-full bg-green-900/50 border-4 border-green-700/30"></div>
               </div>
             </div>
           </div>
