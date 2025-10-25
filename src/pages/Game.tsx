@@ -123,6 +123,13 @@ const Game = () => {
         (payload) => {
           if (payload.eventType === "UPDATE") {
             setRoom(payload.new as Room);
+          } else if (payload.eventType === "DELETE") {
+            // Room was deleted, navigate to home
+            toast({
+              title: "ოთახი წაიშალა",
+              description: "ყველა მოთამაშემ დატოვა ოთახი",
+            });
+            navigate("/");
           }
         }
       )
@@ -188,6 +195,20 @@ const Game = () => {
         .from("players")
         .delete()
         .eq("id", currentPlayer.id);
+
+      // Check how many players are left in the room
+      const { data: remainingPlayers } = await supabase
+        .from("players")
+        .select("id")
+        .eq("room_id", room.id);
+
+      // If no players left, delete the room (CASCADE will clean up all related data)
+      if (!remainingPlayers || remainingPlayers.length === 0) {
+        await supabase
+          .from("rooms")
+          .delete()
+          .eq("id", room.id);
+      }
 
       // Clear storage
       sessionStorage.removeItem(`player_${room.id}`);
