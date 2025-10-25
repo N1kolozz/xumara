@@ -53,6 +53,8 @@ const Index = () => {
 
       const pin = generatePin();
 
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data: room, error: roomError } = await supabase
         .from("rooms")
         .insert({ pin, status: "lobby" })
@@ -68,6 +70,7 @@ const Index = () => {
           name: createPlayerName,
           is_host: true,
           is_judge: createRole === "judge",
+          user_id: user?.id,
         })
         .select()
         .single();
@@ -173,6 +176,8 @@ const Index = () => {
         }
       }
 
+      const { data: { user } } = await supabase.auth.getUser();
+      
       const { data: player, error: playerError } = await supabase
         .from("players")
         .insert({
@@ -180,6 +185,7 @@ const Index = () => {
           name: joinPlayerName,
           is_host: false,
           is_judge: joinRole === "judge",
+          user_id: user?.id,
         })
         .select()
         .single();
