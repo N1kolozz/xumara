@@ -146,10 +146,20 @@ const GameBoard = ({
       
       // Check if game winner was announced (for all players to see)
       if (payload.eventType === "UPDATE" && payload.new.winner_name && payload.new.winner_score !== null) {
-        toast({
-          title: "თამაში დასრულდა!",
-          description: `${payload.new.winner_name} არის გამარჯვებული ${payload.new.winner_score} ქულით!`
-        });
+        // Check if it's a draw (winner_name contains comma, meaning multiple winners)
+        const isDraw = payload.new.winner_name.includes(",");
+        
+        if (isDraw) {
+          toast({
+            title: "თამაში დასრულდა!",
+            description: `${payload.new.winner_name} მოთამაშეებს შორის დამთავრდა ფრე ${payload.new.winner_score} ქულით!`
+          });
+        } else {
+          toast({
+            title: "თამაში დასრულდა!",
+            description: `${payload.new.winner_name} არის გამარჯვებული ${payload.new.winner_score} ქულით!`
+          });
+        }
       }
       
       loadGameData();
@@ -237,13 +247,25 @@ const GameBoard = ({
         if (updatedPlayers) {
           const sortedPlayers = [...updatedPlayers].sort((a, b) => b.score - a.score);
           const topScore = sortedPlayers[0]?.score || 0;
-          const gameWinner = sortedPlayers[0];
-
-          // Update game_state with winner info so all players can see it via realtime
-          await supabase.from("game_state").update({
-            winner_name: gameWinner?.name,
-            winner_score: topScore
-          }).eq("room_id", room.id);
+          
+          // Check for draw - find all players with top score
+          const winners = sortedPlayers.filter(p => p.score === topScore);
+          
+          if (winners.length > 1) {
+            // It's a draw
+            const winnerNames = winners.map(w => w.name).join(", ");
+            await supabase.from("game_state").update({
+              winner_name: winnerNames,
+              winner_score: topScore
+            }).eq("room_id", room.id);
+          } else {
+            // Single winner
+            const gameWinner = sortedPlayers[0];
+            await supabase.from("game_state").update({
+              winner_name: gameWinner?.name,
+              winner_score: topScore
+            }).eq("room_id", room.id);
+          }
 
           // Wait a bit for all players to receive the realtime update
           await new Promise(resolve => setTimeout(resolve, 1000));
