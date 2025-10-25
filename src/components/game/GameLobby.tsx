@@ -157,16 +157,6 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
                   ? `დაელოდეთ კიდევ ${3 - players.length} მოთამაშეს...` 
                   : `🎮 თამაშის დაწყება (${maxRounds} რაუნდი)`}
               </Button>
-              {players.length >= 3 && (
-                <div className="text-center space-y-2 p-4 bg-accent/10 rounded-lg animate-pulse">
-                  <p className="text-lg font-bold text-accent">
-                    ✅ მზად ხართ!
-                  </p>
-                  <p className="text-sm text-foreground">
-                    დააჭირეთ ღილაკს თამაშის დასაწყებად
-                  </p>
-                </div>
-              )}
             </>
           ) : (
             <div className="text-center py-8 space-y-2">
