@@ -414,9 +414,7 @@ const GameBoard = ({
 
         {/* Game Phase Content */}
         {gameState.phase === "submitting" && !isJudge && <div className="space-y-4">
-            {hasSubmitted ? <p className="text-center text-lg text-muted-foreground">
-                იცადე სანამ ყველა ხუმარა აირჩევს ბარათს...
-              </p> : <>
+            {hasSubmitted ? <p className="text-center text-lg text-muted-foreground">მოიცადე სანამ ყველა ხუმარა აირჩევს ბარათს...</p> : <>
                 <p className="text-center text-lg">
                   აირჩიე შენი ყველაზე სასაცილო პასუხი:
                 </p>
