@@ -283,21 +283,7 @@ const GameBoard = ({
           // Wait a bit for all players to receive the realtime update
           await new Promise(resolve => setTimeout(resolve, 1000));
 
-          // The highest scorer becomes the judge for next game
-          const newJudge = gameWinner || sortedPlayers.find(p => !p.is_judge);
-          if (newJudge) {
-            // Set all players as non-judge
-            await supabase.from("players").update({
-              is_judge: false
-            }).eq("room_id", room.id);
-
-            // Set new judge
-            await supabase.from("players").update({
-              is_judge: true
-            }).eq("id", newJudge.id);
-          }
-
-          // Reset all scores
+          // Reset all scores (keep judge status unchanged)
           await supabase.from("players").update({
             score: 0
           }).eq("room_id", room.id);
@@ -317,19 +303,7 @@ const GameBoard = ({
           }).eq("id", room.id);
         }
       } else {
-        // Continue to next round
-        // The winner of this round becomes the judge for the next round
-        if (winner) {
-          // Set all players as non-judge
-          await supabase.from("players").update({
-            is_judge: false
-          }).eq("room_id", room.id);
-
-          // Set round winner as new judge
-          await supabase.from("players").update({
-            is_judge: true
-          }).eq("id", winner.id);
-        }
+        // Continue to next round (keep judge status unchanged)
         const {
           data: inboxCards
         } = await supabase.from("cards").select("*").eq("type", "inbox");
