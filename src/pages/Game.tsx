@@ -110,6 +110,15 @@ const Game = () => {
   };
 
   const subscribeToRealtime = () => {
+    // Get current player ID from storage to avoid closure issues
+    const getCurrentPlayerId = () => {
+      let playerId = sessionStorage.getItem(`player_${roomId}`);
+      if (!playerId) {
+        playerId = localStorage.getItem(`player_${roomId}`);
+      }
+      return playerId;
+    };
+
     const channel = supabase
       .channel(`room_${roomId}`)
       .on(
@@ -142,13 +151,17 @@ const Game = () => {
           filter: `room_id=eq.${roomId}`,
         },
         async (payload) => {
-          console.log("Player change detected:", payload.eventType);
+          console.log("Player change detected:", payload.eventType, payload);
+          const currentPlayerId = getCurrentPlayerId();
           
           // Show toast when player leaves
           if (payload.eventType === "DELETE" && payload.old) {
             const leftPlayer = payload.old as Player;
-            // Don't show toast if it's the current player leaving (they'll see their own message)
-            if (currentPlayer && leftPlayer.id !== currentPlayer.id) {
+            console.log("Player left:", leftPlayer.name, leftPlayer.id);
+            console.log("Current player ID:", currentPlayerId);
+            
+            // Don't show toast if it's the current player leaving
+            if (currentPlayerId && leftPlayer.id !== currentPlayerId) {
               toast({
                 title: "მოთამაშე გავიდა",
                 description: `${leftPlayer.name} დატოვა ოთახი`,
@@ -159,8 +172,11 @@ const Game = () => {
           // Show toast when new player joins
           if (payload.eventType === "INSERT" && payload.new) {
             const newPlayer = payload.new as Player;
+            console.log("Player joined:", newPlayer.name, newPlayer.id);
+            console.log("Current player ID:", currentPlayerId);
+            
             // Don't show toast if it's the current player joining
-            if (currentPlayer && newPlayer.id !== currentPlayer.id) {
+            if (currentPlayerId && newPlayer.id !== currentPlayerId) {
               toast({
                 title: "ახალი მოთამაშე",
                 description: `${newPlayer.name} შემოუერთდა ოთახს`,
@@ -168,7 +184,7 @@ const Game = () => {
             }
           }
           
-          // Just reload players list, don't change currentPlayer
+          // Reload players list
           const { data: playersData } = await supabase
             .from("players")
             .select("*")
@@ -176,11 +192,12 @@ const Game = () => {
             .order("joined_at", { ascending: true });
 
           if (playersData) {
+            console.log("Updated players list:", playersData.length, "players");
             setPlayers(playersData);
             
             // Update currentPlayer data if their info changed
-            if (currentPlayer) {
-              const updatedCurrentPlayer = playersData.find(p => p.id === currentPlayer.id);
+            if (currentPlayerId) {
+              const updatedCurrentPlayer = playersData.find(p => p.id === currentPlayerId);
               if (updatedCurrentPlayer) {
                 setCurrentPlayer(updatedCurrentPlayer);
                 console.log("Updated current player:", updatedCurrentPlayer);
