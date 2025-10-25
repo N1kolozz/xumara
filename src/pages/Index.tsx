@@ -310,7 +310,7 @@ const Index = () => {
               </div>
 
               <Button onClick={joinRoom} disabled={isJoining} className="w-full h-12 text-lg font-bold bg-accent hover:bg-accent/90 transition-colors">
-                {isJoining ? "ემატება..." : "შეუერთდი თამაშს 🎯"}
+                {isJoining ? "ემატება..." : "შეუერთდი თამაშს"}
               </Button>
             </div>
           </Card>
