@@ -28,6 +28,7 @@ interface GameLobbyProps {
 const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: GameLobbyProps) => {
   const { toast } = useToast();
   const [maxRounds, setMaxRounds] = useState(5);
+  const [roundsError, setRoundsError] = useState("");
 
   // Debug logging
   console.log("GameLobby - Current Player:", currentPlayer);
@@ -136,14 +137,28 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
               <Input
                 type="number"
                 min={1}
-                max={20}
+                max={10}
                 value={maxRounds}
-                onChange={(e) => setMaxRounds(Math.max(1, parseInt(e.target.value) || 1))}
+                onChange={(e) => {
+                  const value = parseInt(e.target.value) || 1;
+                  if (value > 10) {
+                    setRoundsError("თქვენ ვერ შეძლებთ 10-ზე მეტი რაუნდის არჩევას");
+                    setMaxRounds(10);
+                  } else {
+                    setRoundsError("");
+                    setMaxRounds(Math.max(1, value));
+                  }
+                }}
                 className="text-center text-xl font-bold"
               />
               <p className="text-xs text-muted-foreground text-center">
-                აირჩიეთ 1-დან 20-მდე რაუნდი
+                აირჩიეთ 1-დან 10-მდე რაუნდი
               </p>
+              {roundsError && (
+                <p className="text-xs text-destructive text-center font-medium">
+                  {roundsError}
+                </p>
+              )}
             </div>
           </Card>
         )}
@@ -156,8 +171,9 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
                 onClick={() => {
                   console.log("Start game button clicked!");
                   console.log("Players:", players);
-                  console.log("Max rounds:", maxRounds);
-                  onStartGame(maxRounds);
+                  const validatedRounds = Math.min(10, Math.max(1, maxRounds));
+                  console.log("Max rounds:", validatedRounds);
+                  onStartGame(validatedRounds);
                 }}
                 disabled={players.length < 3}
                 className="w-full h-16 text-xl font-bold bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity shadow-xl animate-pulse-glow"
