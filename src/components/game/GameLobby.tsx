@@ -176,7 +176,7 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
                   onStartGame(validatedRounds);
                 }}
                 disabled={players.length < 3}
-                className="w-full h-16 text-xl font-bold bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity shadow-xl animate-pulse-glow"
+                className="w-full h-16 text-xl font-bold shadow-xl"
               >
                 {players.length < 3 
                   ? `დაელოდეთ კიდევ ${3 - players.length} მოთამაშეს...` 
