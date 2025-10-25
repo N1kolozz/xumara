@@ -45,6 +45,12 @@ const Index = () => {
     setIsCreating(true);
 
     try {
+      // Ensure user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        await supabase.auth.signInAnonymously();
+      }
+
       const pin = generatePin();
 
       const { data: room, error: roomError } = await supabase
@@ -114,6 +120,11 @@ const Index = () => {
     setShowRoleError(false);
 
     try {
+      // Ensure user is authenticated
+      const { data: { session } } = await supabase.auth.getSession();
+      if (!session) {
+        await supabase.auth.signInAnonymously();
+      }
       const { data: room, error: roomError } = await supabase
         .from("rooms")
         .select("*")
