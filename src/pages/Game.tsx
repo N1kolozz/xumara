@@ -304,24 +304,40 @@ const Game = () => {
           const shuffledCards = [...replyCards].sort(() => Math.random() - 0.5);
           let cardIndex = 0;
           
+          // Prepare all card assignments in a single batch
+          const allCardInserts = [];
+          
           for (const player of nonJudgePlayers) {
             // Give each player exactly 6 unique cards
             const playerCards = shuffledCards.slice(cardIndex, cardIndex + 6);
             cardIndex += 6;
 
-            console.log(`Dealing ${playerCards.length} cards to player ${player.name}`);
+            console.log(`Preparing ${playerCards.length} cards for player ${player.name}`);
             
+            // Add all 6 cards for this player to the batch
             for (const card of playerCards) {
-              const { error: handError } = await supabase.from("player_hands").insert({
+              allCardInserts.push({
                 player_id: player.id,
                 card_id: card.id,
                 room_id: room.id,
               });
-              
-              if (handError) {
-                console.error("Hand insert error:", handError);
-              }
             }
+          }
+          
+          // Insert all cards at once
+          console.log(`Inserting ${allCardInserts.length} cards total`);
+          const { error: handError } = await supabase
+            .from("player_hands")
+            .insert(allCardInserts);
+          
+          if (handError) {
+            console.error("Failed to deal cards:", handError);
+            toast({
+              title: "შეცდომა",
+              description: "ბარათების დარიგება ვერ მოხერხდა",
+              variant: "destructive",
+            });
+            return;
           }
         } else {
           toast({
