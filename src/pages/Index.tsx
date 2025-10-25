@@ -210,9 +210,7 @@ const Index = () => {
             <h1 className="text-6xl md:text-7xl font-bold gradient-text mb-2 text-stone-800">ხუმარა</h1>
             <div className="h-1 w-full bg-gradient-to-r from-primary via-secondary to-accent rounded-full"></div>
           </div>
-          <p className="text-xl md:text-2xl text-muted-foreground">
-            სასაცილო სამეგობრო ბარათის თამაში ონლაინ
-          </p>
+          <p className="text-xl md:text-2xl text-muted-foreground">წაიხუმრე სამეგობროში შენებურად</p>
 
           {/* Features */}
           <div className="flex flex-wrap justify-center gap-4 mt-6">
@@ -222,7 +220,7 @@ const Index = () => {
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-secondary/10 rounded-full">
               <Gamepad2 className="h-5 w-5 text-secondary" />
-              <span className="text-sm font-medium">რეალური დროის თამაში</span>
+              <span className="text-sm font-medium">ითამაშე ონალინში</span>
             </div>
             <div className="flex items-center gap-2 px-4 py-2 bg-accent/10 rounded-full">
               <Sparkles className="h-5 w-5 text-accent" />
