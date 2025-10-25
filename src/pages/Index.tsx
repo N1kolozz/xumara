@@ -267,7 +267,7 @@ const Index = () => {
           </Card>
 
           {/* Join Room Card */}
-          <Card className="p-8 bg-card/50 backdrop-blur-sm border-secondary/20 space-y-6 hover:border-secondary/40 transition-all">
+          <Card className="p-8 bg-card/50 backdrop-blur-sm border-accent/20 space-y-6 hover:border-accent/40 transition-all">
             <div className="space-y-2">
               <h2 className="text-2xl font-bold flex items-center gap-2">
                 <div className="w-10 h-10 rounded-full bg-accent flex items-center justify-center">
