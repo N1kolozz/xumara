@@ -8,41 +8,38 @@ All colors MUST be HSL.
 
 @layer base {
   :root {
-    --background: 250 30% 6%;
+    --background: 220 20% 8%;
     --foreground: 0 0% 98%;
 
-    --card: 250 25% 10%;
+    --card: 220 18% 12%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 250 25% 10%;
+    --popover: 220 18% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 200 90% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 270 60% 60%;
+    --secondary: 215 25% 25%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 250 20% 20%;
-    --muted-foreground: 240 10% 60%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 60%;
 
-    --accent: 310 80% 60%;
+    --accent: 25 95% 55%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 85% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 250 20% 20%;
-    --input: 250 20% 20%;
-    --ring: 217 91% 60%;
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 200 90% 50%;
 
     --radius: 1rem;
 
-    --gradient-primary: linear-gradient(135deg, hsl(217 91% 60%), hsl(270 60% 60%));
-    --gradient-accent: linear-gradient(135deg, hsl(310 80% 60%), hsl(340 80% 60%));
-    --shadow-glow: 0 0 40px hsl(217 91% 60% / 0.3);
-    --card-reply: 217 91% 60%;
-    --card-inbox: 240 10% 40%;
+    --card-reply: 200 90% 50%;
+    --card-inbox: 220 15% 18%;
 
     --sidebar-background: 0 0% 98%;
 
@@ -62,33 +59,33 @@ All colors MUST be HSL.
   }
 
   .dark {
-    --background: 250 30% 6%;
+    --background: 220 20% 8%;
     --foreground: 0 0% 98%;
 
-    --card: 250 25% 10%;
+    --card: 220 18% 12%;
     --card-foreground: 0 0% 98%;
 
-    --popover: 250 25% 10%;
+    --popover: 220 18% 12%;
     --popover-foreground: 0 0% 98%;
 
-    --primary: 217 91% 60%;
+    --primary: 200 90% 50%;
     --primary-foreground: 0 0% 100%;
 
-    --secondary: 270 60% 60%;
+    --secondary: 215 25% 25%;
     --secondary-foreground: 0 0% 100%;
 
-    --muted: 250 20% 20%;
-    --muted-foreground: 240 10% 60%;
+    --muted: 220 15% 18%;
+    --muted-foreground: 220 10% 60%;
 
-    --accent: 310 80% 60%;
+    --accent: 25 95% 55%;
     --accent-foreground: 0 0% 100%;
 
-    --destructive: 0 84% 60%;
+    --destructive: 0 85% 60%;
     --destructive-foreground: 0 0% 100%;
 
-    --border: 250 20% 20%;
-    --input: 250 20% 20%;
-    --ring: 217 91% 60%;
+    --border: 220 15% 20%;
+    --input: 220 15% 20%;
+    --ring: 200 90% 50%;
     --sidebar-background: 240 5.9% 10%;
     --sidebar-foreground: 240 4.8% 95.9%;
     --sidebar-primary: 224.3 76.3% 48%;
@@ -125,16 +122,5 @@ All colors MUST be HSL.
   
   .card-flip-active {
     transform: rotateY(180deg);
-  }
-  
-  .gradient-text {
-    background: var(--gradient-primary);
-    -webkit-background-clip: text;
-    -webkit-text-fill-color: transparent;
-    background-clip: text;
-  }
-  
-  .glow-effect {
-    box-shadow: var(--shadow-glow);
   }
 }
