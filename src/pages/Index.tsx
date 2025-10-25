@@ -210,7 +210,7 @@ const Index = () => {
             <h1 className="text-6xl md:text-7xl font-bold text-primary mb-2">ხუმარა</h1>
             <div className="h-1 w-full bg-primary rounded-full"></div>
           </div>
-          <p className="text-xl md:text-2xl text-muted-foreground">წაიხუმრე სამეგობროში შენებურად</p>
+          <p className="text-xl md:text-3xl text-center font-bold text-slate-300">წაიხუმრე შენებურად</p>
 
           {/* Features */}
           <div className="flex flex-wrap justify-center gap-4 mt-6">
