@@ -427,9 +427,8 @@ const GameBoard = ({ room, players, currentPlayer, gameState, onLeaveGame }: Gam
             <h2 className="text-2xl font-bold">
               რაუნდი {gameState.round_number} / {gameState.max_rounds}
             </h2>
-            <div className="px-4 py-2 bg-accent/20 text-accent rounded-full text-sm font-medium flex items-center gap-2">
-              <Trophy className="h-4 w-4" />
-              <span>შენ ხარ {isJudge ? "მსაჯული" : "ხუმარა"}</span>
+            <div className="px-4 py-2 bg-accent/20 text-accent rounded-full text-sm font-medium">
+              შენ ხარ {isJudge ? "მსაჯული" : "ხუმარა"}
             </div>
           </div>
           <Scoreboard players={players} />
