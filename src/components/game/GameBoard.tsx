@@ -87,50 +87,15 @@ const GameBoard = ({
       if (inboxData) setInboxCard(inboxData);
     }
 
-    // Load player's hand (only if not judge and only if they don't have cards yet)
+    // Load player's hand (only if not judge)
     if (!currentPlayer.is_judge && gameState.phase === "submitting") {
-      // Check if player already has cards in their hand
+      // Load existing cards from database
       const {
-        data: existingHand
-      } = await supabase.from("player_hands").select("card_id").eq("player_id", currentPlayer.id).eq("room_id", room.id);
-
-      // Check if player has submitted in this round
-      const {
-        data: hasSubmittedData
-      } = await supabase.from("submissions").select("id").eq("player_id", currentPlayer.id).eq("room_id", room.id).eq("round_number", gameState.round_number);
-      const playerHasSubmitted = hasSubmittedData && hasSubmittedData.length > 0;
-
-      // Only deal new cards if the player has no cards AND hasn't submitted yet
-      if ((!existingHand || existingHand.length === 0) && !playerHasSubmitted) {
-        // Get all reply cards
-        const {
-          data: replyCards
-        } = await supabase.from("cards").select("*").eq("type", "reply");
-        if (replyCards) {
-          // Shuffle and take 6 random cards
-          const shuffled = [...replyCards].sort(() => Math.random() - 0.5);
-          const newCards = shuffled.slice(0, 6);
-          console.log(`Dealing 6 cards to player ${currentPlayer.name} for round ${gameState.round_number}`);
-
-          // Add new cards to player's hand
-          for (const card of newCards) {
-            await supabase.from("player_hands").insert({
-              player_id: currentPlayer.id,
-              card_id: card.id,
-              room_id: room.id
-            });
-          }
-          setPlayerCards(newCards);
-        }
-      } else {
-        // Load existing cards from database
-        const {
-          data: handData
-        } = await supabase.from("player_hands").select("card_id, cards(*)").eq("player_id", currentPlayer.id).eq("room_id", room.id);
-        if (handData) {
-          const cards = handData.map((h: any) => h.cards).filter(Boolean);
-          setPlayerCards(cards);
-        }
+        data: handData
+      } = await supabase.from("player_hands").select("card_id, cards(*)").eq("player_id", currentPlayer.id).eq("room_id", room.id);
+      if (handData) {
+        const cards = handData.map((h: any) => h.cards).filter(Boolean);
+        setPlayerCards(cards);
       }
     }
 
@@ -309,6 +274,49 @@ const GameBoard = ({
         } = await supabase.from("cards").select("*").eq("type", "inbox");
         if (inboxCards && inboxCards.length > 0) {
           const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
+          
+          // Get all reply cards for dealing
+          const { data: replyCards } = await supabase.from("cards").select("*").eq("type", "reply");
+          
+          if (replyCards && replyCards.length >= 6 * players.filter(p => !p.is_judge).length) {
+            // Shuffle all reply cards once
+            const shuffledCards = [...replyCards].sort(() => Math.random() - 0.5);
+            let cardIndex = 0;
+            
+            // Prepare all card assignments in a single batch
+            const allCardInserts = [];
+            const nonJudgePlayers = players.filter(p => !p.is_judge);
+            
+            for (const player of nonJudgePlayers) {
+              // Give each player exactly 6 unique cards
+              const playerCards = shuffledCards.slice(cardIndex, cardIndex + 6);
+              cardIndex += 6;
+              
+              for (const card of playerCards) {
+                allCardInserts.push({
+                  player_id: player.id,
+                  card_id: card.id,
+                  room_id: room.id,
+                });
+              }
+            }
+            
+            // Insert all cards at once
+            const { error: handError } = await supabase
+              .from("player_hands")
+              .insert(allCardInserts);
+            
+            if (handError) {
+              console.error("Failed to deal cards:", handError);
+              toast({
+                title: "შეცდომა",
+                description: "ბარათების დარიგება ვერ მოხერხდა",
+                variant: "destructive",
+              });
+              return;
+            }
+          }
+          
           await supabase.from("game_state").update({
             phase: "submitting",
             current_inbox_card_id: randomInbox.id,
