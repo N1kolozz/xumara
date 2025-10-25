@@ -2,7 +2,7 @@ import { useState } from "react";
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Users, Copy, Crown, Gavel } from "lucide-react";
+import { Users, Copy, Crown, Gavel, Gamepad2 } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 
 interface Player {
@@ -164,7 +164,12 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
               >
                 {players.length < 3 
                   ? `დაელოდეთ კიდევ ${3 - players.length} მოთამაშეს...` 
-                  : `🎮 თამაშის დაწყება (${maxRounds} რაუნდი)`}
+                  : (
+                    <span className="flex items-center justify-center gap-2">
+                      <Gamepad2 className="h-6 w-6" />
+                      თამაშის დაწყება ({maxRounds} რაუნდი)
+                    </span>
+                  )}
               </Button>
             </>
           ) : (
