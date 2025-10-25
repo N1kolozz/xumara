@@ -237,6 +237,17 @@ const Game = () => {
         return;
       }
 
+      // Clean up previous game data
+      await supabase
+        .from("submissions")
+        .delete()
+        .eq("room_id", room.id);
+
+      await supabase
+        .from("player_hands")
+        .delete()
+        .eq("room_id", room.id);
+
       // Update room status
       await supabase
         .from("rooms")
