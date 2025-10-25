@@ -156,12 +156,15 @@ const Game = () => {
           
           // Show toast when player leaves
           if (payload.eventType === "DELETE" && payload.old) {
-            const leftPlayer = payload.old as Player;
-            console.log("Player left:", leftPlayer.name, leftPlayer.id);
+            const leftPlayerId = (payload.old as { id: string }).id;
+            console.log("Player left with ID:", leftPlayerId);
             console.log("Current player ID:", currentPlayerId);
             
+            // Find the player in current state before updating
+            const leftPlayer = players.find(p => p.id === leftPlayerId);
+            
             // Don't show toast if it's the current player leaving
-            if (currentPlayerId && leftPlayer.id !== currentPlayerId) {
+            if (currentPlayerId && leftPlayerId !== currentPlayerId && leftPlayer) {
               toast({
                 title: "მოთამაშე გავიდა",
                 description: `${leftPlayer.name} დატოვა ოთახი`,
