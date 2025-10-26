@@ -1,5 +1,7 @@
 import { Card } from "@/components/ui/card";
 import { Trophy } from "lucide-react";
+import { useEffect, useState } from "react";
+import { supabase } from "@/integrations/supabase/client";
 
 interface Player {
   id: string;
@@ -10,9 +12,45 @@ interface Player {
 
 interface ScoreboardProps {
   players: Player[];
+  roomId: string;
 }
 
-const Scoreboard = ({ players }: ScoreboardProps) => {
+const Scoreboard = ({ players: initialPlayers, roomId }: ScoreboardProps) => {
+  const [players, setPlayers] = useState<Player[]>(initialPlayers);
+
+  useEffect(() => {
+    setPlayers(initialPlayers);
+  }, [initialPlayers]);
+
+  useEffect(() => {
+    const channel = supabase
+      .channel(`scoreboard_${roomId}`)
+      .on(
+        'postgres_changes',
+        {
+          event: '*',
+          schema: 'public',
+          table: 'players',
+          filter: `room_id=eq.${roomId}`
+        },
+        async () => {
+          // Refetch players when any change occurs
+          const { data } = await supabase
+            .from('players')
+            .select('id, name, score, is_judge')
+            .eq('room_id', roomId);
+          
+          if (data) {
+            setPlayers(data);
+          }
+        }
+      )
+      .subscribe();
+
+    return () => {
+      supabase.removeChannel(channel);
+    };
+  }, [roomId]);
   // Separate judge from regular players
   const judge = players.find(p => p.is_judge);
   const regularPlayers = players.filter(p => !p.is_judge);

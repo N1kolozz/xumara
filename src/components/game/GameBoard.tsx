@@ -394,7 +394,7 @@ const GameBoard = ({
               შენ ხარ {isJudge ? "მსაჯული" : "ხუმარა"}
             </div>
           </div>
-          <Scoreboard players={players} />
+          <Scoreboard players={players} roomId={room.id} />
         </div>
 
         {/* Inbox Card */}
