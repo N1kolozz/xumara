@@ -8,6 +8,7 @@ interface Player {
   name: string;
   score: number;
   is_judge: boolean;
+  in_game: boolean;
 }
 
 interface ScoreboardProps {
@@ -38,8 +39,9 @@ const Scoreboard = ({ players: initialPlayers, roomId }: ScoreboardProps) => {
           // Refetch players when any change occurs (including DELETE)
           const { data } = await supabase
             .from('players')
-            .select('id, name, score, is_judge')
+            .select('id, name, score, is_judge, in_game')
             .eq('room_id', roomId)
+            .eq('in_game', true)
             .order('joined_at', { ascending: true });
           
           if (data) {

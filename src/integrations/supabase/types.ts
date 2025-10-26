@@ -139,6 +139,7 @@ export type Database = {
       players: {
         Row: {
           id: string
+          in_game: boolean
           is_host: boolean
           is_judge: boolean
           joined_at: string
@@ -149,6 +150,7 @@ export type Database = {
         }
         Insert: {
           id?: string
+          in_game?: boolean
           is_host?: boolean
           is_judge?: boolean
           joined_at?: string
@@ -159,6 +161,7 @@ export type Database = {
         }
         Update: {
           id?: string
+          in_game?: boolean
           is_host?: boolean
           is_judge?: boolean
           joined_at?: string

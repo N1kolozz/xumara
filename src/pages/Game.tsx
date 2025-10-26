@@ -18,6 +18,7 @@ interface Player {
   score: number;
   is_judge: boolean;
   is_host: boolean;
+  in_game: boolean;
 }
 
 interface GameState {
@@ -309,7 +310,13 @@ const Game = () => {
             : "არასაკმარისი მოთამაშე - ყველა დაბრუნდა ლობიში",
         });
       } else {
-        // If 3+ comedians remain, just remove this player's data
+        // If 3+ comedians remain, mark this player as not in game
+        await supabase
+          .from("players")
+          .update({ in_game: false })
+          .eq("id", currentPlayer.id);
+
+        // Remove this player's hands and submissions
         await supabase
           .from("player_hands")
           .delete()
@@ -506,10 +513,10 @@ const Game = () => {
         .delete()
         .eq("room_id", room.id);
 
-      // Reset all players' scores to 0 (keep is_judge status unchanged)
+      // Reset all players' scores to 0 and set in_game to true (keep is_judge status unchanged)
       await supabase
         .from("players")
-        .update({ score: 0 })
+        .update({ score: 0, in_game: true })
         .eq("room_id", room.id);
 
       // Update room status

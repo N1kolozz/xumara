@@ -12,6 +12,7 @@ interface Player {
   name: string;
   score: number;
   is_judge: boolean;
+  in_game: boolean;
 }
 interface GameState {
   phase: string;
@@ -188,7 +189,7 @@ const GameBoard = ({
       setSelectedCard(null);
 
       // Check if all non-judge players have submitted
-      const nonJudgePlayers = players.filter(p => !p.is_judge);
+      const nonJudgePlayers = players.filter(p => !p.is_judge && p.in_game);
       const {
         data: currentSubmissions
       } = await supabase.from("submissions").select("*").eq("room_id", room.id).eq("round_number", gameState.round_number);
@@ -459,7 +460,7 @@ const GameBoard = ({
               მოიცადე სანამ ყველა ხუმარა აირჩევს ბარათს...
             </p>
             <p className="text-sm text-muted-foreground mt-2">
-              გაგზავნილია: {submissions.length} / {players.filter(p => !p.is_judge).length}
+              გაგზავნილია: {submissions.length} / {players.filter(p => !p.is_judge && p.in_game).length}
             </p>
           </div>}
         {gameState.phase === "submitting" && !isJudge && <div className="space-y-4">
