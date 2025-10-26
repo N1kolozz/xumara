@@ -623,18 +623,23 @@ const Game = () => {
         const judgePlayer = players.find(p => p.is_judge) || players[0];
 
         // Create game state with the current judge and max rounds
-        const { error: gameStateError } = await supabase.from("game_state").insert({
+        const { data: newGameState, error: gameStateError } = await supabase.from("game_state").insert({
           room_id: room.id,
           current_judge_id: judgePlayer.id,
           current_inbox_card_id: randomInbox.id,
           round_number: 1,
           phase: "submitting",
           max_rounds: maxRounds,
-        });
+        }).select().single();
 
         if (gameStateError) {
           console.error("Game state error:", gameStateError);
           throw gameStateError;
+        }
+        
+        // Set game state in local state immediately
+        if (newGameState) {
+          setGameState(newGameState as GameState);
         }
 
         // Deal cards to all players except judges
