@@ -288,7 +288,8 @@ const Game = () => {
           .eq("id", room.id);
 
         // Broadcast to all players to return to lobby
-        const channel = supabase.channel(`room_${room.id}`);
+        const channel = supabase.channel(`room_${room.id}_broadcast`);
+        await channel.subscribe();
         await channel.send({
           type: 'broadcast',
           event: 'return_to_lobby',
@@ -297,6 +298,7 @@ const Game = () => {
             playerName: currentPlayer.name
           }
         });
+        await supabase.removeChannel(channel);
 
         // Update local room state
         setRoom({ ...room, status: "lobby" });
