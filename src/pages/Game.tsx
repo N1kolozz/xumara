@@ -569,19 +569,8 @@ const Game = () => {
         .eq("room_id", room.id);
         
       console.log("Players after update:", updatedPlayers);
-      
-      // Update local currentPlayer state immediately
-      const updatedCurrentPlayer = updatedPlayers?.find(p => p.id === currentPlayer.id);
-      if (updatedCurrentPlayer) {
-        console.log("Updating local currentPlayer:", updatedCurrentPlayer);
-        setCurrentPlayer({ ...currentPlayer, in_game: true, score: 0 });
-      }
-      
-      // Longer delay to ensure ALL players receive and process the realtime updates
-      console.log("Waiting for all players to sync...");
-      await new Promise(resolve => setTimeout(resolve, 1000));
 
-      // NOW update room status after all players are confirmed in_game
+      // Update room status immediately (no delay)
       console.log("Updating room status to playing...");
       const { error: roomUpdateError, data: updatedRoomData } = await supabase
         .from("rooms")
@@ -597,10 +586,20 @@ const Game = () => {
       
       console.log("Room status updated:", updatedRoomData);
       
-      // Update local room state immediately
+      // Update local room and currentPlayer state immediately together
       if (updatedRoomData) {
         console.log("Setting local room state to playing");
         setRoom(updatedRoomData as Room);
+        
+        // Update local currentPlayer state AFTER room status is updated
+        console.log("Updating local currentPlayer state:", {
+          id: currentPlayer.id,
+          name: currentPlayer.name,
+          in_game: true,
+          is_judge: currentPlayer.is_judge,
+        });
+        
+        setCurrentPlayer({ ...currentPlayer, in_game: true, score: 0 });
       }
 
       // Get random inbox card
