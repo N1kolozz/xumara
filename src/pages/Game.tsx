@@ -636,11 +636,6 @@ const Game = () => {
           console.error("Game state error:", gameStateError);
           throw gameStateError;
         }
-        
-        // Set game state in local state immediately
-        if (newGameState) {
-          setGameState(newGameState as GameState);
-        }
 
         // Deal cards to all players except judges
         const { data: replyCards } = await supabase
@@ -701,6 +696,16 @@ const Game = () => {
             variant: "destructive",
           });
           return;
+        }
+        
+        // Wait a bit to ensure all cards are inserted in database
+        await new Promise(resolve => setTimeout(resolve, 300));
+        
+        // IMPORTANT: Set game state in local state AFTER all cards are dealt
+        // This ensures GameBoard's useEffect won't try to load cards before they exist
+        if (newGameState) {
+          console.log("Setting game state after cards are dealt");
+          setGameState(newGameState as GameState);
         }
       }
 
