@@ -256,10 +256,19 @@ const Game = () => {
 
     try {
       const isJudge = currentPlayer.is_judge;
-      const comedianCount = players.filter(p => !p.is_judge).length;
+      
+      // Get current active players from database to ensure we have latest data
+      const { data: activePlayers } = await supabase
+        .from('players')
+        .select('id, is_judge, in_game')
+        .eq('room_id', room.id)
+        .eq('in_game', true);
+      
+      // Count active comedians (non-judges that are in_game)
+      const activeComedianCount = activePlayers?.filter(p => !p.is_judge).length || 0;
       
       // Calculate how many comedians will remain after this player returns to lobby
-      const remainingComedians = isJudge ? comedianCount : comedianCount - 1;
+      const remainingComedians = isJudge ? activeComedianCount : activeComedianCount - 1;
 
       // If judge leaves OR if fewer than 2 comedians will remain, reset entire game
       if (isJudge || remainingComedians < 2) {
