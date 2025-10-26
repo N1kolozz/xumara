@@ -399,49 +399,54 @@ const GameBoard = ({
   }
   const isJudge = currentPlayer.is_judge;
   const hasSubmitted = submissions.some(s => s.player_id === currentPlayer.id);
-  return <div className="container mx-auto px-4 py-8">
-      <div className="max-w-6xl mx-auto space-y-6">
+  return <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
+      <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Return to Lobby Button */}
         <div className="flex justify-start">
-          <Button variant="outline" onClick={onReturnToLobby} className="hover:bg-secondary hover:text-secondary-foreground">
-            ← გასვლა ოთახში
+          <Button variant="outline" onClick={onReturnToLobby} className="h-9 sm:h-10 text-xs sm:text-sm touch-manipulation hover:bg-secondary hover:text-secondary-foreground">
+            ← გასვლა
           </Button>
         </div>
 
         {/* Header with Round and Scoreboard */}
-        <div className="flex items-center justify-between">
-          <div className="flex items-center gap-4">
-            <h2 className="text-2xl font-bold">
+        <div className="flex flex-col sm:flex-row items-start sm:items-center justify-between gap-3 sm:gap-4">
+          <div className="flex flex-col sm:flex-row items-start sm:items-center gap-2 sm:gap-4 w-full sm:w-auto">
+            <h2 className="text-lg sm:text-xl md:text-2xl font-bold whitespace-nowrap">
               რაუნდი {gameState.round_number} / {gameState.max_rounds}
             </h2>
-            <div className="px-4 py-2 bg-accent/20 text-accent rounded-full text-sm font-medium">
-              შენ ხარ {isJudge ? "მსაჯული" : "ხუმარა"}
+            <div className="px-3 py-1 sm:px-4 sm:py-2 bg-accent/20 text-accent rounded-full text-xs sm:text-sm font-medium whitespace-nowrap">
+              {isJudge ? "მსაჯული" : "ხუმარა"}
             </div>
           </div>
-          <Scoreboard players={players} roomId={room.id} />
+          <div className="w-full sm:w-auto">
+            <Scoreboard players={players} roomId={room.id} />
+          </div>
         </div>
 
         {/* Inbox Card */}
-        <div className="flex justify-center">
-          <GameCard text={inboxCard.text_ge} type="inbox" size="large" className="animate-card-deal" />
+        <div className="flex justify-center px-2 sm:px-4">
+          <div className="w-full max-w-[280px] sm:max-w-md md:max-w-xl">
+            <GameCard text={inboxCard.text_ge} type="inbox" size="large" className="animate-card-deal" />
+          </div>
         </div>
 
         {/* Round Table - Shows submitted cards for all players */}
-        {(gameState.phase === "submitting" || gameState.phase === "judging") && <div className="flex justify-center my-8">
-            <div className="relative w-96 h-96 rounded-full bg-gradient-to-br from-green-600 to-green-800 shadow-2xl flex items-center justify-center">
+        {(gameState.phase === "submitting" || gameState.phase === "judging") && <div className="flex justify-center my-6 sm:my-8 px-2">
+            <div className="relative w-64 h-64 sm:w-80 sm:h-80 md:w-96 md:h-96 rounded-full bg-gradient-to-br from-green-600 to-green-800 shadow-2xl flex items-center justify-center">
               {/* Table surface shine effect */}
               <div className="absolute inset-0 rounded-full bg-gradient-to-tr from-white/5 to-transparent pointer-events-none"></div>
               
               {/* Center decoration */}
               <div className="absolute inset-0 flex items-center justify-center pointer-events-none">
-                <div className="w-16 h-16 rounded-full bg-green-900/50 border-4 border-green-700/30"></div>
+                <div className="w-10 h-10 sm:w-12 sm:h-12 md:w-16 md:h-16 rounded-full bg-green-900/50 border-2 sm:border-4 border-green-700/30"></div>
               </div>
               
               {/* Submitted cards arranged in a circle */}
               <div className="relative w-full h-full z-10">
                 {submissions.map((submission: any, index) => {
               const angle = index * 360 / Math.max(players.length - 1, 3);
-              const radius = 140;
+              // Responsive radius: smaller for mobile, larger for desktop
+              const radius = typeof window !== 'undefined' && window.innerWidth < 640 ? 90 : window.innerWidth < 768 ? 110 : 140;
               const x = Math.cos((angle - 90) * Math.PI / 180) * radius;
               const y = Math.sin((angle - 90) * Math.PI / 180) * radius;
               return <div key={submission.id} className="absolute animate-card-deal z-20" style={{
@@ -450,8 +455,8 @@ const GameBoard = ({
                 transform: `translate(calc(-50% + ${x}px), calc(-50% + ${y}px))`,
                 animationDelay: `${index * 0.2}s`
               }}>
-                      <div className="flex flex-col items-center gap-1">
-                        <button type="button" disabled={!(isJudge && gameState.phase === "judging")} className={`w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-1.5 border-2 ${isJudge && gameState.phase === "judging" ? "cursor-pointer hover:scale-110 hover:shadow-2xl hover:border-primary border-gray-200 transition-all duration-200 active:scale-95" : "border-gray-200 cursor-default"}`} onClick={e => {
+                      <div className="flex flex-col items-center gap-0.5 sm:gap-1">
+                        <button type="button" disabled={!(isJudge && gameState.phase === "judging")} className={`w-16 h-24 sm:w-20 sm:h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-1 sm:p-1.5 border-2 touch-manipulation ${isJudge && gameState.phase === "judging" ? "cursor-pointer hover:scale-110 hover:shadow-2xl hover:border-primary border-gray-200 transition-all duration-200 active:scale-95" : "border-gray-200 cursor-default"}`} onClick={e => {
                     const canClick = isJudge && gameState.phase === "judging";
                     console.log('Card clicked!', {
                       isJudge,
@@ -466,7 +471,7 @@ const GameBoard = ({
                       console.log('Cannot click: isJudge=', isJudge, 'phase=', gameState.phase);
                     }
                   }}>
-                          <span className="text-[10px] text-center font-medium text-gray-800 line-clamp-5 leading-tight pointer-events-none">
+                          <span className="text-[8px] sm:text-[10px] text-center font-medium text-gray-800 line-clamp-5 leading-tight pointer-events-none">
                             {submission.cards?.text_ge}
                           </span>
                         </button>
@@ -478,61 +483,63 @@ const GameBoard = ({
           </div>}
 
         {/* Game Phase Content */}
-        {gameState.phase === "submitting" && isJudge && <div className="text-center">
-            <p className="text-lg text-muted-foreground">
+        {gameState.phase === "submitting" && isJudge && <div className="text-center px-4">
+            <p className="text-base sm:text-lg text-muted-foreground">
               მოიცადე სანამ ყველა ხუმარა აირჩევს ბარათს...
             </p>
-            <p className="text-sm text-muted-foreground mt-2">
+            <p className="text-xs sm:text-sm text-muted-foreground mt-2">
               გაგზავნილია: {submissions.length} / {players.filter(p => !p.is_judge && p.in_game).length}
             </p>
           </div>}
-        {gameState.phase === "submitting" && !isJudge && <div className="space-y-4">
-            {hasSubmitted ? <p className="text-center text-lg text-muted-foreground">მოიცადე სანამ ყველა ხუმარა აირჩევს ბარათს...</p> : <>
-                <p className="text-center text-lg">
+        {gameState.phase === "submitting" && !isJudge && <div className="space-y-3 sm:space-y-4">
+            {hasSubmitted ? <p className="text-center text-base sm:text-lg text-muted-foreground px-4">მოიცადე სანამ ყველა ხუმარა აირჩევს ბარათს...</p> : <>
+                <p className="text-center text-base sm:text-lg px-4">
                   აირჩიე შენი ყველაზე სასაცილო პასუხი:
                 </p>
-                <div className="relative w-full max-w-md mx-auto">
+                <div className="relative w-full max-w-[280px] sm:max-w-md mx-auto">
                   {/* Carousel Container */}
                   <div className="overflow-hidden" ref={emblaRef}>
                     <div className="flex">
-                      {playerCards.slice(0, 6).map(card => <div key={card.id} className="flex-[0_0_100%] min-w-0 flex justify-center items-center px-4">
-                          <GameCard text={card.text_ge} type="reply" isSelected={selectedCard === card.id} onClick={() => setSelectedCard(card.id)} className="cursor-pointer w-48 h-64" />
+                      {playerCards.slice(0, 6).map(card => <div key={card.id} className="flex-[0_0_100%] min-w-0 flex justify-center items-center px-2 sm:px-4">
+                          <div className="w-40 h-56 sm:w-48 sm:h-64">
+                            <GameCard text={card.text_ge} type="reply" isSelected={selectedCard === card.id} onClick={() => setSelectedCard(card.id)} className="cursor-pointer touch-manipulation" />
+                          </div>
                         </div>)}
                     </div>
                   </div>
 
                   {/* Navigation Buttons */}
-                  <Button variant="outline" size="icon" className="absolute left-0 top-1/2 -translate-y-1/2 z-10" onClick={() => emblaApi?.scrollPrev()} disabled={currentCardIndex === 0}>
-                    <ChevronLeft className="h-6 w-6" />
+                  <Button variant="outline" size="icon" className="absolute left-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 sm:h-10 sm:w-10 touch-manipulation" onClick={() => emblaApi?.scrollPrev()} disabled={currentCardIndex === 0}>
+                    <ChevronLeft className="h-4 w-4 sm:h-6 sm:w-6" />
                   </Button>
-                  <Button variant="outline" size="icon" className="absolute right-0 top-1/2 -translate-y-1/2 z-10" onClick={() => emblaApi?.scrollNext()} disabled={currentCardIndex === playerCards.slice(0, 6).length - 1}>
-                    <ChevronRight className="h-6 w-6" />
+                  <Button variant="outline" size="icon" className="absolute right-0 top-1/2 -translate-y-1/2 z-10 h-8 w-8 sm:h-10 sm:w-10 touch-manipulation" onClick={() => emblaApi?.scrollNext()} disabled={currentCardIndex === playerCards.slice(0, 6).length - 1}>
+                    <ChevronRight className="h-4 w-4 sm:h-6 sm:w-6" />
                   </Button>
 
                   {/* Card Indicators */}
-                  <div className="flex justify-center gap-2 mt-4">
-                    {playerCards.slice(0, 6).map((_, index) => <button key={index} className={`w-2 h-2 rounded-full transition-all ${index === currentCardIndex ? "bg-primary w-6" : "bg-muted-foreground/30"}`} onClick={() => emblaApi?.scrollTo(index)} />)}
+                  <div className="flex justify-center gap-1.5 sm:gap-2 mt-3 sm:mt-4">
+                    {playerCards.slice(0, 6).map((_, index) => <button key={index} className={`w-1.5 h-1.5 sm:w-2 sm:h-2 rounded-full transition-all touch-manipulation ${index === currentCardIndex ? "bg-primary w-4 sm:w-6" : "bg-muted-foreground/30"}`} onClick={() => emblaApi?.scrollTo(index)} />)}
                   </div>
                 </div>
 
-                <div className="flex justify-center mt-6">
-                  <Button onClick={handleSubmitCard} disabled={!selectedCard} className="px-8 py-6 text-lg font-bold bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity">
+                <div className="flex justify-center mt-4 sm:mt-6 px-4">
+                  <Button onClick={handleSubmitCard} disabled={!selectedCard} className="px-6 py-5 sm:px-8 sm:py-6 text-base sm:text-lg font-bold bg-gradient-to-r from-primary to-secondary hover:opacity-90 transition-opacity touch-manipulation w-full sm:w-auto">
                     ბარათის გაგზავნა
                   </Button>
                 </div>
               </>}
           </div>}
 
-        {gameState.phase === "judging" && isJudge && <div className="space-y-4">
-            <p className="text-center text-lg font-semibold">
+        {gameState.phase === "judging" && isJudge && <div className="space-y-3 sm:space-y-4 px-4">
+            <p className="text-center text-base sm:text-lg font-semibold">
               აირჩიე ყველაზე სასაცილო პასუხი მაგიდიდან:
             </p>
           </div>}
 
 
-        {gameState.phase === "judging" && !isJudge && <div className="text-center py-12">
-            <Users className="h-16 w-16 mx-auto mb-4 text-primary animate-pulse" />
-            <p className="text-xl">დაელოდეთ მსაჯულის გადაწყვეტილებას...</p>
+        {gameState.phase === "judging" && !isJudge && <div className="text-center py-8 sm:py-12 px-4">
+            <Users className="h-12 w-12 sm:h-16 sm:w-16 mx-auto mb-3 sm:mb-4 text-primary animate-pulse" />
+            <p className="text-base sm:text-xl">დაელოდეთ მსაჯულის გადაწყვეტილებას...</p>
           </div>}
       </div>
     </div>;
