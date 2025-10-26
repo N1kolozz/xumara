@@ -577,8 +577,9 @@ const Game = () => {
         setCurrentPlayer({ ...currentPlayer, in_game: true, score: 0 });
       }
       
-      // Small delay to ensure subscriptions process the player updates
-      await new Promise(resolve => setTimeout(resolve, 300));
+      // Longer delay to ensure ALL players receive and process the realtime updates
+      console.log("Waiting for all players to sync...");
+      await new Promise(resolve => setTimeout(resolve, 1000));
 
       // NOW update room status after all players are confirmed in_game
       console.log("Updating room status to playing...");
