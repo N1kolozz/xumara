@@ -150,16 +150,15 @@ const Game = () => {
         'broadcast',
         { event: 'return_to_lobby' },
         (payload: any) => {
-          const currentPlayerId = getCurrentPlayerId();
-          // Only show toast to other players, not the one who triggered it
           if (payload.payload) {
             setRoom((prevRoom) => prevRoom ? { ...prevRoom, status: "lobby" } : null);
             
+            const playerName = payload.payload.playerName || "მოთამაშე";
             toast({
               title: "დაბრუნდით ოთახში",
               description: payload.payload.reason === 'judge_left'
-                ? "მსაჯული დაბრუნდა ლობიში - ყველა დაბრუნდა ლობიში"
-                : "არასაკმარისი მოთამაშე - ყველა დაბრუნდა ლობიში",
+                ? `${playerName} დაბრუნდა ლობიში - ყველა დაბრუნდა ლობიში`
+                : `${playerName} დაბრუნდა ლობიში - არასაკმარისი მოთამაშე`,
             });
           }
         }
@@ -287,8 +286,8 @@ const Game = () => {
           .update({ status: "lobby" })
           .eq("id", room.id);
 
-        // Broadcast to all players to return to lobby
-        const channel = supabase.channel(`room_${room.id}_broadcast`);
+        // Broadcast to all players to return to lobby using the same channel
+        const channel = supabase.channel(`room_${room.id}`);
         await channel.subscribe();
         await channel.send({
           type: 'broadcast',
