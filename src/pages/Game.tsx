@@ -715,8 +715,9 @@ const Game = () => {
     );
   }
 
-  // Determine whether to show lobby or game board based on room status AND player's in_game status
-  const shouldShowLobby = room.status === "lobby" || !currentPlayer.in_game;
+  // Show lobby ONLY when room is in lobby status AND player is not in game
+  // If player is in_game=true, they should see GameBoard regardless of room status
+  const shouldShowLobby = room.status === "lobby" && !currentPlayer.in_game;
   
   console.log("Render decision:", {
     roomStatus: room.status,
