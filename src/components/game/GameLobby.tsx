@@ -130,9 +130,9 @@ const GameLobby = ({
               <Button onClick={() => {
             console.log("Start game button clicked!");
             console.log("Players:", players);
-            const rounds = parseInt(maxRounds as any) || 5;
+            const rounds = parseInt(maxRounds as any);
             
-            if (rounds < 1 || rounds > 10) {
+            if (!rounds || rounds < 1 || rounds > 10) {
               toast({
                 title: "შეცდომა",
                 description: "რაუნდების რაოდენობა უნდა იყოს 1-დან 10-მდე",
