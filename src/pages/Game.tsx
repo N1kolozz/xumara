@@ -343,8 +343,9 @@ const Game = () => {
     if (!currentPlayer || !room) return;
 
     try {
-      // Check if the leaving player is the host
+      // Check if the leaving player is the host and judge
       const isHost = currentPlayer.is_host;
+      const isJudge = currentPlayer.is_judge;
 
       // Delete current player from the room
       await supabase
@@ -364,28 +365,75 @@ const Game = () => {
           .from("rooms")
           .delete()
           .eq("id", room.id);
-      } else if (isHost && remainingPlayers.length > 0) {
-        // If the leaving player was the host, assign a new random host
-        const newHost = remainingPlayers[Math.floor(Math.random() * remainingPlayers.length)];
+      } else {
+        // If game is playing, check if we need to return everyone to lobby
+        if (room.status === "playing") {
+          const remainingComedians = remainingPlayers.filter(p => !p.is_judge).length;
+          
+          // If judge left OR fewer than 2 comedians remain, end the game and return to lobby
+          if (isJudge || remainingComedians < 2) {
+            // Delete game state
+            await supabase
+              .from("game_state")
+              .delete()
+              .eq("room_id", room.id);
+
+            // Clear all submissions
+            await supabase
+              .from("submissions")
+              .delete()
+              .eq("room_id", room.id);
+
+            // Clear all player hands
+            await supabase
+              .from("player_hands")
+              .delete()
+              .eq("room_id", room.id);
+
+            // Reset room status to lobby
+            await supabase
+              .from("rooms")
+              .update({ status: "lobby" })
+              .eq("id", room.id);
+
+            // Broadcast to all remaining players to return to lobby
+            const channel = supabase.channel(`room_${room.id}`);
+            await channel.subscribe();
+            await channel.send({
+              type: 'broadcast',
+              event: 'return_to_lobby',
+              payload: { 
+                reason: isJudge ? 'judge_left' : 'insufficient_players',
+                playerName: currentPlayer.name
+              }
+            });
+            await supabase.removeChannel(channel);
+          }
+        }
         
-        // Update the room with new host_id
-        await supabase
-          .from("rooms")
-          .update({ host_id: newHost.id })
-          .eq("id", room.id);
+        // If the leaving player was the host, assign a new random host
+        if (isHost && remainingPlayers.length > 0) {
+          const newHost = remainingPlayers[Math.floor(Math.random() * remainingPlayers.length)];
+          
+          // Update the room with new host_id
+          await supabase
+            .from("rooms")
+            .update({ host_id: newHost.id })
+            .eq("id", room.id);
 
-        // Update the new host player's is_host status
-        await supabase
-          .from("players")
-          .update({ is_host: true })
-          .eq("id", newHost.id);
+          // Update the new host player's is_host status
+          await supabase
+            .from("players")
+            .update({ is_host: true })
+            .eq("id", newHost.id);
 
-        // Make sure all other players have is_host set to false
-        await supabase
-          .from("players")
-          .update({ is_host: false })
-          .eq("room_id", room.id)
-          .neq("id", newHost.id);
+          // Make sure all other players have is_host set to false
+          await supabase
+            .from("players")
+            .update({ is_host: false })
+            .eq("room_id", room.id)
+            .neq("id", newHost.id);
+        }
       }
 
       // Clear storage
