@@ -287,20 +287,10 @@ const Game = () => {
           .update({ status: "lobby" })
           .eq("id", room.id);
 
-        // Broadcast to all players to return to lobby - use same channel name as subscription
-        const broadcastChannel = supabase.channel(`room_${room.id}`);
-        
-        // Subscribe and wait for it to be ready
-        await new Promise((resolve) => {
-          broadcastChannel.subscribe((status) => {
-            if (status === 'SUBSCRIBED') {
-              resolve(true);
-            }
-          });
-        });
-
-        // Send broadcast message
-        await broadcastChannel.send({
+        // Broadcast to all players to return to lobby
+        const channel = supabase.channel(`room_${room.id}_broadcast`);
+        await channel.subscribe();
+        await channel.send({
           type: 'broadcast',
           event: 'return_to_lobby',
           payload: { 
@@ -308,9 +298,7 @@ const Game = () => {
             playerName: currentPlayer.name
           }
         });
-
-        // Clean up
-        await supabase.removeChannel(broadcastChannel);
+        await supabase.removeChannel(channel);
 
         // Update local room state
         setRoom({ ...room, status: "lobby" });
