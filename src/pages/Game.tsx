@@ -582,14 +582,24 @@ const Game = () => {
 
       // NOW update room status after all players are confirmed in_game
       console.log("Updating room status to playing...");
-      const { error: roomUpdateError } = await supabase
+      const { error: roomUpdateError, data: updatedRoomData } = await supabase
         .from("rooms")
         .update({ status: "playing" })
-        .eq("id", room.id);
+        .eq("id", room.id)
+        .select()
+        .single();
         
       if (roomUpdateError) {
         console.error("Error updating room:", roomUpdateError);
         throw roomUpdateError;
+      }
+      
+      console.log("Room status updated:", updatedRoomData);
+      
+      // Update local room state immediately
+      if (updatedRoomData) {
+        console.log("Setting local room state to playing");
+        setRoom(updatedRoomData as Room);
       }
 
       // Get random inbox card
