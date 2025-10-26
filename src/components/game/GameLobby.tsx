@@ -124,7 +124,7 @@ const GameLobby = ({
               setRoundsError("");
               setMaxRounds(Math.max(1, value));
             }
-          }} className="text-center text-lg sm:text-xl font-bold h-12 sm:h-14 touch-manipulation" />
+          }} className="text-center text-lg sm:text-xl font-bold h-12 sm:h-14 touch-manipulation [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               <p className="text-xs text-muted-foreground text-center">
                 აირჩიეთ 1-დან 10-მდე რაუნდი
               </p>
