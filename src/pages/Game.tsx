@@ -248,7 +248,13 @@ const Game = () => {
           filter: `room_id=eq.${roomId}`,
         },
         (payload) => {
-          if (payload.new) {
+          if (payload.eventType === "DELETE") {
+            // Game ended, clear game state and reload room data to get updated status
+            console.log("Game state deleted, reloading room data to sync all states");
+            setGameState(null);
+            // Reload room data to ensure room.status and currentPlayer.in_game are updated
+            loadRoomData();
+          } else if (payload.new) {
             setGameState(payload.new as GameState);
           }
         }
