@@ -33,14 +33,17 @@ const Scoreboard = ({ players: initialPlayers, roomId }: ScoreboardProps) => {
           table: 'players',
           filter: `room_id=eq.${roomId}`
         },
-        async () => {
-          // Refetch players when any change occurs
+        async (payload) => {
+          console.log('Scoreboard: Player change detected:', payload.eventType);
+          // Refetch players when any change occurs (including DELETE)
           const { data } = await supabase
             .from('players')
             .select('id, name, score, is_judge')
-            .eq('room_id', roomId);
+            .eq('room_id', roomId)
+            .order('joined_at', { ascending: true });
           
           if (data) {
+            console.log('Scoreboard: Updated players list:', data.length, 'players');
             setPlayers(data);
           }
         }
