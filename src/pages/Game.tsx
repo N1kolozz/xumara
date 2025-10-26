@@ -136,6 +136,10 @@ const Game = () => {
         },
         (payload) => {
           if (payload.eventType === "UPDATE") {
+            console.log("Room UPDATE detected:", {
+              old: payload.old,
+              new: payload.new
+            });
             setRoom(payload.new as Room);
           } else if (payload.eventType === "DELETE") {
             // Room was deleted, navigate to home
@@ -223,6 +227,11 @@ const Game = () => {
             if (currentPlayerId) {
               const updatedCurrentPlayer = playersData.find(p => p.id === currentPlayerId);
               if (updatedCurrentPlayer) {
+                console.log("Current player UPDATE detected:", {
+                  before: currentPlayer,
+                  after: updatedCurrentPlayer,
+                  in_game_changed: currentPlayer?.in_game !== updatedCurrentPlayer.in_game
+                });
                 setCurrentPlayer(updatedCurrentPlayer);
                 console.log("Updated current player:", updatedCurrentPlayer);
               }
@@ -540,15 +549,18 @@ const Game = () => {
 
       // IMPORTANT: Reset all players' scores to 0 and set in_game to true BEFORE changing room status
       console.log("Updating all players in_game status to true...");
-      const { error: playersUpdateError } = await supabase
+      const { error: playersUpdateError, data: updatedPlayersData } = await supabase
         .from("players")
         .update({ score: 0, in_game: true })
-        .eq("room_id", room.id);
+        .eq("room_id", room.id)
+        .select();
         
       if (playersUpdateError) {
         console.error("Error updating players:", playersUpdateError);
         throw playersUpdateError;
       }
+      
+      console.log("Players update result:", updatedPlayersData);
       
       // Verify all players are updated
       const { data: updatedPlayers } = await supabase
@@ -557,6 +569,13 @@ const Game = () => {
         .eq("room_id", room.id);
         
       console.log("Players after update:", updatedPlayers);
+      
+      // Update local currentPlayer state immediately
+      const updatedCurrentPlayer = updatedPlayers?.find(p => p.id === currentPlayer.id);
+      if (updatedCurrentPlayer) {
+        console.log("Updating local currentPlayer:", updatedCurrentPlayer);
+        setCurrentPlayer({ ...currentPlayer, in_game: true, score: 0 });
+      }
       
       // Small delay to ensure subscriptions process the player updates
       await new Promise(resolve => setTimeout(resolve, 300));
@@ -686,9 +705,20 @@ const Game = () => {
     );
   }
 
+  // Determine whether to show lobby or game board based on room status AND player's in_game status
+  const shouldShowLobby = room.status === "lobby" || !currentPlayer.in_game;
+  
+  console.log("Render decision:", {
+    roomStatus: room.status,
+    playerInGame: currentPlayer.in_game,
+    shouldShowLobby,
+    playerName: currentPlayer.name,
+    isJudge: currentPlayer.is_judge
+  });
+
   return (
     <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
-      {room.status === "lobby" ? (
+      {shouldShowLobby ? (
         <GameLobby
           room={room}
           players={players}
