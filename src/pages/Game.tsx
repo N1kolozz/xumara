@@ -226,6 +226,50 @@ const Game = () => {
                 console.log("Updated current player:", updatedCurrentPlayer);
               }
             }
+            
+            // Check if game should return to lobby due to insufficient players
+            if (payload.eventType === "DELETE") {
+              // Get current room status
+              const { data: currentRoom } = await supabase
+                .from("rooms")
+                .select("status")
+                .eq("id", roomId)
+                .single();
+              
+              if (currentRoom?.status === "playing") {
+                // Check how many comedians are left
+                const remainingComedians = playersData.filter(p => !p.is_judge).length;
+                
+                // If fewer than 2 comedians remain, end the game and return everyone to lobby
+                if (remainingComedians < 2) {
+                  console.log("Insufficient comedians remaining, returning all players to lobby");
+                  
+                  // Delete game state
+                  await supabase
+                    .from("game_state")
+                    .delete()
+                    .eq("room_id", roomId);
+
+                  // Clear all submissions
+                  await supabase
+                    .from("submissions")
+                    .delete()
+                    .eq("room_id", roomId);
+
+                  // Clear all player hands
+                  await supabase
+                    .from("player_hands")
+                    .delete()
+                    .eq("room_id", roomId);
+
+                  // Reset room status to lobby
+                  await supabase
+                    .from("rooms")
+                    .update({ status: "lobby" })
+                    .eq("id", roomId);
+                }
+              }
+            }
           }
         }
       )
