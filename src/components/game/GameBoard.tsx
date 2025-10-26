@@ -451,7 +451,7 @@ const GameBoard = ({
                 animationDelay: `${index * 0.2}s`
               }}>
                       <div className="flex flex-col items-center gap-1">
-                        <button type="button" disabled={!(isJudge && gameState.phase === "judging")} className={`w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-2 border-2 ${isJudge && gameState.phase === "judging" ? "cursor-pointer hover:scale-110 hover:shadow-2xl hover:border-primary border-gray-200 transition-all duration-200 active:scale-95" : "border-gray-200 cursor-default"}`} onClick={e => {
+                        <button type="button" disabled={!(isJudge && gameState.phase === "judging")} className={`w-20 h-28 bg-white rounded-lg shadow-xl flex items-center justify-center p-1.5 border-2 ${isJudge && gameState.phase === "judging" ? "cursor-pointer hover:scale-110 hover:shadow-2xl hover:border-primary border-gray-200 transition-all duration-200 active:scale-95" : "border-gray-200 cursor-default"}`} onClick={e => {
                     const canClick = isJudge && gameState.phase === "judging";
                     console.log('Card clicked!', {
                       isJudge,
@@ -466,7 +466,7 @@ const GameBoard = ({
                       console.log('Cannot click: isJudge=', isJudge, 'phase=', gameState.phase);
                     }
                   }}>
-                          <span className="text-xs text-center font-medium text-gray-800 line-clamp-4 pointer-events-none">
+                          <span className="text-[10px] text-center font-medium text-gray-800 line-clamp-5 leading-tight pointer-events-none">
                             {submission.cards?.text_ge}
                           </span>
                         </button>
