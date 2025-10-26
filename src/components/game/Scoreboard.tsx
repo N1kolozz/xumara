@@ -25,7 +25,11 @@ const Scoreboard = ({ players: initialPlayers, roomId }: ScoreboardProps) => {
 
   useEffect(() => {
     const channel = supabase
-      .channel(`scoreboard_${roomId}`)
+      .channel(`scoreboard_${roomId}`, {
+        config: {
+          broadcast: { self: true }
+        }
+      })
       .on(
         'postgres_changes',
         {
@@ -35,24 +39,29 @@ const Scoreboard = ({ players: initialPlayers, roomId }: ScoreboardProps) => {
           filter: `room_id=eq.${roomId}`
         },
         async (payload) => {
-          console.log('Scoreboard: Player change detected:', payload.eventType);
-          // Refetch players when any change occurs (including DELETE)
-          const { data } = await supabase
+          console.log('Scoreboard: Player change detected:', payload.eventType, payload);
+          // Refetch players when any change occurs (including UPDATE for in_game)
+          const { data, error } = await supabase
             .from('players')
             .select('id, name, score, is_judge, in_game')
             .eq('room_id', roomId)
             .eq('in_game', true)
             .order('joined_at', { ascending: true });
           
-          if (data) {
-            console.log('Scoreboard: Updated players list:', data.length, 'players');
+          if (error) {
+            console.error('Scoreboard: Error fetching players:', error);
+          } else if (data) {
+            console.log('Scoreboard: Updated players list:', data.length, 'players in game');
             setPlayers(data);
           }
         }
       )
-      .subscribe();
+      .subscribe((status) => {
+        console.log('Scoreboard: Subscription status:', status);
+      });
 
     return () => {
+      console.log('Scoreboard: Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [roomId]);
