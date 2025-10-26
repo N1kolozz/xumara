@@ -234,37 +234,63 @@ const Game = () => {
   };
 
   const handleReturnToLobby = async () => {
-    if (!room) return;
+    if (!room || !currentPlayer) return;
 
     try {
-      // Delete game state
-      await supabase
-        .from("game_state")
-        .delete()
-        .eq("room_id", room.id);
+      const isJudge = currentPlayer.is_judge;
+      const comedianCount = players.filter(p => !p.is_judge).length;
 
-      // Clear all submissions
-      await supabase
-        .from("submissions")
-        .delete()
-        .eq("room_id", room.id);
+      // If judge leaves OR if there are 2 or fewer comedians, reset entire game
+      if (isJudge || comedianCount <= 2) {
+        // Delete game state
+        await supabase
+          .from("game_state")
+          .delete()
+          .eq("room_id", room.id);
 
-      // Clear all player hands
-      await supabase
-        .from("player_hands")
-        .delete()
-        .eq("room_id", room.id);
+        // Clear all submissions
+        await supabase
+          .from("submissions")
+          .delete()
+          .eq("room_id", room.id);
 
-      // Reset room status to lobby
-      await supabase
-        .from("rooms")
-        .update({ status: "lobby" })
-        .eq("id", room.id);
+        // Clear all player hands
+        await supabase
+          .from("player_hands")
+          .delete()
+          .eq("room_id", room.id);
 
-      toast({
-        title: "დაბრუნდით ოთახში",
-        description: "წარმატებით დაბრუნდით ლობიში",
-      });
+        // Reset room status to lobby
+        await supabase
+          .from("rooms")
+          .update({ status: "lobby" })
+          .eq("id", room.id);
+
+        toast({
+          title: "დაბრუნდით ოთახში",
+          description: isJudge 
+            ? "მსაჯული გავიდა - ყველა დაბრუნდა ლობიში" 
+            : "არასაკმარისი მოთამაშე - ყველა დაბრუნდა ლობიში",
+        });
+      } else {
+        // If 3+ comedians remain, just remove this player's data
+        await supabase
+          .from("player_hands")
+          .delete()
+          .eq("room_id", room.id)
+          .eq("player_id", currentPlayer.id);
+
+        await supabase
+          .from("submissions")
+          .delete()
+          .eq("room_id", room.id)
+          .eq("player_id", currentPlayer.id);
+
+        toast({
+          title: "დაბრუნდით ოთახში",
+          description: "წარმატებით დაბრუნდით ლობიში",
+        });
+      }
     } catch (error) {
       toast({
         title: "შეცდომა",
