@@ -244,29 +244,59 @@ const Game = () => {
                 if (remainingComedians < 2) {
                   console.log("Insufficient comedians remaining, returning all players to lobby");
                   
-                  // Delete game state
-                  await supabase
+                  // Check if game state exists to avoid duplicate cleanup
+                  const { data: existingGameState } = await supabase
                     .from("game_state")
-                    .delete()
-                    .eq("room_id", roomId);
+                    .select("id")
+                    .eq("room_id", roomId)
+                    .maybeSingle();
+                  
+                  if (existingGameState) {
+                    // Delete game state
+                    await supabase
+                      .from("game_state")
+                      .delete()
+                      .eq("room_id", roomId);
 
-                  // Clear all submissions
-                  await supabase
-                    .from("submissions")
-                    .delete()
-                    .eq("room_id", roomId);
+                    // Clear all submissions
+                    await supabase
+                      .from("submissions")
+                      .delete()
+                      .eq("room_id", roomId);
 
-                  // Clear all player hands
-                  await supabase
-                    .from("player_hands")
-                    .delete()
-                    .eq("room_id", roomId);
+                    // Clear all player hands
+                    await supabase
+                      .from("player_hands")
+                      .delete()
+                      .eq("room_id", roomId);
 
-                  // Reset room status to lobby
-                  await supabase
-                    .from("rooms")
-                    .update({ status: "lobby" })
-                    .eq("id", roomId);
+                    // Reset room status to lobby
+                    await supabase
+                      .from("rooms")
+                      .update({ status: "lobby" })
+                      .eq("id", roomId);
+
+                    // Broadcast to all players to return to lobby
+                    const broadcastChannel = supabase.channel(`room_broadcast_${roomId}_${Date.now()}`);
+                    await broadcastChannel.subscribe();
+                    await broadcastChannel.send({
+                      type: 'broadcast',
+                      event: 'return_to_lobby',
+                      payload: { 
+                        reason: 'insufficient_players',
+                        playerName: ''
+                      }
+                    });
+                    await supabase.removeChannel(broadcastChannel);
+
+                    // Update local state
+                    setRoom((prevRoom) => prevRoom ? { ...prevRoom, status: "lobby" } : null);
+
+                    toast({
+                      title: "დაბრუნდით ოთახში",
+                      description: "არასაკმარისი მოთამაშეები - ყველა დაბრუნდა ლობიში",
+                    });
+                  }
                 }
               }
             }
