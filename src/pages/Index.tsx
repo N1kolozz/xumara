@@ -319,7 +319,7 @@ const Index = () => {
         {/* How to Play */}
         <Card className="p-6 bg-card/30 backdrop-blur-sm border-green-500/50">
           <h3 className="text-lg font-bold mb-3 flex items-center gap-2">
-            <Gamepad2 className="h-5 w-5 text-accent" />
+            <Gamepad2 className="h-5 w-5 text-green-500" />
             როგორ ითამაშოთ?
           </h3>
           <ol className="space-y-2 text-sm text-muted-foreground list-decimal list-inside">
