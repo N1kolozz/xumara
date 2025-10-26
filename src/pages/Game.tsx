@@ -507,6 +507,10 @@ const Game = () => {
     }
 
     try {
+      console.log("Starting game...");
+      console.log("Current players:", players);
+      console.log("Current player:", currentPlayer);
+      
       // Check if game already started
       const { data: existingGameState } = await supabase
         .from("game_state")
@@ -534,17 +538,40 @@ const Game = () => {
         .delete()
         .eq("room_id", room.id);
 
-      // Reset all players' scores to 0 and set in_game to true (keep is_judge status unchanged)
-      await supabase
+      // IMPORTANT: Reset all players' scores to 0 and set in_game to true BEFORE changing room status
+      console.log("Updating all players in_game status to true...");
+      const { error: playersUpdateError } = await supabase
         .from("players")
         .update({ score: 0, in_game: true })
         .eq("room_id", room.id);
+        
+      if (playersUpdateError) {
+        console.error("Error updating players:", playersUpdateError);
+        throw playersUpdateError;
+      }
+      
+      // Verify all players are updated
+      const { data: updatedPlayers } = await supabase
+        .from("players")
+        .select("id, name, in_game, is_judge")
+        .eq("room_id", room.id);
+        
+      console.log("Players after update:", updatedPlayers);
+      
+      // Small delay to ensure subscriptions process the player updates
+      await new Promise(resolve => setTimeout(resolve, 300));
 
-      // Update room status
-      await supabase
+      // NOW update room status after all players are confirmed in_game
+      console.log("Updating room status to playing...");
+      const { error: roomUpdateError } = await supabase
         .from("rooms")
         .update({ status: "playing" })
         .eq("id", room.id);
+        
+      if (roomUpdateError) {
+        console.error("Error updating room:", roomUpdateError);
+        throw roomUpdateError;
+      }
 
       // Get random inbox card
       const { data: inboxCards } = await supabase
