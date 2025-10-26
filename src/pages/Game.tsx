@@ -249,10 +249,27 @@ const Game = () => {
         },
         async (payload) => {
           if (payload.eventType === "DELETE") {
-            // Game ended, clear game state and reload room data to get updated status
-            console.log("Game state deleted, reloading room data to sync all states");
+            // Game ended, clear game state
+            console.log("Game state deleted - game ended, returning all to lobby");
             setGameState(null);
-            // IMPORTANT: Wait for room data to reload so currentPlayer.in_game updates
+            
+            // CRITICAL: Immediately update local state to ensure UI shows lobby
+            // This prevents race conditions where render happens before DB query completes
+            setRoom(prev => prev ? { ...prev, status: "lobby" } : null);
+            
+            // Get current player ID to update their state
+            let playerId = sessionStorage.getItem(`player_${roomId}`);
+            if (!playerId) {
+              playerId = localStorage.getItem(`player_${roomId}`);
+            }
+            
+            if (playerId) {
+              // Force update current player's in_game to false immediately
+              setCurrentPlayer(prev => prev ? { ...prev, in_game: false } : null);
+              console.log("Forced currentPlayer.in_game to false after game end");
+            }
+            
+            // Then reload room data from DB to sync everything
             await loadRoomData();
             console.log("Room data reloaded after game state deletion");
           } else if (payload.new) {
