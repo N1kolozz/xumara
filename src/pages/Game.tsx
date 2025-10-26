@@ -588,20 +588,26 @@ const Game = () => {
       
       console.log("Room status updated:", updatedRoomData);
       
-      // Update local room and currentPlayer state immediately together
-      if (updatedRoomData) {
+      // Reload current player from database to ensure we have the latest in_game status
+      const { data: refreshedCurrentPlayer } = await supabase
+        .from("players")
+        .select("*")
+        .eq("id", currentPlayer.id)
+        .single();
+      
+      // Update local room and currentPlayer state with database values
+      if (updatedRoomData && refreshedCurrentPlayer) {
         console.log("Setting local room state to playing");
         setRoom(updatedRoomData as Room);
         
-        // Update local currentPlayer state AFTER room status is updated
-        console.log("Updating local currentPlayer state:", {
-          id: currentPlayer.id,
-          name: currentPlayer.name,
-          in_game: true,
-          is_judge: currentPlayer.is_judge,
+        console.log("Updating local currentPlayer with refreshed data:", {
+          id: refreshedCurrentPlayer.id,
+          name: refreshedCurrentPlayer.name,
+          in_game: refreshedCurrentPlayer.in_game,
+          is_judge: refreshedCurrentPlayer.is_judge,
         });
         
-        setCurrentPlayer({ ...currentPlayer, in_game: true, score: 0 });
+        setCurrentPlayer(refreshedCurrentPlayer);
       }
 
       // Get random inbox card
