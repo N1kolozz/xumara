@@ -266,6 +266,9 @@ const Game = () => {
           .update({ status: "lobby" })
           .eq("id", room.id);
 
+        // Update local room state
+        setRoom({ ...room, status: "lobby" });
+
         toast({
           title: "დაბრუნდით ოთახში",
           description: isJudge 
@@ -285,6 +288,9 @@ const Game = () => {
           .delete()
           .eq("room_id", room.id)
           .eq("player_id", currentPlayer.id);
+
+        // Update local room state to lobby for this player
+        setRoom({ ...room, status: "lobby" });
 
         toast({
           title: "დაბრუნდით ოთახში",
