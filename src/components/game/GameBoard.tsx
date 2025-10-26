@@ -80,6 +80,13 @@ const GameBoard = ({
   const loadGameData = async () => {
     if (!gameState) return;
 
+    console.log("Loading game data:", {
+      currentPlayerId: currentPlayer.id,
+      isJudge: currentPlayer.is_judge,
+      phase: gameState.phase,
+      roomId: room.id
+    });
+
     // Load inbox card
     if (gameState.current_inbox_card_id) {
       const {
@@ -90,14 +97,29 @@ const GameBoard = ({
 
     // Load player's hand (only if not judge)
     if (!currentPlayer.is_judge && gameState.phase === "submitting") {
+      console.log("Loading player cards for non-judge player...");
+      
       // Load existing cards from database
       const {
-        data: handData
+        data: handData,
+        error: handError
       } = await supabase.from("player_hands").select("card_id, cards(*)").eq("player_id", currentPlayer.id).eq("room_id", room.id);
+      
+      console.log("Player hands query result:", {
+        handData,
+        handError,
+        count: handData?.length || 0
+      });
+      
       if (handData) {
         const cards = handData.map((h: any) => h.cards).filter(Boolean);
+        console.log("Setting player cards:", cards.length);
         setPlayerCards(cards);
       }
+    } else {
+      console.log("Skipping card load:", {
+        reason: currentPlayer.is_judge ? "Player is judge" : `Phase is ${gameState.phase}`
+      });
     }
 
     // Load submissions for all phases (so players can see cards on table)
