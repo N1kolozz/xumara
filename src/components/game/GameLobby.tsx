@@ -54,7 +54,7 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
               onClick={onLeaveGame}
               className="hover:bg-destructive hover:text-destructive-foreground"
             >
-              ← გასვლა
+              ← თამაშიდან გასვლა
             </Button>
             <div className="flex-1" />
           </div>

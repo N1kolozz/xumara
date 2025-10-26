@@ -233,6 +233,47 @@ const Game = () => {
     };
   };
 
+  const handleReturnToLobby = async () => {
+    if (!room) return;
+
+    try {
+      // Delete game state
+      await supabase
+        .from("game_state")
+        .delete()
+        .eq("room_id", room.id);
+
+      // Clear all submissions
+      await supabase
+        .from("submissions")
+        .delete()
+        .eq("room_id", room.id);
+
+      // Clear all player hands
+      await supabase
+        .from("player_hands")
+        .delete()
+        .eq("room_id", room.id);
+
+      // Reset room status to lobby
+      await supabase
+        .from("rooms")
+        .update({ status: "lobby" })
+        .eq("id", room.id);
+
+      toast({
+        title: "დაბრუნდით ოთახში",
+        description: "წარმატებით დაბრუნდით ლობიში",
+      });
+    } catch (error) {
+      toast({
+        title: "შეცდომა",
+        description: "ლობიში დაბრუნება ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    }
+  };
+
   const handleLeaveGame = async () => {
     if (!currentPlayer || !room) return;
 
@@ -493,7 +534,7 @@ const Game = () => {
           players={players}
           currentPlayer={currentPlayer}
           gameState={gameState}
-          onLeaveGame={handleLeaveGame}
+          onReturnToLobby={handleReturnToLobby}
         />
       )}
     </div>

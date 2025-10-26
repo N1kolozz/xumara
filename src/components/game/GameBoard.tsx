@@ -27,7 +27,7 @@ interface GameBoardProps {
   players: Player[];
   currentPlayer: Player;
   gameState: GameState | null;
-  onLeaveGame: () => void;
+  onReturnToLobby: () => void;
 }
 interface CardData {
   id: string;
@@ -44,7 +44,7 @@ const GameBoard = ({
   players,
   currentPlayer,
   gameState,
-  onLeaveGame
+  onReturnToLobby
 }: GameBoardProps) => {
   const {
     toast
@@ -377,10 +377,10 @@ const GameBoard = ({
   const hasSubmitted = submissions.some(s => s.player_id === currentPlayer.id);
   return <div className="container mx-auto px-4 py-8">
       <div className="max-w-6xl mx-auto space-y-6">
-        {/* Leave Game Button */}
+        {/* Return to Lobby Button */}
         <div className="flex justify-start">
-          <Button variant="outline" onClick={onLeaveGame} className="hover:bg-destructive hover:text-destructive-foreground">
-            ← გასვლა
+          <Button variant="outline" onClick={onReturnToLobby} className="hover:bg-secondary hover:text-secondary-foreground">
+            ← გასვლა ოთახში
           </Button>
         </div>
 
