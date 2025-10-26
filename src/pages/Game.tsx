@@ -243,8 +243,8 @@ const Game = () => {
       // Calculate how many comedians will remain after this player returns to lobby
       const remainingComedians = isJudge ? comedianCount : comedianCount - 1;
 
-      // If judge leaves OR if 2 or fewer comedians will remain, reset entire game
-      if (isJudge || remainingComedians <= 2) {
+      // If judge leaves OR if fewer than 2 comedians will remain, reset entire game
+      if (isJudge || remainingComedians < 2) {
         // Delete game state
         await supabase
           .from("game_state")
