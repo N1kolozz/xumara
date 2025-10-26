@@ -271,9 +271,10 @@ const GameBoard = ({
           // Wait a bit for all players to receive the realtime update
           await new Promise(resolve => setTimeout(resolve, 1000));
 
-          // Reset all scores (keep judge status unchanged)
+          // Reset all scores and set in_game to false (keep judge status unchanged)
           await supabase.from("players").update({
-            score: 0
+            score: 0,
+            in_game: false
           }).eq("room_id", room.id);
 
           // Clear all submissions from all rounds
