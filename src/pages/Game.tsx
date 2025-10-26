@@ -324,8 +324,9 @@ const Game = () => {
         });
         await supabase.removeChannel(channel);
 
-        // Update local room state
+        // Update local room and player state
         setRoom({ ...room, status: "lobby" });
+        setCurrentPlayer({ ...currentPlayer, in_game: false });
 
         toast({
           title: "დაბრუნდით ოთახში",
@@ -353,8 +354,9 @@ const Game = () => {
           .eq("room_id", room.id)
           .eq("player_id", currentPlayer.id);
 
-        // Update local room state to lobby for this player
+        // Update local room and player state to lobby for this player
         setRoom({ ...room, status: "lobby" });
+        setCurrentPlayer({ ...currentPlayer, in_game: false });
 
         toast({
           title: "დაბრუნდით ოთახში",
