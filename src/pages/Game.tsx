@@ -147,6 +147,24 @@ const Game = () => {
         }
       )
       .on(
+        'broadcast',
+        { event: 'return_to_lobby' },
+        (payload: any) => {
+          const currentPlayerId = getCurrentPlayerId();
+          // Only show toast to other players, not the one who triggered it
+          if (payload.payload) {
+            setRoom((prevRoom) => prevRoom ? { ...prevRoom, status: "lobby" } : null);
+            
+            toast({
+              title: "დაბრუნდით ოთახში",
+              description: payload.payload.reason === 'judge_left'
+                ? "მსაჯული დაბრუნდა ლობიში - ყველა დაბრუნდა ლობიში"
+                : "არასაკმარისი მოთამაშე - ყველა დაბრუნდა ლობიში",
+            });
+          }
+        }
+      )
+      .on(
         "postgres_changes",
         {
           event: "*",
@@ -269,13 +287,24 @@ const Game = () => {
           .update({ status: "lobby" })
           .eq("id", room.id);
 
+        // Broadcast to all players to return to lobby
+        const channel = supabase.channel(`room_${room.id}`);
+        await channel.send({
+          type: 'broadcast',
+          event: 'return_to_lobby',
+          payload: { 
+            reason: isJudge ? 'judge_left' : 'insufficient_players',
+            playerName: currentPlayer.name
+          }
+        });
+
         // Update local room state
         setRoom({ ...room, status: "lobby" });
 
         toast({
           title: "დაბრუნდით ოთახში",
           description: isJudge 
-            ? "მსაჯული გავიდა - ყველა დაბრუნდა ლობიში" 
+            ? "მსაჯული დაბრუნდა ლობიში - ყველა დაბრუნდა ლობიში" 
             : "არასაკმარისი მოთამაშე - ყველა დაბრუნდა ლობიში",
         });
       } else {
