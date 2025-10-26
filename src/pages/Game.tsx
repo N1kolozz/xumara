@@ -290,6 +290,12 @@ const Game = () => {
           .delete()
           .eq("room_id", room.id);
 
+        // Reset all players' in_game status to false
+        await supabase
+          .from("players")
+          .update({ in_game: false })
+          .eq("room_id", room.id);
+
         // Reset room status to lobby
         await supabase
           .from("rooms")
@@ -404,6 +410,12 @@ const Game = () => {
             await supabase
               .from("player_hands")
               .delete()
+              .eq("room_id", room.id);
+
+            // Reset all players' in_game status to false
+            await supabase
+              .from("players")
+              .update({ in_game: false })
               .eq("room_id", room.id);
 
             // Reset room status to lobby
