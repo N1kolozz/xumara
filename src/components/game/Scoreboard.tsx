@@ -71,36 +71,36 @@ const Scoreboard = ({ players: initialPlayers, roomId }: ScoreboardProps) => {
   const sortedPlayers = [...regularPlayers].sort((a, b) => b.score - a.score);
 
   return (
-    <Card className="p-4 bg-card/50 backdrop-blur-sm border-primary/20">
+    <Card className="p-3 sm:p-4 bg-card/50 backdrop-blur-sm border-primary/20">
       {/* Judge Section */}
       {judge && (
-        <div className="mb-4 pb-3 border-b border-border">
-          <div className="flex items-center gap-2 text-sm">
+        <div className="mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-border">
+          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
             <span className="text-muted-foreground">მსაჯული:</span>
-            <span className="font-semibold text-accent">{judge.name}</span>
+            <span className="font-semibold text-accent truncate">{judge.name}</span>
           </div>
         </div>
       )}
 
       {/* Scoreboard Section */}
-      <div className="flex items-center gap-2 mb-3">
-        <Trophy className="h-5 w-5 text-accent" />
-        <h3 className="font-semibold">ქულები</h3>
+      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
+        <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
+        <h3 className="text-sm sm:text-base font-semibold">ქულები</h3>
       </div>
 
-      <div className="space-y-2 min-w-[200px]">
+      <div className="space-y-1.5 sm:space-y-2 min-w-[160px] sm:min-w-[200px]">
         {sortedPlayers.map((player, index) => (
           <div
             key={player.id}
-            className="flex items-center justify-between text-sm"
+            className="flex items-center justify-between text-xs sm:text-sm"
           >
-            <div className="flex items-center gap-2">
-              <span className="text-muted-foreground">#{index + 1}</span>
-              <span className="font-medium truncate max-w-[120px]">
+            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
+              <span className="text-muted-foreground flex-shrink-0">#{index + 1}</span>
+              <span className="font-medium truncate max-w-[80px] sm:max-w-[120px]">
                 {player.name}
               </span>
             </div>
-            <span className="font-bold text-primary">{player.score}</span>
+            <span className="font-bold text-primary flex-shrink-0">{player.score}</span>
           </div>
         ))}
       </div>
