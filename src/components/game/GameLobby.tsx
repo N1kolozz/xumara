@@ -32,7 +32,6 @@ const GameLobby = ({
     toast
   } = useToast();
   const [maxRounds, setMaxRounds] = useState(5);
-  const [roundsError, setRoundsError] = useState("");
 
   // Debug logging
   console.log("GameLobby - Current Player:", currentPlayer);
@@ -115,22 +114,13 @@ const GameLobby = ({
               <label className="text-xs sm:text-sm font-medium text-foreground">
                 რაუნდების რაოდენობა:
               </label>
-              <Input type="number" min={1} max={10} value={maxRounds} onChange={e => {
-            const value = parseInt(e.target.value) || 1;
-            if (value > 10) {
-              setRoundsError("თქვენ ვერ შეძლებთ 10-ზე მეტი რაუნდის არჩევას");
-              setMaxRounds(10);
-            } else {
-              setRoundsError("");
-              setMaxRounds(Math.max(1, value));
-            }
+              <Input type="number" value={maxRounds} onChange={e => {
+            const value = e.target.value === '' ? '' : parseInt(e.target.value);
+            setMaxRounds(value as any);
           }} className="text-center text-lg sm:text-xl font-bold h-12 sm:h-14 touch-manipulation [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               <p className="text-xs text-muted-foreground text-center">
                 აირჩიეთ 1-დან 10-მდე რაუნდი
               </p>
-              {roundsError && <p className="text-xs text-destructive text-center font-medium">
-                  {roundsError}
-                </p>}
             </div>
           </Card>}
 
@@ -140,11 +130,21 @@ const GameLobby = ({
               <Button onClick={() => {
             console.log("Start game button clicked!");
             console.log("Players:", players);
-            const validatedRounds = Math.min(10, Math.max(1, maxRounds));
-            console.log("Max rounds:", validatedRounds);
-            onStartGame(validatedRounds);
+            const rounds = parseInt(maxRounds as any) || 5;
+            
+            if (rounds < 1 || rounds > 10) {
+              toast({
+                title: "შეცდომა",
+                description: "რაუნდების რაოდენობა უნდა იყოს 1-დან 10-მდე",
+                variant: "destructive"
+              });
+              return;
+            }
+            
+            console.log("Max rounds:", rounds);
+            onStartGame(rounds);
           }} disabled={players.length < 3} className="w-full h-12 sm:h-14 md:h-16 text-base sm:text-lg md:text-xl font-bold shadow-xl touch-manipulation">
-                {players.length < 3 ? `დაელოდეთ კიდევ ${3 - players.length} მოთამაშეს...` : `თამაშის დაწყება (${maxRounds} რაუნდი)`}
+                {players.length < 3 ? `დაელოდეთ კიდევ ${3 - players.length} მოთამაშეს...` : `თამაშის დაწყება (${maxRounds || 5} რაუნდი)`}
               </Button>
             </> : <div className="text-center py-6 sm:py-8 space-y-2">
               <div className="text-3xl sm:text-4xl mb-2">⏳</div>
