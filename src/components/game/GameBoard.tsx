@@ -435,6 +435,18 @@ const GameBoard = ({
   const currentPlayerData = players.find(p => p.id === currentPlayer.id);
   const isJudge = currentPlayerData?.is_judge || false;
   const hasSubmitted = submissions.some(s => s.player_id === currentPlayer.id);
+  
+  console.log("🎮 GameBoard render:", {
+    currentPlayerId: currentPlayer.id,
+    currentPlayerName: currentPlayer.name,
+    currentPlayerDataFound: !!currentPlayerData,
+    isJudge,
+    isJudgeFromData: currentPlayerData?.is_judge,
+    isJudgeFromProp: currentPlayer.is_judge,
+    phase: gameState.phase,
+    playersCount: players.length,
+    submissionsCount: submissions.length
+  });
   return <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
         {/* Return to Lobby Button */}
