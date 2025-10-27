@@ -62,10 +62,16 @@ const GameBoard = ({
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   useEffect(() => {
     if (!gameState) return;
+    console.log("GameBoard useEffect triggered:", {
+      round: gameState.round_number,
+      phase: gameState.phase,
+      playerId: currentPlayer.id,
+      playerName: currentPlayer.name
+    });
     loadGameData();
     const unsubscribe = subscribeToSubmissions();
     return unsubscribe;
-  }, [gameState?.round_number, gameState?.phase, currentPlayer.id]);
+  }, [gameState?.round_number, gameState?.phase, currentPlayer.id, players]);
   useEffect(() => {
     if (!emblaApi) return;
     const onSelect = () => {
@@ -80,11 +86,16 @@ const GameBoard = ({
   const loadGameData = async () => {
     if (!gameState) return;
 
+    // Get fresh player data from players array
+    const freshPlayerData = players.find(p => p.id === currentPlayer.id);
+    const isJudge = freshPlayerData?.is_judge ?? currentPlayer.is_judge;
+
     console.log("Loading game data:", {
       currentPlayerId: currentPlayer.id,
-      isJudge: currentPlayer.is_judge,
+      isJudge,
       phase: gameState.phase,
-      roomId: room.id
+      roomId: room.id,
+      usedFreshData: !!freshPlayerData
     });
 
     // Load inbox card
@@ -96,7 +107,7 @@ const GameBoard = ({
     }
 
     // Load player's hand (only if not judge)
-    if (!currentPlayer.is_judge && gameState.phase === "submitting") {
+    if (!isJudge && gameState.phase === "submitting") {
       console.log("Loading player cards for non-judge player...");
       
       // Load existing cards from database
@@ -118,18 +129,26 @@ const GameBoard = ({
       }
     } else {
       console.log("Skipping card load:", {
-        reason: currentPlayer.is_judge ? "Player is judge" : `Phase is ${gameState.phase}`
+        reason: isJudge ? "Player is judge" : `Phase is ${gameState.phase}`
       });
     }
 
     // Load submissions for all phases (so players can see cards on table)
+    console.log("Loading submissions for round:", gameState.round_number);
     const {
       data: submissionsData
     } = await supabase.from("submissions").select("*, cards(*), players(name)").eq("room_id", room.id).eq("round_number", gameState.round_number);
+    
+    console.log("Loaded submissions:", {
+      count: submissionsData?.length || 0,
+      submissions: submissionsData
+    });
+    
     if (submissionsData) {
       setSubmissions(submissionsData);
       const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
       setSubmittedCards(cards);
+      console.log("Set submitted cards:", cards.length);
     }
   };
   const subscribeToSubmissions = () => {
@@ -142,9 +161,15 @@ const GameBoard = ({
       }, async () => {
         // Reload submissions in real-time so all players see cards on table
         if (!gameState) return;
+        console.log("Submissions change detected, reloading...");
         const {
           data: submissionsData
         } = await supabase.from("submissions").select("*, cards(*), players(name)").eq("room_id", room.id).eq("round_number", gameState.round_number);
+        
+        console.log("Realtime submissions loaded:", {
+          count: submissionsData?.length || 0
+        });
+        
         if (submissionsData) {
           setSubmissions(submissionsData);
           const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
