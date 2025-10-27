@@ -229,7 +229,16 @@ const GameBoard = ({
     }
   };
   const handleSelectWinner = async (cardId: string) => {
-    if (!currentPlayer.is_judge || !gameState) return;
+    // Get fresh judge status from players array to avoid stale state
+    const currentPlayerData = players.find(p => p.id === currentPlayer.id);
+    if (!currentPlayerData?.is_judge || !gameState) {
+      console.log("Cannot select winner:", { 
+        isJudge: currentPlayerData?.is_judge, 
+        hasGameState: !!gameState,
+        currentPlayerId: currentPlayer.id 
+      });
+      return;
+    }
     const winningSubmission = submissions.find(s => s.card_id === cardId);
     if (!winningSubmission) return;
     try {
@@ -397,7 +406,9 @@ const GameBoard = ({
         </div>
       </div>;
   }
-  const isJudge = currentPlayer.is_judge;
+  // Always use fresh data from players array to avoid stale state
+  const currentPlayerData = players.find(p => p.id === currentPlayer.id);
+  const isJudge = currentPlayerData?.is_judge || false;
   const hasSubmitted = submissions.some(s => s.player_id === currentPlayer.id);
   return <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-6 md:py-8">
       <div className="max-w-6xl mx-auto space-y-4 sm:space-y-6">
