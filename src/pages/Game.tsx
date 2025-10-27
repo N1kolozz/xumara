@@ -234,6 +234,15 @@ const Game = () => {
                 });
                 setCurrentPlayer(updatedCurrentPlayer);
                 console.log("Updated current player:", updatedCurrentPlayer);
+                
+                // Log if player moved from lobby to game
+                if (currentPlayer?.in_game === false && updatedCurrentPlayer.in_game === true) {
+                  console.log("🎮 PLAYER JOINED GAME - Changed from lobby to game:", {
+                    playerId: updatedCurrentPlayer.id,
+                    playerName: updatedCurrentPlayer.name,
+                    isJudge: updatedCurrentPlayer.is_judge
+                  });
+                }
               }
             }
           }
@@ -595,6 +604,13 @@ const Game = () => {
         .eq("room_id", room.id);
         
       console.log("Players after update:", updatedPlayers);
+      
+      // CRITICAL: Update local players state immediately with fresh database data
+      // This ensures card dealing uses the correct player list
+      if (updatedPlayers) {
+        setPlayers(updatedPlayers as Player[]);
+        console.log("Updated local players state with fresh data");
+      }
 
       // Update room status immediately (no delay)
       console.log("Updating room status to playing...");
@@ -643,8 +659,9 @@ const Game = () => {
       if (inboxCards && inboxCards.length > 0) {
         const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
 
-        // Find the current judge (player with is_judge=true)
-        const judgePlayer = players.find(p => p.is_judge) || players[0];
+        // CRITICAL: Use updatedPlayers from database instead of local state
+        // to ensure we have the correct list of players
+        const judgePlayer = updatedPlayers?.find(p => p.is_judge) || updatedPlayers?.[0];
 
         // Create game state with the current judge and max rounds
         const { data: newGameState, error: gameStateError } = await supabase.from("game_state").insert({
@@ -667,9 +684,12 @@ const Game = () => {
           .select("*")
           .eq("type", "reply");
 
-        if (replyCards && replyCards.length >= 6 * players.filter(p => !p.is_judge).length) {
+        // CRITICAL: Use updatedPlayers from database to ensure we have the correct list
+        const freshNonJudgePlayers = updatedPlayers?.filter(p => !p.is_judge) || [];
+        
+        if (replyCards && replyCards.length >= 6 * freshNonJudgePlayers.length) {
           // Filter out judge players - only regular players get cards
-          const nonJudgePlayers = players.filter(p => !p.is_judge);
+          const nonJudgePlayers = freshNonJudgePlayers;
           
           console.log(`Dealing cards to ${nonJudgePlayers.length} non-judge players`);
           console.log(`Available reply cards: ${replyCards.length}`);
@@ -761,12 +781,13 @@ const Game = () => {
   // If player is in_game=true, they should see GameBoard regardless of room status
   const shouldShowLobby = room.status === "lobby" && !currentPlayer.in_game;
   
-  console.log("Render decision:", {
+  console.log("🎯 RENDER DECISION:", {
     roomStatus: room.status,
     playerInGame: currentPlayer.in_game,
     shouldShowLobby,
     playerName: currentPlayer.name,
-    isJudge: currentPlayer.is_judge
+    isJudge: currentPlayer.is_judge,
+    playerId: currentPlayer.id
   });
 
   return (
