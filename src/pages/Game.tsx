@@ -169,6 +169,36 @@ const Game = () => {
         }
       )
       .on(
+        'broadcast',
+        { event: 'players_updated' },
+        async (payload: any) => {
+          console.log("Received players_updated broadcast, reloading player data...");
+          
+          // Reload players from database to get latest in_game status
+          const { data: playersData } = await supabase
+            .from("players")
+            .select("*")
+            .eq("room_id", roomId)
+            .order("joined_at", { ascending: true });
+
+          if (playersData) {
+            console.log("Reloaded players after broadcast:", playersData);
+            setPlayers(playersData);
+            playersRef.current = playersData;
+            
+            // Update current player if their data changed
+            const currentPlayerId = getCurrentPlayerId();
+            if (currentPlayerId) {
+              const updatedCurrentPlayer = playersData.find(p => p.id === currentPlayerId);
+              if (updatedCurrentPlayer) {
+                console.log("Updated current player from broadcast:", updatedCurrentPlayer);
+                setCurrentPlayer(updatedCurrentPlayer);
+              }
+            }
+          }
+        }
+      )
+      .on(
         "postgres_changes",
         {
           event: "*",
@@ -612,7 +642,24 @@ const Game = () => {
         console.log("Updated local players state with fresh data");
       }
 
-      // Update room status immediately (no delay)
+      // CRITICAL: Broadcast to all clients that players have been updated
+      // This ensures all clients reload player data before room status changes
+      console.log("Broadcasting players_updated event to all clients...");
+      const broadcastChannel = supabase.channel(`room:${room.id}:broadcast`);
+      await broadcastChannel.subscribe();
+      await broadcastChannel.send({
+        type: 'broadcast',
+        event: 'players_updated',
+        payload: { room_id: room.id }
+      });
+      
+      // Wait a moment for all clients to receive and process the broadcast
+      await new Promise(resolve => setTimeout(resolve, 500));
+      
+      // Clean up broadcast channel
+      await supabase.removeChannel(broadcastChannel);
+
+      // Update room status after ensuring all clients have updated player data
       console.log("Updating room status to playing...");
       const { error: roomUpdateError, data: updatedRoomData } = await supabase
         .from("rooms")
