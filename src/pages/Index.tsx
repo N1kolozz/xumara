@@ -50,20 +50,43 @@ const Index = () => {
       if (!session) {
         await supabase.auth.signInAnonymously();
       }
-      const pin = generatePin();
+      
       const {
         data: {
           user
         }
       } = await supabase.auth.getUser();
-      const {
-        data: room,
-        error: roomError
-      } = await supabase.from("rooms").insert({
-        pin,
-        status: "lobby"
-      }).select().single();
-      if (roomError) throw roomError;
+      
+      // Retry room creation with unique PIN if collision occurs
+      let room = null;
+      let attempts = 0;
+      const maxAttempts = 5;
+      
+      while (!room && attempts < maxAttempts) {
+        attempts++;
+        const pin = generatePin();
+        
+        const {
+          data: roomData,
+          error: roomError
+        } = await supabase.from("rooms").insert({
+          pin,
+          status: "lobby"
+        }).select().single();
+        
+        // If unique constraint violation, retry with new PIN
+        if (roomError && roomError.code === '23505') {
+          console.log(`PIN collision detected (${pin}), retrying...`);
+          continue;
+        }
+        
+        if (roomError) throw roomError;
+        room = roomData;
+      }
+      
+      if (!room) {
+        throw new Error("Failed to generate unique PIN after multiple attempts");
+      }
       const {
         data: player,
         error: playerError
@@ -84,7 +107,7 @@ const Index = () => {
       }).eq("id", room.id);
       toast({
         title: "ოთახი შეიქმნა!",
-        description: `PIN: ${pin}`
+        description: `PIN: ${room.pin}`
       });
       navigate(`/game/${room.id}`);
     } catch (error) {
