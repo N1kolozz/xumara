@@ -22,6 +22,36 @@ const Index = () => {
   const generatePin = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
+
+  const getOrCreateGuestUser = async () => {
+    const {
+      data: { session },
+      error: sessionError
+    } = await supabase.auth.getSession();
+
+    if (sessionError) throw sessionError;
+    if (session?.user) return session.user;
+
+    const {
+      data: { user },
+      error: signInError
+    } = await supabase.auth.signInAnonymously();
+
+    if (signInError) {
+      throw new Error(`Supabase anonymous auth failed: ${signInError.message}`);
+    }
+
+    if (!user) {
+      throw new Error("Supabase anonymous auth did not return a user.");
+    }
+
+    return user;
+  };
+
+  const getErrorMessage = (error: unknown) => {
+    return error instanceof Error ? error.message : "Unknown Supabase error";
+  };
+
   const createRoom = async () => {
     if (!createPlayerName.trim()) {
       toast({
@@ -41,21 +71,7 @@ const Index = () => {
     }
     setIsCreating(true);
     try {
-      // Ensure user is authenticated
-      const {
-        data: {
-          session
-        }
-      } = await supabase.auth.getSession();
-      if (!session) {
-        await supabase.auth.signInAnonymously();
-      }
-      
-      const {
-        data: {
-          user
-        }
-      } = await supabase.auth.getUser();
+      const user = await getOrCreateGuestUser();
       
       // Retry room creation with unique PIN if collision occurs
       let room = null;
@@ -95,7 +111,7 @@ const Index = () => {
         name: createPlayerName,
         is_host: true,
         is_judge: createRole === "judge",
-        user_id: user?.id
+        user_id: user.id
       }).select().single();
       if (playerError) throw playerError;
 
@@ -111,9 +127,10 @@ const Index = () => {
       });
       navigate(`/game/${room.id}`);
     } catch (error) {
+      console.error("Failed to create room:", error);
       toast({
         title: "შეცდომა",
-        description: "ოთახის შექმნა ვერ მოხერხდა",
+        description: getErrorMessage(error),
         variant: "destructive"
       });
     } finally {
@@ -140,15 +157,7 @@ const Index = () => {
     setIsJoining(true);
     setShowRoleError(false);
     try {
-      // Ensure user is authenticated
-      const {
-        data: {
-          session
-        }
-      } = await supabase.auth.getSession();
-      if (!session) {
-        await supabase.auth.signInAnonymously();
-      }
+      const user = await getOrCreateGuestUser();
       const {
         data: room,
         error: roomError
@@ -191,11 +200,6 @@ const Index = () => {
         }
       }
       const {
-        data: {
-          user
-        }
-      } = await supabase.auth.getUser();
-      const {
         data: player,
         error: playerError
       } = await supabase.from("players").insert({
@@ -203,7 +207,7 @@ const Index = () => {
         name: joinPlayerName,
         is_host: false,
         is_judge: joinRole === "judge",
-        user_id: user?.id
+        user_id: user.id
       }).select().single();
       if (playerError) throw playerError;
 
@@ -216,9 +220,10 @@ const Index = () => {
       });
       navigate(`/game/${room.id}`);
     } catch (error) {
+      console.error("Failed to join room:", error);
       toast({
         title: "შეცდომა",
-        description: "ოთახში შესვლა ვერ მოხერხდა",
+        description: getErrorMessage(error),
         variant: "destructive"
       });
     } finally {

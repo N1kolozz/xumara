@@ -123,7 +123,7 @@ const GameBoard = ({
       });
       
       if (handData) {
-        const cards = handData.map((h: any) => h.cards).filter(Boolean);
+        const cards = handData.map((h) => h.cards).filter(Boolean);
         console.log("Setting player cards:", cards.length);
         setPlayerCards(cards);
       }
@@ -146,7 +146,7 @@ const GameBoard = ({
     
     if (submissionsData) {
       setSubmissions(submissionsData);
-      const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
+      const cards = submissionsData.map((s) => s.cards).filter(Boolean);
       setSubmittedCards(cards);
       console.log("Set submitted cards:", cards.length);
     }
@@ -172,7 +172,7 @@ const GameBoard = ({
         
         if (submissionsData) {
           setSubmissions(submissionsData);
-          const cards = submissionsData.map((s: any) => s.cards).filter(Boolean);
+          const cards = submissionsData.map((s) => s.cards).filter(Boolean);
           setSubmittedCards(cards);
         }
       })
@@ -479,7 +479,7 @@ const GameBoard = ({
               
               {/* Submitted cards arranged in a circle */}
               <div className="relative w-full h-full z-10">
-                {submissions.map((submission: any, index) => {
+                {submissions.map((submission, index) => {
               const angle = index * 360 / Math.max(players.length - 1, 3);
               // Responsive radius: smaller for mobile, larger for desktop
               const radius = typeof window !== 'undefined' && window.innerWidth < 640 ? 90 : window.innerWidth < 768 ? 110 : 140;

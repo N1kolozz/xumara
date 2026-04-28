@@ -154,7 +154,7 @@ const Game = () => {
       .on(
         'broadcast',
         { event: 'return_to_lobby' },
-        (payload: any) => {
+        (payload) => {
           if (payload.payload) {
             setRoom((prevRoom) => prevRoom ? { ...prevRoom, status: "lobby" } : null);
             
@@ -171,7 +171,7 @@ const Game = () => {
       .on(
         'broadcast',
         { event: 'players_updated' },
-        async (payload: any) => {
+        async () => {
           console.log("Received players_updated broadcast, reloading player data...");
           
           // Reload players from database to get latest in_game status

@@ -31,7 +31,7 @@ const GameLobby = ({
   const {
     toast
   } = useToast();
-  const [maxRounds, setMaxRounds] = useState(5);
+  const [maxRounds, setMaxRounds] = useState<number | "">(5);
 
   // Debug logging
   console.log("GameLobby - Current Player:", currentPlayer);
@@ -116,7 +116,7 @@ const GameLobby = ({
               </label>
               <Input type="number" value={maxRounds} onChange={e => {
             const value = e.target.value === '' ? '' : parseInt(e.target.value);
-            setMaxRounds(value as any);
+            setMaxRounds(value);
           }} className="text-center text-lg sm:text-xl font-bold h-12 sm:h-14 touch-manipulation [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
               <p className="text-xs text-muted-foreground text-center">
                 აირჩიეთ 1-დან 10-მდე რაუნდი
@@ -130,7 +130,7 @@ const GameLobby = ({
               <Button onClick={() => {
             console.log("Start game button clicked!");
             console.log("Players:", players);
-            const rounds = parseInt(maxRounds as any);
+            const rounds = Number(maxRounds);
             
             if (!rounds || rounds < 1 || rounds > 10) {
               toast({
