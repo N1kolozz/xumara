@@ -815,10 +815,12 @@ const Game = () => {
 
   if (!room || !currentPlayer) {
     return (
-      <div className="min-h-screen flex items-center justify-center">
-        <div className="text-center">
-          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
-          <p className="text-muted-foreground">იტვირთება...</p>
+      <div className="app-shell">
+        <div className="screen items-center justify-center">
+          <div className="soft-panel w-full p-6 text-center">
+            <div className="mx-auto mb-4 h-12 w-12 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+            <p className="text-sm font-bold text-text-soft">იტვირთება...</p>
+          </div>
         </div>
       </div>
     );
@@ -837,26 +839,16 @@ const Game = () => {
     playerId: currentPlayer.id
   });
 
-  return (
-    <div className="min-h-screen bg-gradient-to-br from-background via-background to-primary/10">
-      {shouldShowLobby ? (
-        <GameLobby
-          room={room}
-          players={players}
-          currentPlayer={currentPlayer}
-          onStartGame={handleStartGame}
-          onLeaveGame={handleLeaveGame}
-        />
-      ) : (
-        <GameBoard
-          room={room}
-          players={players}
-          currentPlayer={currentPlayer}
-          gameState={gameState}
-          onReturnToLobby={handleReturnToLobby}
-        />
-      )}
-    </div>
+  return shouldShowLobby ? (
+    <GameLobby
+      room={room}
+      players={players}
+      currentPlayer={currentPlayer}
+      onStartGame={handleStartGame}
+      onLeaveGame={handleLeaveGame}
+    />
+  ) : (
+    <GameBoard room={room} players={players} currentPlayer={currentPlayer} gameState={gameState} onReturnToLobby={handleReturnToLobby} />
   );
 };
 

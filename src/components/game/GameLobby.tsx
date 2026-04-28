@@ -1,19 +1,23 @@
 import { useState } from "react";
+import { Copy, Crown, Gavel, LogOut, Minus, Play, Plus, Users } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Users, Copy, Crown, Gavel, Gamepad2 } from "lucide-react";
+import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+
 interface Player {
   id: string;
   name: string;
   is_host: boolean;
   is_judge: boolean;
 }
+
 interface Room {
   id: string;
   pin: string;
 }
+
 interface GameLobbyProps {
   room: Room;
   players: Player[];
@@ -21,142 +25,179 @@ interface GameLobbyProps {
   onStartGame: (maxRounds: number) => void;
   onLeaveGame: () => void;
 }
-const GameLobby = ({
-  room,
-  players,
-  currentPlayer,
-  onStartGame,
-  onLeaveGame
-}: GameLobbyProps) => {
-  const {
-    toast
-  } = useToast();
+
+const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: GameLobbyProps) => {
+  const { toast } = useToast();
   const [maxRounds, setMaxRounds] = useState<number | "">(5);
 
-  // Debug logging
-  console.log("GameLobby - Current Player:", currentPlayer);
-  console.log("GameLobby - Is Host:", currentPlayer.is_host);
-  console.log("GameLobby - Players Count:", players.length);
+  const rounds = Number(maxRounds) || 1;
+  const canStart = players.length >= 3;
+  const judge = players.find((player) => player.is_judge);
+
+  const setRoundValue = (value: number) => {
+    setMaxRounds(Math.max(1, Math.min(10, value)));
+  };
+
   const copyRoomPin = () => {
     navigator.clipboard.writeText(room.pin);
     toast({
-      title: "კოდი დაკოპირდა!",
-      description: `PIN: ${room.pin}`
+      title: "კოდი დაკოპირდა",
+      description: `PIN: ${room.pin}`,
     });
   };
-  return <div className="container mx-auto px-3 sm:px-4 py-4 sm:py-8">
-      <div className="max-w-2xl mx-auto space-y-4 sm:space-y-6 animate-slide-in">
-        {/* Header */}
-        <div className="text-center space-y-3 sm:space-y-4">
-          <div className="flex items-center justify-between mb-3 sm:mb-4">
-            <Button variant="outline" onClick={onLeaveGame} className="h-9 sm:h-10 text-xs sm:text-sm touch-manipulation hover:bg-destructive hover:text-destructive-foreground">
-              ← გასვლა
-            </Button>
-            <div className="flex-1" />
-          </div>
-          <h1 className="text-3xl sm:text-4xl md:text-5xl font-bold gradient-text">Chat-ლახი</h1>
-          
-        </div>
 
-        {/* Room Code */}
-        <Card className="p-4 sm:p-6 bg-card/50 backdrop-blur-sm border-primary/20">
-          <div className="flex items-center justify-between gap-3">
+  return (
+    <div className="app-shell">
+      <main className="screen safe-bottom gap-5">
+        <header className="game-topbar">
+          <Button variant="surface" size="icon" onClick={onLeaveGame} aria-label="ოთახიდან გასვლა">
+            <LogOut className="h-5 w-5" />
+          </Button>
+          <div className="text-center">
+            <p className="label-text">lobby</p>
+            <h1 className="screen-title">ოთახი მზადაა</h1>
+          </div>
+          <div className="icon-tile text-primary">
+            <Users className="h-5 w-5" />
+          </div>
+        </header>
+
+        <section className="surface-panel p-4">
+          <div className="mb-4 flex items-center justify-between gap-3">
             <div>
-              <p className="text-xs sm:text-sm text-muted-foreground mb-1">ოთახის კოდი:</p>
-              <p className="text-2xl sm:text-3xl font-bold text-primary tracking-wider">{room.pin}</p>
+              <p className="label-text">PIN</p>
+              <p className="mt-1 text-4xl font-black leading-none text-primary">{room.pin}</p>
             </div>
-            <Button variant="outline" size="icon" onClick={copyRoomPin} className="h-10 w-10 sm:h-12 sm:w-12 touch-manipulation hover:scale-110 transition-transform">
-              <Copy className="h-4 w-4 sm:h-5 sm:w-5" />
+            <Button variant="outline" size="icon" onClick={copyRoomPin} aria-label="PIN კოდის დაკოპირება">
+              <Copy className="h-5 w-5" />
             </Button>
           </div>
-        </Card>
+          <div className="grid grid-cols-3 gap-2">
+            <div className="game-stat">
+              <p className="text-[11px] font-bold text-text-muted">Players</p>
+              <p className="text-sm font-black">{players.length}/8</p>
+            </div>
+            <div className="game-stat">
+              <p className="text-[11px] font-bold text-text-muted">Judge</p>
+              <p className="truncate text-sm font-black">{judge?.name ?? "..."}</p>
+            </div>
+            <div className="game-stat">
+              <p className="text-[11px] font-bold text-text-muted">Rounds</p>
+              <p className="text-sm font-black">{rounds}</p>
+            </div>
+          </div>
+        </section>
 
-        {/* Players List */}
-        <Card className="p-4 sm:p-6 bg-card/50 backdrop-blur-sm border-primary/20">
-          <div className="flex items-center gap-2 mb-3 sm:mb-4">
-            <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-            <h2 className="text-base sm:text-xl font-semibold">
-              მოთამაშეები ({players.length}/8)
-            </h2>
+        <section className="soft-panel p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="icon-tile h-9 w-9 rounded-xl text-secondary">
+                <Users className="h-4 w-4" />
+              </div>
+              <div>
+                <p className="label-text">players</p>
+                <h2 className="section-title">მოთამაშეები</h2>
+              </div>
+            </div>
+            <Badge variant={canStart ? "success" : "warning"}>{canStart ? "ready" : `${3 - players.length} left`}</Badge>
           </div>
 
           <div className="space-y-2">
-            {players.map((player, index) => <div key={player.id} className="flex items-center justify-between p-2 sm:p-3 rounded-lg bg-muted/50 hover:bg-muted/70 transition-colors" style={{
-            animationDelay: `${index * 0.1}s`
-          }}>
-                <div className="flex items-center gap-2 sm:gap-3 min-w-0">
-                  <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-gradient-to-br from-primary to-secondary flex items-center justify-center text-white text-sm sm:text-base font-bold flex-shrink-0">
+            {players.map((player) => (
+              <div key={player.id} className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.045] p-3">
+                <div className="flex min-w-0 items-center gap-3">
+                  <div className="grid h-10 w-10 flex-shrink-0 place-items-center rounded-xl bg-primary/15 text-base font-black text-primary">
                     {player.name.charAt(0).toUpperCase()}
                   </div>
-                  <span className="font-medium text-sm sm:text-base truncate">{player.name}</span>
+                  <div className="min-w-0">
+                    <p className="truncate text-sm font-black text-foreground">{player.name}</p>
+                    <p className="text-xs font-bold text-text-muted">{player.id === currentPlayer.id ? "შენ" : "ონლაინ"}</p>
+                  </div>
                 </div>
-                <div className="flex items-center gap-1 sm:gap-2 flex-shrink-0">
-                  {player.is_host && <div className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-accent/20 text-accent text-xs sm:text-sm font-medium">
-                      <Crown className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline">მასპინძელი</span>
-                    </div>}
-                  {player.is_judge && <div className="flex items-center gap-0.5 sm:gap-1 px-2 sm:px-3 py-0.5 sm:py-1 rounded-full bg-primary/20 text-primary text-xs sm:text-sm font-medium">
-                      <Gavel className="h-3 w-3 sm:h-4 sm:w-4" />
-                      <span className="hidden sm:inline">მსაჯული</span>
-                    </div>}
+                <div className="flex flex-shrink-0 items-center gap-1.5">
+                  {player.is_host && (
+                    <Badge variant="accent">
+                      <Crown />
+                      host
+                    </Badge>
+                  )}
+                  {player.is_judge && (
+                    <Badge variant="secondary">
+                      <Gavel />
+                      judge
+                    </Badge>
+                  )}
                 </div>
-              </div>)}
+              </div>
+            ))}
           </div>
+        </section>
 
-          {players.length < 3 && <p className="text-xs sm:text-sm text-muted-foreground mt-3 sm:mt-4 text-center">
-              დაელოდეთ კიდევ {3 - players.length} მოთამაშეს თამაშის დასაწყებად
-            </p>}
-        </Card>
-
-        {/* Rounds Selection - Only for host */}
-        {currentPlayer.is_host && <Card className="p-4 sm:p-6 bg-card/50 backdrop-blur-sm border-primary/20">
-            <div className="space-y-3">
-              <label className="text-xs sm:text-sm font-medium text-foreground">
-                რაუნდების რაოდენობა:
-              </label>
-              <Input type="number" value={maxRounds} onChange={e => {
-            const value = e.target.value === '' ? '' : parseInt(e.target.value);
-            setMaxRounds(value);
-          }} className="text-center text-lg sm:text-xl font-bold h-12 sm:h-14 touch-manipulation [appearance:textfield] [&::-webkit-outer-spin-button]:appearance-none [&::-webkit-inner-spin-button]:appearance-none" />
-              <p className="text-xs text-muted-foreground text-center">
-                აირჩიეთ 1-დან 10-მდე რაუნდი
-              </p>
+        {currentPlayer.is_host && (
+          <section className="soft-panel p-4">
+            <div className="mb-3 flex items-center justify-between">
+              <div>
+                <p className="label-text">setup</p>
+                <h2 className="section-title">რაუნდები</h2>
+              </div>
+              <Badge variant="primary">1-10</Badge>
             </div>
-          </Card>}
 
-        {/* Start Button - Always visible for host */}
-        <div className="space-y-3">
-          {currentPlayer.is_host ? <>
-              <Button onClick={() => {
-            console.log("Start game button clicked!");
-            console.log("Players:", players);
-            const rounds = Number(maxRounds);
-            
-            if (!rounds || rounds < 1 || rounds > 10) {
-              toast({
-                title: "შეცდომა",
-                description: "რაუნდების რაოდენობა უნდა იყოს 1-დან 10-მდე",
-                variant: "destructive"
-              });
-              return;
-            }
-            
-            console.log("Max rounds:", rounds);
-            onStartGame(rounds);
-          }} disabled={players.length < 3} className="w-full h-12 sm:h-14 md:h-16 text-base sm:text-lg md:text-xl font-bold shadow-xl touch-manipulation">
-                {players.length < 3 ? `დაელოდეთ კიდევ ${3 - players.length} მოთამაშეს...` : `თამაშის დაწყება (${maxRounds || 5} რაუნდი)`}
+            <div className="control-panel grid grid-cols-[3rem_1fr_3rem] items-center gap-2">
+              <Button variant="surface" size="icon" onClick={() => setRoundValue(rounds - 1)} disabled={rounds <= 1} aria-label="რაუნდების შემცირება">
+                <Minus className="h-5 w-5" />
               </Button>
-            </> : <div className="text-center py-6 sm:py-8 space-y-2">
-              <div className="text-3xl sm:text-4xl mb-2">⏳</div>
-              <p className="text-base sm:text-lg font-medium px-4">
-                დაელოდეთ რომ მასპინძელმა დაიწყოს თამაში...
-              </p>
-              <p className="text-xs sm:text-sm text-muted-foreground">
-                მასპინძელი: {players.find(p => p.is_host)?.name}
-              </p>
-            </div>}
+              <Input
+                type="number"
+                value={maxRounds}
+                onChange={(event) => {
+                  const value = event.target.value === "" ? "" : parseInt(event.target.value);
+                  setMaxRounds(value);
+                }}
+                min={1}
+                max={10}
+                className="border-0 bg-transparent text-center text-2xl font-black shadow-none focus:bg-transparent"
+                aria-label="რაუნდების რაოდენობა"
+              />
+              <Button variant="surface" size="icon" onClick={() => setRoundValue(rounds + 1)} disabled={rounds >= 10} aria-label="რაუნდების გაზრდა">
+                <Plus className="h-5 w-5" />
+              </Button>
+            </div>
+          </section>
+        )}
+
+        <div className="mt-auto">
+          {currentPlayer.is_host ? (
+            <Button
+              onClick={() => {
+                if (!rounds || rounds < 1 || rounds > 10) {
+                  toast({
+                    title: "შეცდომა",
+                    description: "რაუნდების რაოდენობა უნდა იყოს 1-დან 10-მდე",
+                    variant: "destructive",
+                  });
+                  return;
+                }
+
+                onStartGame(rounds);
+              }}
+              disabled={!canStart}
+              size="lg"
+              className="h-14 w-full"
+            >
+              <Play className="h-5 w-5" />
+              {canStart ? `თამაშის დაწყება (${rounds})` : `დაელოდეთ ${3 - players.length} მოთამაშეს`}
+            </Button>
+          ) : (
+            <div className="soft-panel p-4 text-center">
+              <p className="text-lg font-black text-foreground">დაელოდეთ მასპინძელს</p>
+              <p className="mt-1 text-sm font-semibold text-text-soft">თამაში დაიწყება როცა ყველა მზად იქნება</p>
+            </div>
+          )}
         </div>
-      </div>
-    </div>;
+      </main>
+    </div>
+  );
 };
+
 export default GameLobby;

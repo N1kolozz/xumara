@@ -1,24 +1,29 @@
 import { useState } from "react";
 import { useNavigate } from "react-router-dom";
+import { ArrowRight, Gamepad2, Gavel, Laugh, LogIn, Plus, Sparkles, Users } from "lucide-react";
+
 import { Button } from "@/components/ui/button";
 import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
+import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
-import { Laugh, Users, Gamepad2, PlusCircle } from "lucide-react";
+import { cn } from "@/lib/utils";
+
+type Role = "player" | "judge";
+
 const Index = () => {
   const navigate = useNavigate();
-  const {
-    toast
-  } = useToast();
+  const { toast } = useToast();
   const [createPlayerName, setCreatePlayerName] = useState("");
   const [joinPlayerName, setJoinPlayerName] = useState("");
   const [roomPin, setRoomPin] = useState("");
   const [isCreating, setIsCreating] = useState(false);
   const [isJoining, setIsJoining] = useState(false);
-  const [createRole, setCreateRole] = useState<"player" | "judge" | null>(null);
-  const [joinRole, setJoinRole] = useState<"player" | "judge" | null>(null);
+  const [createRole, setCreateRole] = useState<Role | null>(null);
+  const [joinRole, setJoinRole] = useState<Role | null>(null);
   const [showRoleError, setShowRoleError] = useState(false);
+
   const generatePin = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
   };
@@ -26,7 +31,7 @@ const Index = () => {
   const getOrCreateGuestUser = async () => {
     const {
       data: { session },
-      error: sessionError
+      error: sessionError,
     } = await supabase.auth.getSession();
 
     if (sessionError) throw sessionError;
@@ -34,7 +39,7 @@ const Index = () => {
 
     const {
       data: { user },
-      error: signInError
+      error: signInError,
     } = await supabase.auth.signInAnonymously();
 
     if (signInError) {
@@ -57,73 +62,72 @@ const Index = () => {
       toast({
         title: "შეიყვანეთ სახელი",
         description: "თამაშის დასაწყებად სახელი აუცილებელია",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
+
     if (!createRole) {
       toast({
         title: "აირჩიეთ როლი",
         description: "თამაშის დასაწყებად როლის არჩევა აუცილებელია",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
+
     setIsCreating(true);
     try {
       const user = await getOrCreateGuestUser();
-      
-      // Retry room creation with unique PIN if collision occurs
       let room = null;
       let attempts = 0;
       const maxAttempts = 5;
-      
+
       while (!room && attempts < maxAttempts) {
         attempts++;
         const pin = generatePin();
-        
-        const {
-          data: roomData,
-          error: roomError
-        } = await supabase.from("rooms").insert({
-          pin,
-          status: "lobby"
-        }).select().single();
-        
-        // If unique constraint violation, retry with new PIN
-        if (roomError && roomError.code === '23505') {
-          console.log(`PIN collision detected (${pin}), retrying...`);
+        const { data: roomData, error: roomError } = await supabase
+          .from("rooms")
+          .insert({
+            pin,
+            status: "lobby",
+          })
+          .select()
+          .single();
+
+        if (roomError && roomError.code === "23505") {
           continue;
         }
-        
+
         if (roomError) throw roomError;
         room = roomData;
       }
-      
+
       if (!room) {
         throw new Error("Failed to generate unique PIN after multiple attempts");
       }
-      const {
-        data: player,
-        error: playerError
-      } = await supabase.from("players").insert({
-        room_id: room.id,
-        name: createPlayerName,
-        is_host: true,
-        is_judge: createRole === "judge",
-        user_id: user.id
-      }).select().single();
+
+      const { data: player, error: playerError } = await supabase
+        .from("players")
+        .insert({
+          room_id: room.id,
+          name: createPlayerName,
+          is_host: true,
+          is_judge: createRole === "judge",
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
       if (playerError) throw playerError;
 
-      // Use sessionStorage instead of localStorage to keep player per tab
       sessionStorage.setItem(`player_${room.id}`, player.id);
       localStorage.setItem(`player_${room.id}`, player.id);
-      await supabase.from("rooms").update({
-        host_id: player.id
-      }).eq("id", room.id);
+      await supabase.from("rooms").update({ host_id: player.id }).eq("id", room.id);
+
       toast({
-        title: "ოთახი შეიქმნა!",
-        description: `PIN: ${room.pin}`
+        title: "ოთახი შეიქმნა",
+        description: `PIN: ${room.pin}`,
       });
       navigate(`/game/${room.id}`);
     } catch (error) {
@@ -131,92 +135,100 @@ const Index = () => {
       toast({
         title: "შეცდომა",
         description: getErrorMessage(error),
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsCreating(false);
     }
   };
+
   const joinRoom = async () => {
     if (!joinPlayerName.trim() || !roomPin.trim()) {
       toast({
         title: "შეავსეთ ყველა ველი",
         description: "სახელი და PIN აუცილებელია",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
+
     if (!joinRole) {
       toast({
         title: "აირჩიეთ როლი",
         description: "თამაშში შესასვლელად როლის არჩევა აუცილებელია",
-        variant: "destructive"
+        variant: "destructive",
       });
       return;
     }
+
     setIsJoining(true);
     setShowRoleError(false);
     try {
       const user = await getOrCreateGuestUser();
-      const {
-        data: room,
-        error: roomError
-      } = await supabase.from("rooms").select("*").eq("pin", roomPin.toUpperCase()).single();
+      const { data: room, error: roomError } = await supabase
+        .from("rooms")
+        .select("*")
+        .eq("pin", roomPin.toUpperCase())
+        .single();
+
       if (roomError || !room) {
         toast({
           title: "ოთახი ვერ მოიძებნა",
           description: "შეამოწმეთ PIN და სცადეთ ხელახლა",
-          variant: "destructive"
-        });
-        return;
-      }
-      if (room.status !== "lobby") {
-        toast({
-          title: "თამაში უკვე დაწყებულია",
-          description: "ამ ოთახში შესვლა შეუძლებელია",
-          variant: "destructive"
-        });
-        return;
-      }
-      const {
-        data: existingPlayers
-      } = await supabase.from("players").select("*").eq("room_id", room.id);
-      if (existingPlayers && existingPlayers.length >= 8) {
-        toast({
-          title: "ოთახი სავსეა",
-          description: "ამ ოთახში მეტი ხუმარა ვეღარ დაემატება",
-          variant: "destructive"
+          variant: "destructive",
         });
         return;
       }
 
-      // Check if judge already exists when trying to join as judge
+      if (room.status !== "lobby") {
+        toast({
+          title: "თამაში უკვე დაწყებულია",
+          description: "ამ ოთახში შესვლა შეუძლებელია",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      const { data: existingPlayers } = await supabase.from("players").select("*").eq("room_id", room.id);
+
+      if (existingPlayers && existingPlayers.length >= 8) {
+        toast({
+          title: "ოთახი სავსეა",
+          description: "ამ ოთახში მეტი მოთამაშე ვეღარ დაემატება",
+          variant: "destructive",
+        });
+        return;
+      }
+
       if (joinRole === "judge") {
-        const existingJudge = existingPlayers?.find(p => p.is_judge);
+        const existingJudge = existingPlayers?.find((player) => player.is_judge);
         if (existingJudge) {
           setShowRoleError(true);
           setIsJoining(false);
           return;
         }
       }
-      const {
-        data: player,
-        error: playerError
-      } = await supabase.from("players").insert({
-        room_id: room.id,
-        name: joinPlayerName,
-        is_host: false,
-        is_judge: joinRole === "judge",
-        user_id: user.id
-      }).select().single();
+
+      const { data: player, error: playerError } = await supabase
+        .from("players")
+        .insert({
+          room_id: room.id,
+          name: joinPlayerName,
+          is_host: false,
+          is_judge: joinRole === "judge",
+          user_id: user.id,
+        })
+        .select()
+        .single();
+
       if (playerError) throw playerError;
 
-      // Use sessionStorage instead of localStorage to keep player per tab
       sessionStorage.setItem(`player_${room.id}`, player.id);
       localStorage.setItem(`player_${room.id}`, player.id);
+
       toast({
-        title: "წარმატებით შეუერთდით!",
-        description: `მოგესალმებით ოთახში: ${room.pin}`
+        title: "წარმატებით შეუერთდით",
+        description: `ოთახი: ${room.pin}`,
       });
       navigate(`/game/${room.id}`);
     } catch (error) {
@@ -224,143 +236,209 @@ const Index = () => {
       toast({
         title: "შეცდომა",
         description: getErrorMessage(error),
-        variant: "destructive"
+        variant: "destructive",
       });
     } finally {
       setIsJoining(false);
     }
   };
-  return <div className="min-h-screen bg-background flex items-center justify-center p-3 sm:p-4">
-      <div className="w-full max-w-4xl space-y-6 sm:space-y-8 animate-slide-in">
-        {/* Hero Section */}
-        <div className="text-center space-y-3 sm:space-y-4">
-          <div className="inline-block">
-            <h1 className="text-4xl sm:text-5xl md:text-7xl font-bold text-primary mb-2">ხუმარა</h1>
-            <div className="h-1 w-full bg-primary rounded-full"></div>
+
+  const roleButtonClass = (active: boolean, tone: "primary" | "accent") =>
+    cn(
+      "role-button inline-flex items-center justify-center gap-2",
+      active && (tone === "primary" ? "role-button-active-primary" : "role-button-active-accent"),
+    );
+
+  return (
+    <div className="app-shell">
+      <main className="screen safe-bottom gap-5">
+        <header className="game-topbar">
+          <div className="brand-lockup">
+            <p className="label-text">party game</p>
+            <h1 className="brand-mark">ხუმარა</h1>
+            <p className="brand-subtitle">წაიხუმრე შენებურად</p>
           </div>
-          <p className="text-base sm:text-xl md:text-3xl text-center font-bold text-slate-300">წაიხუმრე შენებურად</p>
-
-          {/* Features */}
-          <div className="flex flex-wrap justify-center gap-2 sm:gap-4 mt-4 sm:mt-6">
-            <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-primary/10 rounded-full">
-              <Users className="h-4 w-4 sm:h-5 sm:w-5 text-primary" />
-              <span className="text-xs sm:text-sm font-medium">3-8 ხუმარა</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-secondary/20 rounded-full">
-              <Gamepad2 className="h-4 w-4 sm:h-5 sm:w-5 text-secondary" />
-              <span className="text-xs sm:text-sm font-medium">ითამაშე ონლაინ</span>
-            </div>
-            <div className="flex items-center gap-1.5 sm:gap-2 px-3 sm:px-4 py-1.5 sm:py-2 bg-accent/10 rounded-full">
-              <Laugh className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
-              <span className="text-xs sm:text-sm font-medium">ხუმარა ხუმრობები</span>
-            </div>
+          <div className="icon-tile h-12 w-12 text-primary">
+            <Sparkles className="h-5 w-5" />
           </div>
-        </div>
+        </header>
 
-        {/* Game Cards */}
-        <div className="grid md:grid-cols-2 gap-4 sm:gap-6">
-          {/* Create Room Card */}
-          <Card className="p-4 sm:p-6 md:p-8 bg-card/50 backdrop-blur-sm border-primary/20 space-y-4 sm:space-y-6 hover:border-primary/40 transition-all">
-            <div className="space-y-1 sm:space-y-2">
-              <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-primary flex items-center justify-center">
-                  <PlusCircle className="h-4 w-4 sm:h-5 sm:w-5 text-primary-foreground" />
-                </div>
-                ახალი ოთახი
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                შექმენი ოთახი და მოიწვიე მეგობრები
-              </p>
+        <section className="grid grid-cols-3 gap-2">
+          <div className="game-stat">
+            <p className="text-[11px] font-bold text-text-muted">Players</p>
+            <p className="text-sm font-black text-foreground">3-8</p>
+          </div>
+          <div className="game-stat">
+            <p className="text-[11px] font-bold text-text-muted">Mode</p>
+            <p className="text-sm font-black text-foreground">Online</p>
+          </div>
+          <div className="game-stat">
+            <p className="text-[11px] font-bold text-text-muted">Round</p>
+            <p className="text-sm font-black text-foreground">1-10</p>
+          </div>
+        </section>
+
+        <section className="grid gap-4 md:grid-cols-2">
+          <Card className="p-4 sm:p-5">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <Badge variant="primary" className="mb-3">
+                  <Plus />
+                  ახალი
+                </Badge>
+                <h2 className="screen-title text-xl sm:text-2xl">შექმენი ოთახი</h2>
+                <p className="body-text mt-1">მოიწვიე მეგობრები PIN-ით</p>
+              </div>
+              <div className="icon-tile text-primary">
+                <Users className="h-5 w-5" />
+              </div>
             </div>
 
-            <div className="space-y-3 sm:space-y-4">
-              <Input placeholder="შენი სახელი" value={createPlayerName} onChange={e => setCreatePlayerName(e.target.value)} className="h-11 sm:h-12 text-base sm:text-lg touch-manipulation" maxLength={20} />
+            <div className="space-y-4">
+              <div className="space-y-2">
+                <label className="label-text" htmlFor="create-name">
+                  სახელი
+                </label>
+                <Input
+                  id="create-name"
+                  placeholder="შენი სახელი"
+                  value={createPlayerName}
+                  onChange={(event) => setCreatePlayerName(event.target.value)}
+                  maxLength={20}
+                />
+              </div>
 
               <div className="space-y-2">
-                <p className="text-sm font-medium">აირჩიეთ როლი:</p>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  <Button type="button" variant={createRole === "player" ? "default" : "outline"} onClick={() => setCreateRole("player")} className="h-11 sm:h-12 text-sm sm:text-base touch-manipulation hover:!bg-primary hover:!text-primary-foreground">
+                <p className="label-text">როლი</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    aria-pressed={createRole === "player"}
+                    onClick={() => setCreateRole("player")}
+                    className={roleButtonClass(createRole === "player", "primary")}
+                  >
+                    <Laugh className="h-4 w-4" />
                     ხუმარა
-                  </Button>
-                  <Button type="button" variant={createRole === "judge" ? "default" : "outline"} onClick={() => setCreateRole("judge")} className="h-11 sm:h-12 text-sm sm:text-base touch-manipulation hover:!bg-primary hover:!text-primary-foreground">
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={createRole === "judge"}
+                    onClick={() => setCreateRole("judge")}
+                    className={roleButtonClass(createRole === "judge", "primary")}
+                  >
+                    <Gavel className="h-4 w-4" />
                     მსაჯული
-                  </Button>
+                  </button>
                 </div>
               </div>
 
-              <Button onClick={createRoom} disabled={isCreating} className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold bg-primary hover:bg-primary/90 transition-colors touch-manipulation">
+              <Button onClick={createRoom} disabled={isCreating} size="lg" className="w-full">
                 {isCreating ? "იქმნება..." : "ოთახის შექმნა"}
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </Card>
 
-          {/* Join Room Card */}
-          <Card className="p-4 sm:p-6 md:p-8 bg-card/50 backdrop-blur-sm border-accent/20 space-y-4 sm:space-y-6 hover:border-accent/40 transition-all">
-            <div className="space-y-1 sm:space-y-2">
-              <h2 className="text-xl sm:text-2xl font-bold flex items-center gap-2">
-                <div className="w-8 h-8 sm:w-10 sm:h-10 rounded-full bg-accent flex items-center justify-center">
-                  <Users className="h-4 w-4 sm:h-5 sm:w-5 text-accent-foreground" />
-                </div>
-                შეუერთდი ოთახს
-              </h2>
-              <p className="text-sm sm:text-base text-muted-foreground">
-                შეიყვანე ოთახის კოდი რომ შეუერთდე
-              </p>
+          <Card className="p-4 sm:p-5">
+            <div className="mb-5 flex items-start justify-between gap-3">
+              <div>
+                <Badge variant="accent" className="mb-3">
+                  <LogIn />
+                  შესვლა
+                </Badge>
+                <h2 className="screen-title text-xl sm:text-2xl">შეუერთდი ოთახს</h2>
+                <p className="body-text mt-1">შეიყვანე PIN და აირჩიე როლი</p>
+              </div>
+              <div className="icon-tile text-accent">
+                <Gamepad2 className="h-5 w-5" />
+              </div>
             </div>
 
-            <div className="space-y-3 sm:space-y-4">
-              <Input placeholder="შენი სახელი" value={joinPlayerName} onChange={e => setJoinPlayerName(e.target.value)} className="h-11 sm:h-12 text-base sm:text-lg touch-manipulation" maxLength={20} />
-
-              <Input placeholder="ოთახის PIN" value={roomPin} onChange={e => {
-              setRoomPin(e.target.value.toUpperCase());
-              setShowRoleError(false);
-            }} className="h-11 sm:h-12 text-base sm:text-lg font-mono tracking-wider touch-manipulation" maxLength={6} />
-
+            <div className="space-y-4">
               <div className="space-y-2">
-                <p className="text-sm font-medium">აირჩიეთ როლი:</p>
-                <div className="grid grid-cols-2 gap-2 sm:gap-3">
-                  <Button type="button" variant={joinRole === "player" ? "default" : "outline"} onClick={() => {
-                  setJoinRole("player");
-                  setShowRoleError(false);
-                }} className={`h-11 sm:h-12 text-sm sm:text-base touch-manipulation hover:!bg-accent hover:!text-accent-foreground ${joinRole === "player" ? "!bg-accent !text-accent-foreground" : ""}`}>
-                    ხუმარა
-                  </Button>
-                  <Button type="button" variant={joinRole === "judge" ? "default" : "outline"} onClick={() => {
-                  setJoinRole("judge");
-                  setShowRoleError(false);
-                }} className={`h-11 sm:h-12 text-sm sm:text-base touch-manipulation hover:!bg-accent hover:!text-accent-foreground ${joinRole === "judge" ? "!bg-accent !text-accent-foreground" : ""}`}>
-                    მსაჯული
-                  </Button>
-                </div>
-                {showRoleError && <p className="text-xs sm:text-sm text-destructive font-medium">
-                    მსაჯული უკვე არსებობს! გთხოვთ აირჩიოთ ხუმარას როლი
-                  </p>}
+                <label className="label-text" htmlFor="join-name">
+                  სახელი
+                </label>
+                <Input
+                  id="join-name"
+                  placeholder="შენი სახელი"
+                  value={joinPlayerName}
+                  onChange={(event) => setJoinPlayerName(event.target.value)}
+                  maxLength={20}
+                />
               </div>
 
-              <Button onClick={joinRoom} disabled={isJoining} className="w-full h-12 sm:h-14 text-base sm:text-lg font-bold bg-accent hover:bg-accent/90 transition-colors touch-manipulation">
+              <div className="space-y-2">
+                <label className="label-text" htmlFor="room-pin">
+                  PIN
+                </label>
+                <Input
+                  id="room-pin"
+                  placeholder="ოთახის PIN"
+                  value={roomPin}
+                  onChange={(event) => {
+                    setRoomPin(event.target.value.toUpperCase());
+                    setShowRoleError(false);
+                  }}
+                  className="font-black uppercase"
+                  maxLength={6}
+                />
+              </div>
+
+              <div className="space-y-2">
+                <p className="label-text">როლი</p>
+                <div className="grid grid-cols-2 gap-2">
+                  <button
+                    type="button"
+                    aria-pressed={joinRole === "player"}
+                    onClick={() => {
+                      setJoinRole("player");
+                      setShowRoleError(false);
+                    }}
+                    className={roleButtonClass(joinRole === "player", "accent")}
+                  >
+                    <Laugh className="h-4 w-4" />
+                    ხუმარა
+                  </button>
+                  <button
+                    type="button"
+                    aria-pressed={joinRole === "judge"}
+                    onClick={() => {
+                      setJoinRole("judge");
+                      setShowRoleError(false);
+                    }}
+                    className={roleButtonClass(joinRole === "judge", "accent")}
+                  >
+                    <Gavel className="h-4 w-4" />
+                    მსაჯული
+                  </button>
+                </div>
+                {showRoleError && <p className="rounded-xl bg-danger/15 px-3 py-2 text-sm font-bold text-danger">მსაჯული უკვე არსებობს</p>}
+              </div>
+
+              <Button onClick={joinRoom} disabled={isJoining} size="lg" variant="accent" className="w-full">
                 {isJoining ? "ემატება..." : "შეუერთდი თამაშს"}
+                <ArrowRight className="h-4 w-4" />
               </Button>
             </div>
           </Card>
-        </div>
+        </section>
 
-        {/* How to Play */}
-        <Card className="p-4 sm:p-6 bg-card/30 backdrop-blur-sm border-green-500/50">
-          <h3 className="text-base sm:text-lg font-bold mb-2 sm:mb-3 flex items-center gap-2">
-            <Gamepad2 className="h-4 w-4 sm:h-5 sm:w-5 text-green-500" />
-            როგორ ითამაშოთ?
-          </h3>
-          <ol className="space-y-1.5 sm:space-y-2 text-xs sm:text-sm text-muted-foreground list-decimal list-inside">
-            <li>შექმენით ოთახი ან შეუერთდით PIN-ით და აირჩიეთ როლი (ხუმარა ან მსაჯული)</li>
-            <li>მინიმუმ 3 მოთამაშე სჭირდება თამაშის დასაწყებად (მაქსიმუმ 8)</li>
-            <li>მასპინძელი ირჩევს რაუნდების რაოდენობას (1-დან 10-მდე)</li>
-            <li>ყოველ რაუნდში მსაჯული კითხულობს "INBOX" კითხვას</li>
-            <li>ხუმარები ირჩევენ ყველაზე სასაცილო "REPLY" პასუხს თავიანთი 6 ბარათიდან</li>
-            <li>მსაჯული ირჩევს საუკეთესო პასუხს და გამარჯვებული იღებს 1 ქულას</li>
-            <li>ყველა რაუნდის დასრულების შემდეგ, ყველაზე მეტი ქულის მქონე ხუმარა არის გამარჯვებული</li>
+        <section className="soft-panel p-4">
+          <div className="mb-3 flex items-center gap-2">
+            <Gamepad2 className="h-5 w-5 text-success" />
+            <h2 className="section-title">როგორ ვითამაშოთ?</h2>
+          </div>
+          <ol className="grid gap-2 text-sm font-semibold leading-relaxed text-text-soft sm:grid-cols-2">
+            <li>1. შექმენი ან შეუერთდი ოთახს PIN-ით.</li>
+            <li>2. აირჩიე როლი: ხუმარა ან მსაჯული.</li>
+            <li>3. მინიმუმ 3 მოთამაშე იწყებს თამაშს.</li>
+            <li>4. აირჩიე ყველაზე სასაცილო პასუხი და მოიგე ქულები.</li>
           </ol>
-        </Card>
-      </div>
-    </div>;
+        </section>
+      </main>
+    </div>
+  );
 };
+
 export default Index;

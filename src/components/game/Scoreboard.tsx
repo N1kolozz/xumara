@@ -1,7 +1,8 @@
-import { Card } from "@/components/ui/card";
-import { Trophy } from "lucide-react";
 import { useEffect, useState } from "react";
+import { Crown, Gavel, Trophy } from "lucide-react";
+
 import { supabase } from "@/integrations/supabase/client";
+import { Badge } from "@/components/ui/badge";
 
 interface Player {
   id: string;
@@ -27,84 +28,84 @@ const Scoreboard = ({ players: initialPlayers, roomId }: ScoreboardProps) => {
     const channel = supabase
       .channel(`scoreboard_${roomId}`, {
         config: {
-          broadcast: { self: true }
-        }
+          broadcast: { self: true },
+        },
       })
       .on(
-        'postgres_changes',
+        "postgres_changes",
         {
-          event: '*',
-          schema: 'public',
-          table: 'players',
-          filter: `room_id=eq.${roomId}`
+          event: "*",
+          schema: "public",
+          table: "players",
+          filter: `room_id=eq.${roomId}`,
         },
-        async (payload) => {
-          console.log('Scoreboard: Player change detected:', payload.eventType, payload);
-          // Refetch players when any change occurs (including UPDATE for in_game)
-          const { data, error } = await supabase
-            .from('players')
-            .select('id, name, score, is_judge, in_game')
-            .eq('room_id', roomId)
-            .eq('in_game', true)
-            .order('joined_at', { ascending: true });
-          
-          if (error) {
-            console.error('Scoreboard: Error fetching players:', error);
-          } else if (data) {
-            console.log('Scoreboard: Updated players list:', data.length, 'players in game');
+        async () => {
+          const { data } = await supabase
+            .from("players")
+            .select("id, name, score, is_judge, in_game")
+            .eq("room_id", roomId)
+            .eq("in_game", true)
+            .order("joined_at", { ascending: true });
+
+          if (data) {
             setPlayers(data);
           }
-        }
+        },
       )
-      .subscribe((status) => {
-        console.log('Scoreboard: Subscription status:', status);
-      });
+      .subscribe();
 
     return () => {
-      console.log('Scoreboard: Cleaning up subscription');
       supabase.removeChannel(channel);
     };
   }, [roomId]);
-  // Separate judge from regular players
-  const judge = players.find(p => p.is_judge);
-  const regularPlayers = players.filter(p => !p.is_judge);
-  const sortedPlayers = [...regularPlayers].sort((a, b) => b.score - a.score);
+
+  const judge = players.find((player) => player.is_judge);
+  const sortedPlayers = players.filter((player) => !player.is_judge).sort((a, b) => b.score - a.score);
+  const leaderScore = sortedPlayers[0]?.score ?? 0;
 
   return (
-    <Card className="p-3 sm:p-4 bg-card/50 backdrop-blur-sm border-primary/20">
-      {/* Judge Section */}
-      {judge && (
-        <div className="mb-3 sm:mb-4 pb-2 sm:pb-3 border-b border-border">
-          <div className="flex items-center gap-1.5 sm:gap-2 text-xs sm:text-sm">
-            <span className="text-muted-foreground">მსაჯული:</span>
-            <span className="font-semibold text-accent truncate">{judge.name}</span>
+    <aside className="soft-panel p-4">
+      <div className="mb-4 flex items-center justify-between gap-3">
+        <div className="flex items-center gap-2">
+          <div className="icon-tile h-9 w-9 rounded-xl text-accent">
+            <Trophy className="h-4 w-4" />
+          </div>
+          <div>
+            <p className="label-text">score</p>
+            <h3 className="section-title">ქულები</h3>
           </div>
         </div>
-      )}
-
-      {/* Scoreboard Section */}
-      <div className="flex items-center gap-1.5 sm:gap-2 mb-2 sm:mb-3">
-        <Trophy className="h-4 w-4 sm:h-5 sm:w-5 text-accent" />
-        <h3 className="text-sm sm:text-base font-semibold">ქულები</h3>
+        {judge && (
+          <Badge variant="secondary" className="max-w-[130px] truncate">
+            <Gavel />
+            {judge.name}
+          </Badge>
+        )}
       </div>
 
-      <div className="space-y-1.5 sm:space-y-2 min-w-[160px] sm:min-w-[200px]">
-        {sortedPlayers.map((player, index) => (
-          <div
-            key={player.id}
-            className="flex items-center justify-between text-xs sm:text-sm"
-          >
-            <div className="flex items-center gap-1.5 sm:gap-2 min-w-0">
-              <span className="text-muted-foreground flex-shrink-0">#{index + 1}</span>
-              <span className="font-medium truncate max-w-[80px] sm:max-w-[120px]">
-                {player.name}
+      <div className="space-y-2">
+        {sortedPlayers.map((player, index) => {
+          const isLeader = player.score === leaderScore && leaderScore > 0;
+
+          return (
+            <div
+              key={player.id}
+              className="flex items-center justify-between gap-3 rounded-xl border border-white/10 bg-white/[0.045] px-3 py-2.5"
+            >
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="grid h-8 w-8 flex-shrink-0 place-items-center rounded-lg bg-white/[0.07] text-xs font-black text-text-soft">
+                  {isLeader ? <Crown className="h-4 w-4 text-accent" /> : index + 1}
+                </div>
+                <span className="truncate text-sm font-extrabold text-foreground">{player.name}</span>
+              </div>
+              <span className="min-w-8 rounded-lg bg-primary/15 px-2 py-1 text-center text-sm font-black text-primary">
+                {player.score}
               </span>
             </div>
-            <span className="font-bold text-primary flex-shrink-0">{player.score}</span>
-          </div>
-        ))}
+          );
+        })}
       </div>
-    </Card>
+    </aside>
   );
 };
 
