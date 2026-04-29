@@ -37,9 +37,11 @@ const Game = () => {
   const [players, setPlayers] = useState<Player[]>([]);
   const [gameState, setGameState] = useState<GameState | null>(null);
   const [currentPlayer, setCurrentPlayer] = useState<Player | null>(null);
-  
+
   // Use ref to always have access to latest players list in callbacks
   const playersRef = useRef<Player[]>([]);
+  // Store the realtime channel so we can send broadcasts from event handlers
+  const channelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
 
   useEffect(() => {
     if (!roomId) {
@@ -48,7 +50,9 @@ const Game = () => {
     }
 
     loadRoomData();
-    subscribeToRealtime();
+    const cleanup = subscribeToRealtime();
+
+    return cleanup;
   }, [roomId]);
 
   const loadRoomData = async () => {
@@ -79,7 +83,7 @@ const Game = () => {
     if (playersData) {
       setPlayers(playersData);
       playersRef.current = playersData;
-      
+
       // Try sessionStorage first (tab-specific), fallback to localStorage
       let playerId = sessionStorage.getItem(`player_${roomId}`);
       if (!playerId) {
@@ -89,7 +93,7 @@ const Game = () => {
           sessionStorage.setItem(`player_${roomId}`, playerId);
         }
       }
-      
+
       console.log("Current player ID from storage:", playerId);
       if (playerId) {
         const player = playersData.find(p => p.id === playerId);
@@ -125,7 +129,10 @@ const Game = () => {
     };
 
     const channel = supabase
-      .channel(`room_${roomId}`)
+      .channel(`room_${roomId}`);
+    channelRef.current = channel;
+
+    channel
       .on(
         "postgres_changes",
         {
@@ -157,12 +164,12 @@ const Game = () => {
         (payload) => {
           if (payload.payload) {
             setRoom((prevRoom) => prevRoom ? { ...prevRoom, status: "lobby" } : null);
-            
+
             const playerName = payload.payload.playerName || "მოთამაშე";
             toast({
-              title: "დაბრუნდით ოთახში",
+              title: "დაბრუნდით ლობიში",
               description: payload.payload.reason === 'judge_left'
-                ? `${playerName} დაბრუნდა ლობიში - ყველა დაბრუნდა ლობიში`
+                ? `${playerName} დაბრუნდა ლობიში - ამიტომ, ყველა დაბრუნდით ლობიში`
                 : `${playerName} დაბრუნდა ლობიში - არასაკმარისი მოთამაშე`,
             });
           }
@@ -173,7 +180,7 @@ const Game = () => {
         { event: 'players_updated' },
         async () => {
           console.log("Received players_updated broadcast, reloading player data...");
-          
+
           // Reload players from database to get latest in_game status
           const { data: playersData } = await supabase
             .from("players")
@@ -185,13 +192,59 @@ const Game = () => {
             console.log("Reloaded players after broadcast:", playersData);
             setPlayers(playersData);
             playersRef.current = playersData;
-            
+
             // Update current player if their data changed
             const currentPlayerId = getCurrentPlayerId();
             if (currentPlayerId) {
               const updatedCurrentPlayer = playersData.find(p => p.id === currentPlayerId);
               if (updatedCurrentPlayer) {
                 console.log("Updated current player from broadcast:", updatedCurrentPlayer);
+                setCurrentPlayer(updatedCurrentPlayer);
+              }
+            }
+          }
+        }
+      )
+      .on(
+        'broadcast',
+        { event: 'player_left' },
+        async (payload) => {
+          const leftPlayerId = payload.payload?.playerId;
+          const leftPlayerName = payload.payload?.playerName;
+          const currentPlayerId = getCurrentPlayerId();
+
+          console.log("Received player_left broadcast:", { leftPlayerId, leftPlayerName });
+
+          // Don't process if it's the current player (they're already navigating away)
+          if (currentPlayerId && leftPlayerId === currentPlayerId) return;
+
+          // Show toast notification
+          if (leftPlayerName) {
+            toast({
+              title: "მოთამაშე გავიდა",
+              description: `${leftPlayerName} დატოვა ოთახი`,
+            });
+          }
+
+          // Small delay to allow the DB delete to complete before re-fetching
+          await new Promise(resolve => setTimeout(resolve, 300));
+
+          // Reload players from database
+          const { data: playersData } = await supabase
+            .from("players")
+            .select("*")
+            .eq("room_id", roomId)
+            .order("joined_at", { ascending: true });
+
+          if (playersData) {
+            console.log("Updated players after player_left broadcast:", playersData.length, "players");
+            setPlayers(playersData);
+            playersRef.current = playersData;
+
+            // Update current player if their data changed (e.g., became new host)
+            if (currentPlayerId) {
+              const updatedCurrentPlayer = playersData.find(p => p.id === currentPlayerId);
+              if (updatedCurrentPlayer) {
                 setCurrentPlayer(updatedCurrentPlayer);
               }
             }
@@ -209,29 +262,16 @@ const Game = () => {
         async (payload) => {
           console.log("Player change detected:", payload.eventType, payload);
           const currentPlayerId = getCurrentPlayerId();
-          
-          // Show toast when player leaves
-          if (payload.eventType === "DELETE" && payload.old) {
-            const leftPlayerId = (payload.old as { id: string }).id;
-            
-            // Find the player in current state before updating - use ref to get latest data
-            const leftPlayer = playersRef.current.find(p => p.id === leftPlayerId);
-            
-            // Don't show toast if it's the current player leaving
-            if (currentPlayerId && leftPlayerId !== currentPlayerId && leftPlayer) {
-              toast({
-                title: "მოთამაშე გავიდა",
-                description: `${leftPlayer.name} დატოვა ოთახი`,
-              });
-            }
-          }
-          
+
+          // Note: Toast for player leaving is handled by 'player_left' broadcast handler
+          // The postgres_changes DELETE handler still reloads the list as a fallback
+
           // Show toast when new player joins
           if (payload.eventType === "INSERT" && payload.new) {
             const newPlayer = payload.new as Player;
             console.log("Player joined:", newPlayer.name, newPlayer.id);
             console.log("Current player ID:", currentPlayerId);
-            
+
             // Don't show toast if it's the current player joining
             if (currentPlayerId && newPlayer.id !== currentPlayerId) {
               toast({
@@ -240,7 +280,7 @@ const Game = () => {
               });
             }
           }
-          
+
           // Reload players list
           const { data: playersData } = await supabase
             .from("players")
@@ -252,7 +292,7 @@ const Game = () => {
             console.log("Updated players list:", playersData.length, "players");
             setPlayers(playersData);
             playersRef.current = playersData;
-            
+
             // Update currentPlayer data if their info changed
             if (currentPlayerId) {
               const updatedCurrentPlayer = playersData.find(p => p.id === currentPlayerId);
@@ -264,7 +304,7 @@ const Game = () => {
                 });
                 setCurrentPlayer(updatedCurrentPlayer);
                 console.log("Updated current player:", updatedCurrentPlayer);
-                
+
                 // Log if player moved from lobby to game
                 if (currentPlayer?.in_game === false && updatedCurrentPlayer.in_game === true) {
                   console.log("🎮 PLAYER JOINED GAME - Changed from lobby to game:", {
@@ -291,23 +331,23 @@ const Game = () => {
             // Game ended, clear game state
             console.log("Game state deleted - game ended, returning all to lobby");
             setGameState(null);
-            
+
             // CRITICAL: Immediately update local state to ensure UI shows lobby
             // This prevents race conditions where render happens before DB query completes
             setRoom(prev => prev ? { ...prev, status: "lobby" } : null);
-            
+
             // Get current player ID to update their state
             let playerId = sessionStorage.getItem(`player_${roomId}`);
             if (!playerId) {
               playerId = localStorage.getItem(`player_${roomId}`);
             }
-            
+
             if (playerId) {
               // Force update current player's in_game to false immediately
               setCurrentPlayer(prev => prev ? { ...prev, in_game: false } : null);
               console.log("Forced currentPlayer.in_game to false after game end");
             }
-            
+
             // Then reload room data from DB to sync everything
             await loadRoomData();
             console.log("Room data reloaded after game state deletion");
@@ -319,6 +359,7 @@ const Game = () => {
       .subscribe();
 
     return () => {
+      channelRef.current = null;
       supabase.removeChannel(channel);
     };
   };
@@ -328,17 +369,17 @@ const Game = () => {
 
     try {
       const isJudge = currentPlayer.is_judge;
-      
+
       // Get current active players from database to ensure we have latest data
       const { data: activePlayers } = await supabase
         .from('players')
         .select('id, is_judge, in_game')
         .eq('room_id', room.id)
         .eq('in_game', true);
-      
+
       // Count active comedians (non-judges that are in_game)
       const activeComedianCount = activePlayers?.filter(p => !p.is_judge).length || 0;
-      
+
       // Calculate how many comedians will remain after this player returns to lobby
       const remainingComedians = isJudge ? activeComedianCount : activeComedianCount - 1;
 
@@ -380,7 +421,7 @@ const Game = () => {
         await channel.send({
           type: 'broadcast',
           event: 'return_to_lobby',
-          payload: { 
+          payload: {
             reason: isJudge ? 'judge_left' : 'insufficient_players',
             playerName: currentPlayer.name
           }
@@ -392,10 +433,10 @@ const Game = () => {
         setCurrentPlayer({ ...currentPlayer, in_game: false });
 
         toast({
-          title: "დაბრუნდით ოთახში",
-          description: isJudge 
-            ? "მსაჯული დაბრუნდა ლობიში - ყველა დაბრუნდა ლობიში" 
-            : "არასაკმარისი მოთამაშე - ყველა დაბრუნდა ლობიში",
+          title: "დაბრუნდით ლობიში",
+          description: isJudge
+            ? "მსაჯული დაბრუნდა ლობიში - ამიტომ, ყველა დაბრუნდით ლობიში"
+            : "არასაკმარისი მოთამაშე - ამიტომ, ყველა დაბრუნდით ლობიში",
         });
       } else {
         // If 3+ comedians remain, mark this player as not in game
@@ -421,10 +462,6 @@ const Game = () => {
         setRoom({ ...room, status: "lobby" });
         setCurrentPlayer({ ...currentPlayer, in_game: false });
 
-        toast({
-          title: "დაბრუნდით ოთახში",
-          description: "წარმატებით დაბრუნდით ლობიში",
-        });
       }
     } catch (error) {
       toast({
@@ -442,6 +479,18 @@ const Game = () => {
       // Check if the leaving player is the host and judge
       const isHost = currentPlayer.is_host;
       const isJudge = currentPlayer.is_judge;
+
+      // Broadcast player_left event BEFORE deleting, so other clients can update
+      if (channelRef.current) {
+        await channelRef.current.send({
+          type: 'broadcast',
+          event: 'player_left',
+          payload: {
+            playerId: currentPlayer.id,
+            playerName: currentPlayer.name,
+          }
+        });
+      }
 
       // Delete current player from the room
       await supabase
@@ -465,7 +514,7 @@ const Game = () => {
         // If game is playing, check if we need to return everyone to lobby
         if (room.status === "playing") {
           const remainingComedians = remainingPlayers.filter(p => !p.is_judge).length;
-          
+
           // If judge left OR fewer than 2 comedians remain, end the game and return to lobby
           if (isJudge || remainingComedians < 2) {
             // Delete game state
@@ -504,7 +553,7 @@ const Game = () => {
             await channel.send({
               type: 'broadcast',
               event: 'return_to_lobby',
-              payload: { 
+              payload: {
                 reason: isJudge ? 'judge_left' : 'insufficient_players',
                 playerName: currentPlayer.name
               }
@@ -512,11 +561,11 @@ const Game = () => {
             await supabase.removeChannel(channel);
           }
         }
-        
+
         // If the leaving player was the host, assign a new random host
         if (isHost && remainingPlayers.length > 0) {
           const newHost = remainingPlayers[Math.floor(Math.random() * remainingPlayers.length)];
-          
+
           // Update the room with new host_id
           await supabase
             .from("rooms")
@@ -584,7 +633,7 @@ const Game = () => {
       console.log("Starting game...");
       console.log("Current players:", players);
       console.log("Current player:", currentPlayer);
-      
+
       // Check if game already started
       const { data: existingGameState } = await supabase
         .from("game_state")
@@ -619,22 +668,22 @@ const Game = () => {
         .update({ score: 0, in_game: true })
         .eq("room_id", room.id)
         .select();
-        
+
       if (playersUpdateError) {
         console.error("Error updating players:", playersUpdateError);
         throw playersUpdateError;
       }
-      
+
       console.log("Players update result:", updatedPlayersData);
-      
+
       // Verify all players are updated
       const { data: updatedPlayers } = await supabase
         .from("players")
         .select("id, name, in_game, is_judge")
         .eq("room_id", room.id);
-        
+
       console.log("Players after update:", updatedPlayers);
-      
+
       // CRITICAL: Update local players state immediately with fresh database data
       // This ensures card dealing uses the correct player list
       if (updatedPlayers) {
@@ -652,10 +701,10 @@ const Game = () => {
         event: 'players_updated',
         payload: { room_id: room.id }
       });
-      
+
       // Wait a moment for all clients to receive and process the broadcast
       await new Promise(resolve => setTimeout(resolve, 500));
-      
+
       // Clean up broadcast channel
       await supabase.removeChannel(broadcastChannel);
 
@@ -667,33 +716,33 @@ const Game = () => {
         .eq("id", room.id)
         .select()
         .single();
-        
+
       if (roomUpdateError) {
         console.error("Error updating room:", roomUpdateError);
         throw roomUpdateError;
       }
-      
+
       console.log("Room status updated:", updatedRoomData);
-      
+
       // Reload current player from database to ensure we have the latest in_game status
       const { data: refreshedCurrentPlayer } = await supabase
         .from("players")
         .select("*")
         .eq("id", currentPlayer.id)
         .single();
-      
+
       // Update local room and currentPlayer state with database values
       if (updatedRoomData && refreshedCurrentPlayer) {
         console.log("Setting local room state to playing");
         setRoom(updatedRoomData as Room);
-        
+
         console.log("Updating local currentPlayer with refreshed data:", {
           id: refreshedCurrentPlayer.id,
           name: refreshedCurrentPlayer.name,
           in_game: refreshedCurrentPlayer.in_game,
           is_judge: refreshedCurrentPlayer.is_judge,
         });
-        
+
         setCurrentPlayer(refreshedCurrentPlayer);
       }
 
@@ -733,28 +782,28 @@ const Game = () => {
 
         // CRITICAL: Use updatedPlayers from database to ensure we have the correct list
         const freshNonJudgePlayers = updatedPlayers?.filter(p => !p.is_judge) || [];
-        
+
         if (replyCards && replyCards.length >= 6 * freshNonJudgePlayers.length) {
           // Filter out judge players - only regular players get cards
           const nonJudgePlayers = freshNonJudgePlayers;
-          
+
           console.log(`Dealing cards to ${nonJudgePlayers.length} non-judge players`);
           console.log(`Available reply cards: ${replyCards.length}`);
-          
+
           // Shuffle all reply cards once
           const shuffledCards = [...replyCards].sort(() => Math.random() - 0.5);
           let cardIndex = 0;
-          
+
           // Prepare all card assignments in a single batch
           const allCardInserts = [];
-          
+
           for (const player of nonJudgePlayers) {
             // Give each player exactly 6 unique cards
             const playerCards = shuffledCards.slice(cardIndex, cardIndex + 6);
             cardIndex += 6;
 
             console.log(`Preparing ${playerCards.length} cards for player ${player.name}`);
-            
+
             // Add all 6 cards for this player to the batch
             for (const card of playerCards) {
               allCardInserts.push({
@@ -764,13 +813,13 @@ const Game = () => {
               });
             }
           }
-          
+
           // Insert all cards at once
           console.log(`Inserting ${allCardInserts.length} cards total`);
           const { error: handError } = await supabase
             .from("player_hands")
             .insert(allCardInserts);
-          
+
           if (handError) {
             console.error("Failed to deal cards:", handError);
             toast({
@@ -788,10 +837,10 @@ const Game = () => {
           });
           return;
         }
-        
+
         // Wait a bit to ensure all cards are inserted in database
         await new Promise(resolve => setTimeout(resolve, 300));
-        
+
         // IMPORTANT: Set game state in local state AFTER all cards are dealt
         // This ensures GameBoard's useEffect won't try to load cards before they exist
         if (newGameState) {
@@ -829,7 +878,7 @@ const Game = () => {
   // Show lobby ONLY when room is in lobby status AND player is not in game
   // If player is in_game=true, they should see GameBoard regardless of room status
   const shouldShowLobby = room.status === "lobby" && !currentPlayer.in_game;
-  
+
   console.log("🎯 RENDER DECISION:", {
     roomStatus: room.status,
     playerInGame: currentPlayer.in_game,

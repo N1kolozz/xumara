@@ -1,7 +1,7 @@
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
-import { ChevronsLeft, Gavel, Inbox, Layers, LogOut, Send, Trophy, Users } from "lucide-react";
+import { Crown, Gavel, Inbox, LogOut, Send, Trophy, Users, X } from "lucide-react";
 import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
@@ -42,6 +42,16 @@ interface Submission {
   card_id: string;
   cards?: CardData | null;
 }
+
+type FanDragState = {
+  x: number;
+  y: number;
+  pointerId: number;
+  cardId: string | null;
+  cardIndex: number | null;
+  mode: "idle" | "swipe" | "drag";
+};
+
 const GameBoard = ({
   room,
   players,
@@ -56,18 +66,23 @@ const GameBoard = ({
   const [playerCards, setPlayerCards] = useState<CardData[]>([]);
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
-  const [submittedCards, setSubmittedCards] = useState<CardData[]>([]);
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
-  const fanDragRef = useRef<{ x: number; y: number; pointerId: number } | null>(null);
+  const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
+  const [draggingCard, setDraggingCard] = useState<{ card: CardData; x: number; y: number } | null>(null);
+  const [isSubmittingCard, setIsSubmittingCard] = useState(false);
+  const tableDropRef = useRef<HTMLDivElement | null>(null);
+  const fanDragRef = useRef<FanDragState | null>(null);
   const fanDidDragRef = useRef(false);
   const handCards = useMemo(() => playerCards.slice(0, 6), [playerCards]);
   const currentPlayerData = players.find(p => p.id === currentPlayer.id);
   const isJudge = currentPlayerData?.is_judge || false;
   const hasSubmitted = submissions.some((submission) => submission.player_id === currentPlayer.id);
   const activeComedians = useMemo(() => players.filter((player) => !player.is_judge && player.in_game), [players]);
+  const scorePlayers = useMemo(() => players.filter((player) => player.in_game).sort((a, b) => b.score - a.score), [players]);
+  const scoreLeader = scorePlayers.find((player) => !player.is_judge);
+  const currentJudge = scorePlayers.find((player) => player.is_judge);
   const roundProgress = gameState?.max_rounds ? (gameState.round_number / gameState.max_rounds) * 100 : 0;
-  const playableCards = gameState?.phase === "judging" ? submittedCards : handCards;
-  const activeCardIndex = Math.max(0, Math.min(currentCardIndex, Math.max(playableCards.length - 1, 0)));
+  const activeCardIndex = Math.max(0, Math.min(currentCardIndex, Math.max(handCards.length - 1, 0)));
 
   useEffect(() => {
     if (!gameState) return;
@@ -171,9 +186,7 @@ const GameBoard = ({
     
     if (submissionsData) {
       setSubmissions(submissionsData);
-      const cards = submissionsData.map((s) => s.cards).filter(Boolean);
-      setSubmittedCards(cards);
-      console.log("Set submitted cards:", cards.length);
+      console.log("Set submitted cards:", submissionsData.length);
     }
   };
   const subscribeToSubmissions = () => {
@@ -197,8 +210,6 @@ const GameBoard = ({
         
         if (submissionsData) {
           setSubmissions(submissionsData);
-          const cards = submissionsData.map((s) => s.cards).filter(Boolean);
-          setSubmittedCards(cards);
         }
       })
       .on("broadcast", { event: "round_winner" }, (payload) => {
@@ -242,23 +253,23 @@ const GameBoard = ({
       supabase.removeChannel(gameStateChannel);
     };
   };
-  const handleSubmitCard = async () => {
-    if (!selectedCard || !gameState) return;
+  const handleSubmitCard = async (cardId = selectedCard) => {
+    if (!cardId || !gameState || isSubmittingCard) return;
+    setIsSubmittingCard(true);
+
     try {
       // Submit the card
       await supabase.from("submissions").insert({
         room_id: room.id,
         player_id: currentPlayer.id,
-        card_id: selectedCard,
+        card_id: cardId,
         round_number: gameState.round_number
       });
 
       // Remove the card from player's hand
-      await supabase.from("player_hands").delete().eq("player_id", currentPlayer.id).eq("card_id", selectedCard).eq("room_id", room.id);
-      toast({
-        title: "ბარათი გაგზავნილია!"
-      });
+      await supabase.from("player_hands").delete().eq("player_id", currentPlayer.id).eq("card_id", cardId).eq("room_id", room.id);
       setSelectedCard(null);
+      setPlayerCards((cards) => cards.filter((card) => card.id !== cardId));
 
       // Check if all non-judge players have submitted
       const nonJudgePlayers = players.filter(p => !p.is_judge && p.in_game);
@@ -276,6 +287,8 @@ const GameBoard = ({
         description: "ბარათის გაგზავნა ვერ მოხერხდა",
         variant: "destructive"
       });
+    } finally {
+      setIsSubmittingCard(false);
     }
   };
   const handleSelectWinner = async (cardId: string) => {
@@ -462,10 +475,11 @@ const GameBoard = ({
   }
 
   const roleLabel = isJudge ? "მსაჯული" : "ხუმარა";
-  const fanCards = playableCards.slice(0, 6);
+  const fanCards = handCards.slice(0, 6);
   const canChooseAnswer = gameState.phase === "submitting" && !isJudge && !hasSubmitted;
   const canJudgeCards = gameState.phase === "judging" && isJudge;
-  const showCardFan = canChooseAnswer || gameState.phase === "judging";
+  const showCardFan = canChooseAnswer;
+  const tableCards = submissions.filter((submission) => submission.cards);
 
   const getFanCardStyle = (index: number) => {
     const relativeIndex = index - activeCardIndex;
@@ -482,6 +496,26 @@ const GameBoard = ({
     } as CSSProperties;
   };
 
+  const getTableCardStyle = (index: number, total: number) => {
+    const columns = Math.min(5, Math.max(1, Math.ceil(Math.sqrt(total * 1.35))));
+    const rows = Math.max(1, Math.ceil(total / columns));
+    const row = Math.floor(index / columns);
+    const start = row * columns;
+    const itemsInRow = Math.min(columns, total - start);
+    const col = index - start;
+    const rowProgress = rows === 1 ? 0.62 : row / Math.max(rows - 1, 1);
+    const rowWidth = 42 + rowProgress * 38;
+    const x = itemsInRow === 1 ? 50 : 50 + (col - (itemsInRow - 1) / 2) * (rowWidth / Math.max(itemsInRow - 1, 1));
+    const y = rows === 1 ? 48 : 34 + rowProgress * 36;
+
+    return {
+      "--table-card-x": `${x}%`,
+      "--table-card-y": `${y}%`,
+      "--table-card-r": `${(col - (itemsInRow - 1) / 2) * 4}deg`,
+      "--table-card-z": `${20 + row}`,
+    } as CSSProperties;
+  };
+
   const handleFanCardClick = (card: CardData, index: number) => {
     if (fanDidDragRef.current) {
       return;
@@ -492,10 +526,6 @@ const GameBoard = ({
     if (canChooseAnswer) {
       setSelectedCard(card.id);
       return;
-    }
-
-    if (canJudgeCards) {
-      handleSelectWinner(card.id);
     }
   };
 
@@ -509,12 +539,18 @@ const GameBoard = ({
   };
 
   const handleFanPointerDown = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (fanCards.length < 2) return;
+    if (fanCards.length === 0) return;
+    const cardButton = (event.target as HTMLElement).closest<HTMLButtonElement>("[data-card-id]");
+    const cardId = cardButton?.dataset.cardId ?? null;
+    const cardIndex = cardButton?.dataset.cardIndex ? Number(cardButton.dataset.cardIndex) : null;
 
     fanDragRef.current = {
       x: event.clientX,
       y: event.clientY,
       pointerId: event.pointerId,
+      cardId,
+      cardIndex,
+      mode: "idle",
     };
     fanDidDragRef.current = false;
     event.currentTarget.setPointerCapture(event.pointerId);
@@ -526,24 +562,60 @@ const GameBoard = ({
     const deltaX = event.clientX - fanDragRef.current.x;
     const deltaY = event.clientY - fanDragRef.current.y;
 
+    if (
+      canChooseAnswer &&
+      fanDragRef.current.cardId &&
+      (fanDragRef.current.mode === "drag" || (deltaY < -24 && Math.abs(deltaY) > Math.abs(deltaX) * 0.72))
+    ) {
+      fanDragRef.current.mode = "drag";
+      fanDidDragRef.current = true;
+
+      const card = fanCards.find((item) => item.id === fanDragRef.current?.cardId);
+      if (card) {
+        setDraggingCard({ card, x: event.clientX, y: event.clientY });
+      }
+
+      event.preventDefault();
+      return;
+    }
+
     if (Math.abs(deltaX) < 34 || Math.abs(deltaX) < Math.abs(deltaY) * 1.15) {
       return;
     }
 
+    fanDragRef.current.mode = "swipe";
     fanDidDragRef.current = true;
     snapFanToIndex(activeCardIndex + (deltaX < 0 ? 1 : -1));
     fanDragRef.current = {
       x: event.clientX,
       y: event.clientY,
       pointerId: event.pointerId,
+      cardId: fanDragRef.current.cardId,
+      cardIndex: fanDragRef.current.cardIndex,
+      mode: "swipe",
     };
     event.preventDefault();
   };
 
   const handleFanPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
-    if (fanDragRef.current?.pointerId === event.pointerId) {
+    const dragState = fanDragRef.current;
+
+    if (dragState?.pointerId === event.pointerId) {
+      const tableRect = tableDropRef.current?.getBoundingClientRect();
+      const droppedOnTable = !!tableRect
+        && event.clientX >= tableRect.left
+        && event.clientX <= tableRect.right
+        && event.clientY >= tableRect.top
+        && event.clientY <= tableRect.bottom;
+
+      if (dragState.mode === "drag" && dragState.cardId && droppedOnTable) {
+        void handleSubmitCard(dragState.cardId);
+      }
+
       fanDragRef.current = null;
     }
+
+    setDraggingCard(null);
 
     window.setTimeout(() => {
       fanDidDragRef.current = false;
@@ -565,19 +637,7 @@ const GameBoard = ({
         </header>
 
         <section className="reference-status-grid" aria-label="თამაშის სტატუსი">
-          <div className="reference-status-card reference-status-card-left">
-            <div className="reference-status-icon">
-              <Layers className="h-7 w-7" />
-            </div>
-            <div className="min-w-0">
-              <p className="reference-status-label">ROUND {gameState.round_number}</p>
-              <h1 className="reference-status-title truncate">{roleLabel}</h1>
-            </div>
-            <div className="reference-muted-line" />
-          </div>
-
           <div className="reference-status-card reference-status-card-right">
-            <p className="reference-status-label">GAME STATE</p>
             <h2 className="reference-round-text">რაუნდი {gameState.round_number} / {gameState.max_rounds}</h2>
             <Progress value={roundProgress} className="reference-progress" />
           </div>
@@ -585,25 +645,115 @@ const GameBoard = ({
 
         <section className="reference-play-area" aria-label="მთავარი სათამაშო მაგიდა">
           <article className="reference-question-card">
-            <div className="reference-question-head">
-              <div className="reference-question-icon">
-                <Inbox className="h-5 w-5" />
-              </div>
-              <span className="reference-question-pill">INBOX</span>
-            </div>
             <p className="reference-question-text">{inboxCard.text_ge}</p>
-            <div className="reference-question-line" />
           </article>
 
-          <div className="reference-table-perspective" aria-hidden="true">
+          <div
+            ref={tableDropRef}
+            className={cn("reference-table-perspective", canChooseAnswer && "reference-table-perspective-droppable")}
+            aria-label="ბარათის დასადები მაგიდა"
+          >
             <div className="reference-table-felt" />
+            <div className="reference-table-card-layer">
+              {tableCards.map((submission, index) => {
+                const cardText = submission.cards?.text_ge;
+                const canPickWinner = canJudgeCards;
+
+                return (
+                  <button
+                    type="button"
+                    key={submission.id}
+                    className={cn("reference-table-card", canPickWinner && "reference-table-card-pickable")}
+                    style={getTableCardStyle(index, tableCards.length)}
+                    disabled={!canPickWinner}
+                    onClick={() => canPickWinner && handleSelectWinner(submission.card_id)}
+                  >
+                    <span>{cardText}</span>
+                  </button>
+                );
+              })}
+            </div>
           </div>
 
-          <aside className="reference-score-tab" aria-label="ქულები">
-            <Trophy className="h-5 w-5" />
-            <span>SCORE</span>
-            <ChevronsLeft className="h-4 w-4" />
-          </aside>
+          <button
+            type="button"
+            className={cn("reference-score-tab", isScoreboardOpen && "reference-score-tab-open")}
+            aria-label="ქულების დაფის გახსნა"
+            aria-expanded={isScoreboardOpen}
+            onClick={() => setIsScoreboardOpen(true)}
+          >
+            <Trophy className="h-6 w-14" />
+          </button>
+
+          <div
+            className={cn("reference-score-overlay", isScoreboardOpen && "reference-score-overlay-open")}
+            aria-hidden={!isScoreboardOpen}
+          >
+            <button
+              type="button"
+              className="reference-score-backdrop"
+              aria-label="ქულების დაფის დახურვა"
+              onClick={() => setIsScoreboardOpen(false)}
+              tabIndex={isScoreboardOpen ? 0 : -1}
+            />
+
+            <aside className="reference-score-panel" aria-label="ქულები">
+              <div className="reference-score-panel-head">
+                <div className="reference-score-title-wrap">
+                  <div className="reference-score-icon">
+                    <Trophy className="h-5 w-5" />
+                  </div>
+                  <div>
+                    <p className="reference-score-kicker">SCORE</p>
+                    <h3 className="reference-score-title">ქულები</h3>
+                  </div>
+                </div>
+
+                <button
+                  type="button"
+                  className="reference-score-close"
+                  aria-label="ქულების დაფის დახურვა"
+                  onClick={() => setIsScoreboardOpen(false)}
+                >
+                  <X className="h-4 w-4" />
+                </button>
+              </div>
+
+              {currentJudge && (
+                <div className="reference-judge-chip">
+                  <Gavel className="h-4 w-4" />
+                  <span>{currentJudge.name}</span>
+                </div>
+              )}
+
+              <div className="reference-score-list">
+                {scorePlayers.map((player, index) => {
+                  const isLeader = !player.is_judge && scoreLeader?.id === player.id && player.score > 0;
+                  const isCurrentPlayer = player.id === currentPlayer.id;
+
+                  return (
+                    <div
+                      key={player.id}
+                      className={cn(
+                        "reference-score-row",
+                        isLeader && "reference-score-row-leader",
+                        isCurrentPlayer && "reference-score-row-current",
+                      )}
+                    >
+                      <div className="reference-score-rank">
+                        {isLeader ? <Crown className="h-4 w-4" /> : index + 1}
+                      </div>
+                      <div className="reference-score-name">
+                        <span>{player.name}</span>
+                        {player.is_judge && <small>მსაჯული</small>}
+                      </div>
+                      <strong>{player.score}</strong>
+                    </div>
+                  );
+                })}
+              </div>
+            </aside>
+          </div>
 
           <div
             className="reference-answer-fan"
@@ -622,10 +772,18 @@ const GameBoard = ({
                   <button
                     type="button"
                     key={card.id}
+                    data-card-id={card.id}
+                    data-card-index={index}
                     className={cn("reference-answer-card", isActive ? "reference-answer-card-active" : "reference-answer-card-side")}
                     style={getFanCardStyle(index)}
                     aria-pressed={isPressed}
                     onClick={() => handleFanCardClick(card, index)}
+                    onKeyDown={(event) => {
+                      if (canChooseAnswer && isActive && (event.key === "Enter" || event.key === " ")) {
+                        event.preventDefault();
+                        void handleSubmitCard(card.id);
+                      }
+                    }}
                   >
                     <div className="reference-answer-head">
                       <span className="reference-answer-icon">
@@ -685,25 +843,19 @@ const GameBoard = ({
               />
             ))}
           </div>
-
-          <Button
-            onClick={handleSubmitCard}
-            disabled={!canChooseAnswer || !selectedCard || handCards.length === 0}
-            size="lg"
-            className="reference-send-button"
-          >
-            <Send className="h-5 w-5" />
-            {canChooseAnswer
-              ? "ბარათის გაგზავნა"
-              : gameState.phase === "judging" && isJudge
-                ? "აირჩიე გამარჯვებული"
-                : gameState.phase === "judging"
-                  ? "მსაჯული არჩევს"
-                  : hasSubmitted
-                    ? "პასუხი გაგზავნილია"
-                    : "ბარათები იგზავნება"}
-          </Button>
         </footer>
+
+        {draggingCard && (
+          <div
+            className="reference-drag-card"
+            style={{
+              "--drag-x": `${draggingCard.x}px`,
+              "--drag-y": `${draggingCard.y}px`,
+            } as CSSProperties}
+          >
+            <span>{draggingCard.card.text_ge}</span>
+          </div>
+        )}
       </main>
     </div>
   );

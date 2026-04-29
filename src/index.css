@@ -385,8 +385,8 @@
 
   .game-reference-screen {
     @apply relative z-10 mx-auto grid h-full w-full min-w-0 overflow-hidden;
-    max-width: 30rem;
-    grid-template-rows: 4.9rem 7.7rem minmax(0, 1fr) 4.75rem;
+    max-width: 33rem;
+    grid-template-rows: 4.25rem 3.65rem minmax(0, 1fr) 1.35rem;
     padding:
       max(0.7rem, env(safe-area-inset-top))
       max(0.75rem, env(safe-area-inset-right))
@@ -407,13 +407,14 @@
   }
 
   .reference-status-grid {
-    @apply relative z-40 mx-auto grid min-w-0 grid-cols-2 items-center gap-3;
-    width: min(83%, 24rem);
+    @apply relative z-40 mx-auto grid min-w-0 grid-cols-1 items-center;
+    width: min(76%, 24rem);
+    height: 0;
   }
 
   .reference-status-card {
     @apply relative min-w-0 overflow-hidden rounded-[1.65rem] border border-white/15 bg-[rgba(35,45,48,0.55)] shadow-[0_20px_48px_hsl(160_45%_3%/0.34),inset_0_1px_0_hsl(0_0%_100%/0.13)] backdrop-blur-xl;
-    height: 6.15rem;
+    height: 3.45rem;
   }
 
   .reference-status-card::before {
@@ -422,36 +423,40 @@
   }
 
   .reference-status-card-left {
-    @apply grid grid-cols-[3.1rem_minmax(0,1fr)] items-center gap-2 px-3 pb-4 pt-3;
+    @apply grid grid-cols-[2.45rem_minmax(0,1fr)] items-center gap-2 px-3 pb-3 pt-2.5;
   }
 
   .reference-status-card-right {
-    @apply flex flex-col justify-center gap-1.5 px-4 py-3;
+    @apply flex flex-col justify-center gap-1 px-5 py-2.5;
   }
 
   .reference-status-icon {
-    @apply grid h-12 w-12 place-items-center rounded-2xl bg-[linear-gradient(145deg,#27f2a1,#24d6b1)] text-[#08231b] shadow-[0_12px_28px_hsl(var(--primary)/0.25)];
+    @apply grid h-10 w-10 place-items-center rounded-xl bg-[linear-gradient(145deg,#27f2a1,#24d6b1)] text-[#08231b] shadow-[0_12px_28px_hsl(var(--primary)/0.25)];
   }
 
   .reference-status-label {
-    @apply text-[0.68rem] font-black uppercase leading-none text-white/[0.45];
+    @apply text-[0.58rem] font-black uppercase leading-none text-white/[0.45];
   }
 
   .reference-status-title {
-    @apply mt-1 text-[1.32rem] font-black leading-none text-foreground;
+    @apply mt-0.5 text-[1.05rem] font-black leading-none text-foreground;
     text-shadow: 0 3px 18px hsl(0 0% 100% / 0.16);
   }
 
   .reference-round-text {
-    @apply text-[1.05rem] font-black leading-tight text-foreground;
+    @apply text-[1.02rem] font-black leading-tight text-foreground;
   }
 
   .reference-muted-line {
-    @apply absolute bottom-3 left-4 right-4 h-1.5 rounded-full bg-white/[0.12];
+    @apply absolute bottom-2.5 left-4 right-4 h-1 rounded-full bg-white/[0.12];
   }
 
   .reference-progress {
-    @apply h-2 bg-white/[0.12];
+    @apply h-1.5 bg-white/[0.12];
+  }
+
+  .reference-progress > div {
+    background: linear-gradient(90deg, #27f2a1 0%, #24d6b1 100%);
   }
 
   .reference-play-area {
@@ -459,15 +464,15 @@
   }
 
   .reference-question-card {
-    @apply absolute left-1/2 top-[0.7rem] z-40 w-[82%] -translate-x-1/2 overflow-hidden rounded-[1.55rem] border border-secondary/30 bg-[rgba(26,40,49,0.72)] p-4 shadow-[0_18px_54px_hsl(var(--secondary)/0.16),inset_0_1px_0_hsl(0_0%_100%/0.14)] backdrop-blur-xl;
+    @apply absolute left-1/2 top-[0.15rem] z-40 w-[75%] h-[20%] -translate-x-1/2 overflow-hidden rounded-[1.35rem] border border-secondary/30 bg-[rgba(26,40,49,0.72)] px-4 py-3.5 shadow-[0_18px_54px_hsl(var(--secondary)/0.16),inset_0_1px_0_hsl(0_0%_100%/0.14)] backdrop-blur-xl;
   }
 
   .reference-question-head {
-    @apply mb-3 flex items-center justify-between;
+    @apply mb-2 flex items-center justify-between;
   }
 
   .reference-question-icon {
-    @apply grid h-10 w-10 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-secondary;
+    @apply grid h-8 w-8 place-items-center rounded-full border border-white/10 bg-white/[0.06] text-secondary;
   }
 
   .reference-question-pill {
@@ -475,21 +480,25 @@
   }
 
   .reference-question-text {
-    @apply px-3 text-center text-[1.22rem] font-black leading-[1.35] text-foreground;
+    @apply px-1 text-center text-[1.04rem] font-black leading-[1.3] text-foreground;
     text-shadow: 0 4px 20px hsl(0 0% 0% / 0.28);
   }
 
   .reference-question-line {
-    @apply mt-4 h-1.5 rounded-full bg-secondary shadow-[0_0_20px_hsl(var(--secondary)/0.35)];
+    @apply mt-3 h-1.5 rounded-full bg-secondary shadow-[0_0_20px_hsl(var(--secondary)/0.35)];
   }
 
   .reference-table-perspective {
-    @apply pointer-events-none absolute left-1/2 z-10 -translate-x-1/2;
-    top: 9.2rem;
-    width: min(92vw, 27rem);
-    height: min(49dvh, 28.5rem);
+    @apply absolute left-1/2 z-10 -translate-x-1/2;
+    top: 6.4rem;
+    width: min(118vw, 38rem);
+    height: min(65dvh, 38rem);
     filter: drop-shadow(0 0 30px hsl(var(--primary) / 0.16));
     perspective: 40rem;
+  }
+
+  .reference-table-perspective-droppable {
+    filter: drop-shadow(0 0 40px hsl(var(--primary) / 0.24));
   }
 
   .reference-table-felt {
@@ -513,8 +522,33 @@
     background: repeating-linear-gradient(0deg, rgba(255,255,255,0.025) 0 1px, transparent 1px 4px);
   }
 
+  .reference-table-card-layer {
+    @apply absolute inset-[9%_7%_13%_7%] z-20;
+    pointer-events: none;
+  }
+
+  .reference-table-card {
+    @apply absolute flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.16] bg-[rgba(225,255,239,0.84)] px-2 py-2 text-center text-[0.66rem] font-black leading-tight text-[#10241e] shadow-[0_12px_32px_hsl(160_45%_3%/0.36),0_0_20px_hsl(var(--primary)/0.18)] transition-all duration-200;
+    left: var(--table-card-x);
+    top: var(--table-card-y);
+    width: clamp(4.4rem, 15vw, 6.1rem);
+    height: clamp(5.9rem, 19vw, 7.8rem);
+    z-index: var(--table-card-z);
+    transform: translate(-50%, -50%) rotate(var(--table-card-r));
+    pointer-events: auto;
+  }
+
+  .reference-table-card span {
+    @apply line-clamp-5;
+  }
+
+  .reference-table-card-pickable {
+    @apply cursor-pointer border-accent/45 hover:border-accent hover:shadow-[0_0_34px_hsl(var(--accent)/0.26),0_18px_42px_hsl(160_45%_3%/0.42)];
+  }
+
   .reference-score-tab {
-    @apply absolute right-[-2.1rem] top-[43%] z-50 flex h-32 w-16 flex-col items-center justify-center gap-3 rounded-l-[1.5rem] border border-white/[0.14] bg-[rgba(35,45,48,0.62)] text-accent shadow-[0_18px_46px_hsl(var(--primary)/0.16),inset_0_1px_0_hsl(0_0%_100%/0.16)] backdrop-blur-xl;
+    @apply absolute right-[-0.85rem] top-[3%] z-50 grid h-14 w-12 place-items-center rounded-l-2xl border border-white/[0.14] bg-[rgba(35,45,48,0.62)] text-accent shadow-[0_18px_46px_hsl(var(--primary)/0.16),inset_0_1px_0_hsl(0_0%_100%/0.16)] backdrop-blur-xl transition-all duration-300 focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+    touch-action: manipulation;
   }
 
   .reference-score-tab span {
@@ -523,8 +557,101 @@
     @apply text-xs font-black tracking-wider text-white/[0.65];
   }
 
+
+  .reference-score-overlay {
+    @apply pointer-events-none fixed inset-0 z-[70] grid place-items-center px-4 opacity-0 transition-opacity duration-300;
+  }
+
+  .reference-score-overlay-open {
+    @apply pointer-events-auto opacity-100;
+  }
+
+  .reference-score-backdrop {
+    @apply absolute inset-0 bg-black/45 backdrop-blur-[3px];
+  }
+
+  .reference-score-panel {
+    @apply relative z-10 w-full max-w-[21.5rem] translate-x-[8rem] scale-95 rounded-[1.75rem] border border-white/[0.14] bg-[rgba(24,34,37,0.90)] p-4 opacity-0 shadow-[0_24px_80px_hsl(160_55%_3%/0.62),0_0_54px_hsl(var(--primary)/0.16),inset_0_1px_0_hsl(0_0%_100%/0.16)] backdrop-blur-2xl transition-all duration-300 ease-out;
+  }
+
+  .reference-score-overlay-open .reference-score-panel {
+    @apply translate-x-0 scale-100 opacity-100;
+  }
+
+  .reference-score-panel-head {
+    @apply flex items-center justify-between gap-3;
+  }
+
+  .reference-score-title-wrap {
+    @apply flex min-w-0 items-center gap-3;
+  }
+
+  .reference-score-icon {
+    @apply grid h-12 w-12 place-items-center rounded-2xl border border-accent/35 bg-accent/15 text-accent shadow-[0_0_28px_hsl(var(--accent)/0.15)];
+  }
+
+  .reference-score-kicker {
+    @apply text-[0.68rem] font-black uppercase leading-none text-white/[0.45];
+  }
+
+  .reference-score-title {
+    @apply mt-1 text-xl font-black leading-none text-foreground;
+  }
+
+  .reference-score-close {
+    @apply grid h-10 w-10 place-items-center rounded-full border border-white/[0.12] bg-white/[0.07] text-text-soft transition-all duration-200 hover:bg-white/[0.11] hover:text-foreground focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+  }
+
+  .reference-judge-chip {
+    @apply mt-4 inline-flex max-w-full items-center gap-2 rounded-full border border-secondary/35 bg-secondary/15 px-3 py-2 text-xs font-black text-secondary;
+  }
+
+  .reference-judge-chip span {
+    @apply truncate;
+  }
+
+  .reference-score-list {
+    @apply mt-4 space-y-2;
+  }
+
+  .reference-score-row {
+    @apply grid grid-cols-[2.35rem_minmax(0,1fr)_3rem] items-center gap-3 rounded-2xl border border-white/[0.10] bg-white/[0.055] px-3 py-2.5 shadow-[inset_0_1px_0_hsl(0_0%_100%/0.06)] transition-all duration-200;
+  }
+
+  .reference-score-row-current {
+    @apply border-primary/30 bg-primary/10;
+  }
+
+  .reference-score-row-leader {
+    @apply border-accent/35 bg-accent/10;
+  }
+
+  .reference-score-rank {
+    @apply grid h-9 w-9 place-items-center rounded-full bg-white/[0.08] text-sm font-black text-text-soft;
+  }
+
+  .reference-score-row-leader .reference-score-rank {
+    @apply bg-accent/20 text-accent;
+  }
+
+  .reference-score-name {
+    @apply min-w-0;
+  }
+
+  .reference-score-name span {
+    @apply block truncate text-sm font-black text-foreground;
+  }
+
+  .reference-score-name small {
+    @apply mt-0.5 block text-[0.62rem] font-black uppercase text-secondary;
+  }
+
+  .reference-score-row strong {
+    @apply rounded-full bg-primary/15 px-2 py-1 text-center text-sm font-black text-primary;
+  }
+
   .reference-answer-fan {
-    @apply absolute bottom-[-0.15rem] left-1/2 z-40 h-[14.7rem] w-full -translate-x-1/2 overflow-visible;
+    @apply absolute bottom-[-0.8rem] left-1/2 z-40 h-[14.7rem] w-full -translate-x-1/2 overflow-visible;
     touch-action: pan-x;
   }
 
@@ -590,7 +717,7 @@
   }
 
   .reference-bottom-action {
-    @apply relative z-50 flex min-h-0 flex-col items-center justify-end gap-2;
+    @apply relative z-50 flex min-h-0 flex-col items-center justify-center;
   }
 
   .reference-card-progress {
@@ -615,6 +742,15 @@
     box-shadow: 0 0 28px hsl(var(--primary) / 0.11), 0 16px 36px hsl(160 45% 3% / 0.36);
   }
 
+  .reference-drag-card {
+    @apply pointer-events-none fixed z-[90] flex items-center justify-center rounded-[1.25rem] border border-primary/45 bg-[linear-gradient(155deg,#eafff3_0%,#bfffe2_28%,#43e4b2_100%)] px-4 py-5 text-center text-sm font-black leading-tight text-[#10241e] shadow-[0_0_52px_hsl(var(--primary)/0.38),0_22px_66px_hsl(160_48%_3%/0.55)];
+    left: var(--drag-x);
+    top: var(--drag-y);
+    width: 9.8rem;
+    height: 12.5rem;
+    transform: translate(-50%, -50%) rotate(-4deg) scale(1.03);
+  }
+
   .reference-bottom-status {
     @apply rounded-full border border-white/[0.12] bg-white/[0.06] px-5 py-2 text-sm font-black text-text-soft backdrop-blur-xl;
   }
@@ -627,12 +763,11 @@
     }
 
     .reference-status-grid {
-      @apply gap-2;
-      width: min(86%, 22rem);
+      width: min(84%, 22rem);
     }
 
     .reference-status-card {
-      height: 5.75rem;
+      height: 3.25rem;
       border-radius: 1.35rem;
     }
 
