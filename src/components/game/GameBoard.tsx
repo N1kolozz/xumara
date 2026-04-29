@@ -1,46 +1,19 @@
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
-import { supabase } from "@/integrations/supabase/client";
 import { Button } from "@/components/ui/button";
 import { Crown, Gavel, Inbox, LogOut, Send, Trophy, Users, X } from "lucide-react";
-import { useToast } from "@/hooks/use-toast";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-interface Player {
-  id: string;
-  name: string;
-  score: number;
-  is_judge: boolean;
-  in_game: boolean;
-}
-interface GameState {
-  phase: string;
-  current_judge_id: string | null;
-  current_inbox_card_id: string | null;
-  round_number: number;
-  max_rounds: number;
-  winner_name?: string | null;
-  winner_score?: number | null;
-}
+import { Player, GameState, Room, CardData } from "@/types/game";
+import { useGameBoardData } from "@/hooks/useGameBoardData";
+import { useGameBoardActions } from "@/hooks/useGameBoardActions";
+
 interface GameBoardProps {
-  room: {
-    id: string;
-  };
+  room: Room;
   players: Player[];
   currentPlayer: Player;
   gameState: GameState | null;
   onReturnToLobby: () => void;
-}
-interface CardData {
-  id: string;
-  text_ge: string;
-  type: string;
-}
-interface Submission {
-  id: string;
-  player_id: string;
-  card_id: string;
-  cards?: CardData | null;
 }
 
 type FanDragState = {
@@ -59,17 +32,28 @@ const GameBoard = ({
   gameState,
   onReturnToLobby
 }: GameBoardProps) => {
-  const {
-    toast
-  } = useToast();
-  const [inboxCard, setInboxCard] = useState<CardData | null>(null);
-  const [playerCards, setPlayerCards] = useState<CardData[]>([]);
+  const { inboxCard, playerCards, setPlayerCards, submissions } = useGameBoardData({
+    room,
+    players,
+    currentPlayer,
+    gameState,
+  });
+
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
-  const [submissions, setSubmissions] = useState<Submission[]>([]);
+
+  const { handleSubmitCard, handleSelectWinner } = useGameBoardActions({
+    room,
+    players,
+    currentPlayer,
+    gameState,
+    submissions,
+    setPlayerCards,
+    setSelectedCard,
+  });
+
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
   const [draggingCard, setDraggingCard] = useState<{ card: CardData; x: number; y: number } | null>(null);
-  const [isSubmittingCard, setIsSubmittingCard] = useState(false);
   const tableDropRef = useRef<HTMLDivElement | null>(null);
   const fanDragRef = useRef<FanDragState | null>(null);
   const fanDidDragRef = useRef(false);
@@ -84,18 +68,6 @@ const GameBoard = ({
   const roundProgress = gameState?.max_rounds ? (gameState.round_number / gameState.max_rounds) * 100 : 0;
   const activeCardIndex = Math.max(0, Math.min(currentCardIndex, Math.max(handCards.length - 1, 0)));
 
-  useEffect(() => {
-    if (!gameState) return;
-    console.log("GameBoard useEffect triggered:", {
-      round: gameState.round_number,
-      phase: gameState.phase,
-      playerId: currentPlayer.id,
-      playerName: currentPlayer.name
-    });
-    loadGameData();
-    const unsubscribe = subscribeToSubmissions();
-    return unsubscribe;
-  }, [gameState?.round_number, gameState?.phase, currentPlayer.id, players]);
   useEffect(() => {
     if (handCards.length === 0) {
       setCurrentCardIndex(0);
@@ -123,344 +95,6 @@ const GameBoard = ({
     };
   }, []);
 
-  const loadGameData = async () => {
-    if (!gameState) return;
-
-    // Get fresh player data from players array
-    const freshPlayerData = players.find(p => p.id === currentPlayer.id);
-    const isJudge = freshPlayerData?.is_judge ?? currentPlayer.is_judge;
-
-    console.log("Loading game data:", {
-      currentPlayerId: currentPlayer.id,
-      isJudge,
-      phase: gameState.phase,
-      roomId: room.id,
-      usedFreshData: !!freshPlayerData
-    });
-
-    // Load inbox card
-    if (gameState.current_inbox_card_id) {
-      const {
-        data: inboxData
-      } = await supabase.from("cards").select("*").eq("id", gameState.current_inbox_card_id).single();
-      if (inboxData) setInboxCard(inboxData);
-    }
-
-    // Load player's hand (only if not judge)
-    if (!isJudge && gameState.phase === "submitting") {
-      console.log("Loading player cards for non-judge player...");
-      
-      // Load existing cards from database
-      const {
-        data: handData,
-        error: handError
-      } = await supabase.from("player_hands").select("card_id, cards(*)").eq("player_id", currentPlayer.id).eq("room_id", room.id);
-      
-      console.log("Player hands query result:", {
-        handData,
-        handError,
-        count: handData?.length || 0
-      });
-      
-      if (handData) {
-        const cards = handData.map((h) => h.cards).filter(Boolean);
-        console.log("Setting player cards:", cards.length);
-        setPlayerCards(cards);
-      }
-    } else {
-      console.log("Skipping card load:", {
-        reason: isJudge ? "Player is judge" : `Phase is ${gameState.phase}`
-      });
-    }
-
-    // Load submissions for all phases (so players can see cards on table)
-    console.log("Loading submissions for round:", gameState.round_number);
-    const {
-      data: submissionsData
-    } = await supabase.from("submissions").select("*, cards(*), players(name)").eq("room_id", room.id).eq("round_number", gameState.round_number);
-    
-    console.log("Loaded submissions:", {
-      count: submissionsData?.length || 0,
-      submissions: submissionsData
-    });
-    
-    if (submissionsData) {
-      setSubmissions(submissionsData);
-      console.log("Set submitted cards:", submissionsData.length);
-    }
-  };
-  const subscribeToSubmissions = () => {
-    const submissionsChannel = supabase.channel(`submissions_${room.id}`)
-      .on("postgres_changes", {
-        event: "*",
-        schema: "public",
-        table: "submissions",
-        filter: `room_id=eq.${room.id}`
-      }, async () => {
-        // Reload submissions in real-time so all players see cards on table
-        if (!gameState) return;
-        console.log("Submissions change detected, reloading...");
-        const {
-          data: submissionsData
-        } = await supabase.from("submissions").select("*, cards(*), players(name)").eq("room_id", room.id).eq("round_number", gameState.round_number);
-        
-        console.log("Realtime submissions loaded:", {
-          count: submissionsData?.length || 0
-        });
-        
-        if (submissionsData) {
-          setSubmissions(submissionsData);
-        }
-      })
-      .on("broadcast", { event: "round_winner" }, (payload) => {
-        // Show toast when judge selects a winner
-        toast({
-          title: "გამარჯვებული შეირჩა!",
-          description: `${payload.payload.winnerName} მოიგო ეს რაუნდი!`
-        });
-      })
-      .subscribe();
-    const gameStateChannel = supabase.channel(`game_state_${room.id}`).on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "game_state",
-      filter: `room_id=eq.${room.id}`
-    }, (payload) => {
-      console.log("Game state changed, reloading data");
-      
-      // Check if game winner was announced (for all players to see)
-      if (payload.eventType === "UPDATE" && payload.new.winner_name && payload.new.winner_score !== null) {
-        // Check if it's a draw (winner_name contains comma, meaning multiple winners)
-        const isDraw = payload.new.winner_name.includes(",");
-        
-        if (isDraw) {
-          toast({
-            title: "თამაში დასრულდა!",
-            description: `${payload.new.winner_name} მოთამაშეებს შორის დამთავრდა ფრე ${payload.new.winner_score} ქულით!`
-          });
-        } else {
-          toast({
-            title: "თამაში დასრულდა!",
-            description: `${payload.new.winner_name} არის გამარჯვებული ${payload.new.winner_score} ქულით!`
-          });
-        }
-      }
-      
-      loadGameData();
-    }).subscribe();
-    return () => {
-      supabase.removeChannel(submissionsChannel);
-      supabase.removeChannel(gameStateChannel);
-    };
-  };
-  const handleSubmitCard = async (cardId = selectedCard) => {
-    if (!cardId || !gameState || isSubmittingCard) return;
-    setIsSubmittingCard(true);
-
-    try {
-      // Submit the card
-      await supabase.from("submissions").insert({
-        room_id: room.id,
-        player_id: currentPlayer.id,
-        card_id: cardId,
-        round_number: gameState.round_number
-      });
-
-      // Remove the card from player's hand
-      await supabase.from("player_hands").delete().eq("player_id", currentPlayer.id).eq("card_id", cardId).eq("room_id", room.id);
-      setSelectedCard(null);
-      setPlayerCards((cards) => cards.filter((card) => card.id !== cardId));
-
-      // Check if all non-judge players have submitted
-      const nonJudgePlayers = players.filter(p => !p.is_judge && p.in_game);
-      const {
-        data: currentSubmissions
-      } = await supabase.from("submissions").select("*").eq("room_id", room.id).eq("round_number", gameState.round_number);
-      if (currentSubmissions && currentSubmissions.length === nonJudgePlayers.length) {
-        await supabase.from("game_state").update({
-          phase: "judging"
-        }).eq("room_id", room.id);
-      }
-    } catch (error) {
-      toast({
-        title: "შეცდომა",
-        description: "ბარათის გაგზავნა ვერ მოხერხდა",
-        variant: "destructive"
-      });
-    } finally {
-      setIsSubmittingCard(false);
-    }
-  };
-  const handleSelectWinner = async (cardId: string) => {
-    // Get fresh judge status from players array to avoid stale state
-    const currentPlayerData = players.find(p => p.id === currentPlayer.id);
-    if (!currentPlayerData?.is_judge || !gameState) {
-      console.log("Cannot select winner:", { 
-        isJudge: currentPlayerData?.is_judge, 
-        hasGameState: !!gameState,
-        currentPlayerId: currentPlayer.id 
-      });
-      return;
-    }
-    const winningSubmission = submissions.find(s => s.card_id === cardId);
-    if (!winningSubmission) return;
-    try {
-      // Mark winner
-      await supabase.from("submissions").update({
-        is_winner: true
-      }).eq("id", winningSubmission.id);
-
-      // Update winner's score
-      const winner = players.find(p => p.id === winningSubmission.player_id);
-      if (winner) {
-        await supabase.from("players").update({
-          score: winner.score + 1
-        }).eq("id", winner.id);
-        
-        // Broadcast winner to all players in the room
-        const channel = supabase.channel(`submissions_${room.id}`);
-        await channel.send({
-          type: "broadcast",
-          event: "round_winner",
-          payload: { winnerName: winner.name }
-        });
-      }
-
-      // Clear submissions for next round
-      await supabase.from("submissions").delete().eq("room_id", room.id).eq("round_number", gameState.round_number);
-
-      // Clear all players' hands so they get new cards in next round
-      await supabase.from("player_hands").delete().eq("room_id", room.id);
-
-      // Check if this was the last round
-      if (gameState.round_number >= gameState.max_rounds) {
-        // Game is over, find the winner
-        // Get updated scores from database after winner's score was incremented
-        const {
-          data: updatedPlayers
-        } = await supabase.from("players").select("*").eq("room_id", room.id);
-        if (updatedPlayers) {
-          const sortedPlayers = [...updatedPlayers].sort((a, b) => b.score - a.score);
-          const topScore = sortedPlayers[0]?.score || 0;
-          
-          // Check for draw - find all players with top score
-          const winners = sortedPlayers.filter(p => p.score === topScore);
-          
-          if (winners.length > 1) {
-            // It's a draw
-            const winnerNames = winners.map(w => w.name).join(", ");
-            await supabase.from("game_state").update({
-              winner_name: winnerNames,
-              winner_score: topScore
-            }).eq("room_id", room.id);
-          } else {
-            // Single winner
-            const gameWinner = sortedPlayers[0];
-            await supabase.from("game_state").update({
-              winner_name: gameWinner?.name,
-              winner_score: topScore
-            }).eq("room_id", room.id);
-          }
-
-          // Wait a bit for all players to receive the realtime update
-          await new Promise(resolve => setTimeout(resolve, 1000));
-
-          // Reset all scores and set in_game to false (keep judge status unchanged)
-          await supabase.from("players").update({
-            score: 0,
-            in_game: false
-          }).eq("room_id", room.id);
-
-          // Clear all submissions from all rounds
-          await supabase.from("submissions").delete().eq("room_id", room.id);
-
-          // Delete game state
-          await supabase.from("game_state").delete().eq("room_id", room.id);
-
-          // Clear all player hands
-          await supabase.from("player_hands").delete().eq("room_id", room.id);
-
-          // Return to lobby
-          await supabase.from("rooms").update({
-            status: "lobby"
-          }).eq("id", room.id);
-        }
-      } else {
-        // Continue to next round (keep judge status unchanged)
-        const {
-          data: inboxCards
-        } = await supabase.from("cards").select("*").eq("type", "inbox");
-        if (inboxCards && inboxCards.length > 0) {
-          const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
-          
-          // Get all reply cards for dealing
-          const { data: replyCards } = await supabase.from("cards").select("*").eq("type", "reply");
-          
-          if (replyCards && replyCards.length >= 6 * players.filter(p => !p.is_judge).length) {
-            // First, wait a bit for the delete operation to complete
-            await new Promise(resolve => setTimeout(resolve, 100));
-            
-            // Double check that hands are cleared before dealing
-            const { data: existingHands } = await supabase
-              .from("player_hands")
-              .select("id")
-              .eq("room_id", room.id);
-            
-            if (existingHands && existingHands.length > 0) {
-              // Force delete again if needed
-              await supabase.from("player_hands").delete().eq("room_id", room.id);
-              await new Promise(resolve => setTimeout(resolve, 100));
-            }
-            
-            // Shuffle all reply cards once
-            const shuffledCards = [...replyCards].sort(() => Math.random() - 0.5);
-            let cardIndex = 0;
-            
-            // Prepare all card assignments in a single batch
-            const allCardInserts = [];
-            const nonJudgePlayers = players.filter(p => !p.is_judge);
-            
-            for (const player of nonJudgePlayers) {
-              // Give each player exactly 6 unique cards
-              const playerCards = shuffledCards.slice(cardIndex, cardIndex + 6);
-              cardIndex += 6;
-              
-              for (const card of playerCards) {
-                allCardInserts.push({
-                  player_id: player.id,
-                  card_id: card.id,
-                  room_id: room.id,
-                });
-              }
-            }
-            
-            // Insert all cards at once - ignore duplicate key errors
-            const { error: handError } = await supabase
-              .from("player_hands")
-              .insert(allCardInserts);
-            
-            if (handError && handError.code !== "23505") {
-              // Only show error if it's not a duplicate key error
-              console.error("Failed to deal cards:", handError);
-              return;
-            }
-          }
-          
-          await supabase.from("game_state").update({
-            phase: "submitting",
-            current_inbox_card_id: randomInbox.id,
-            round_number: gameState.round_number + 1
-          }).eq("room_id", room.id);
-        }
-      }
-    } catch (error) {
-      toast({
-        title: "შეცდომა",
-        description: "გამარჯვებულის შერჩევა ვერ მოხერხდა",
-        variant: "destructive"
-      });
-    }
-  };
   if (!gameState || !inboxCard) {
     return (
       <div className="app-shell">

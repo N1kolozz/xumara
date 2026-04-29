@@ -6,17 +6,7 @@ import { Input } from "@/components/ui/input";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
 
-interface Player {
-  id: string;
-  name: string;
-  is_host: boolean;
-  is_judge: boolean;
-}
-
-interface Room {
-  id: string;
-  pin: string;
-}
+import { Player, Room } from "@/types/game";
 
 interface GameLobbyProps {
   room: Room;
