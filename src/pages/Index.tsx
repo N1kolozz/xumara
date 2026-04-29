@@ -1,16 +1,14 @@
-import { useState } from "react";
+import { useState, useEffect, useCallback, useRef } from "react";
 import { useNavigate } from "react-router-dom";
-import { ArrowRight, Gamepad2, Gavel, Laugh, LogIn, Plus, Sparkles, Users } from "lucide-react";
+import { ArrowRight, Gavel, Laugh, Plus, LogIn, X, Users, Gamepad2 } from "lucide-react";
 
-import { Button } from "@/components/ui/button";
-import { Card } from "@/components/ui/card";
 import { Input } from "@/components/ui/input";
-import { Badge } from "@/components/ui/badge";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { cn } from "@/lib/utils";
 
 type Role = "player" | "judge";
+type ModalType = "create" | "join" | null;
 
 const Index = () => {
   const navigate = useNavigate();
@@ -23,6 +21,33 @@ const Index = () => {
   const [createRole, setCreateRole] = useState<Role | null>(null);
   const [joinRole, setJoinRole] = useState<Role | null>(null);
   const [showRoleError, setShowRoleError] = useState(false);
+  const [activeModal, setActiveModal] = useState<ModalType>(null);
+  const [modalVisible, setModalVisible] = useState(false);
+
+  // Animate modal in/out
+  useEffect(() => {
+    if (activeModal) {
+      requestAnimationFrame(() => {
+        requestAnimationFrame(() => setModalVisible(true));
+      });
+    }
+  }, [activeModal]);
+
+  const closeModal = () => {
+    // Blur any focused input to dismiss the keyboard before closing
+    if (document.activeElement instanceof HTMLElement) {
+      document.activeElement.blur();
+    }
+    setModalVisible(false);
+    setTimeout(() => {
+      setActiveModal(null);
+      setShowRoleError(false);
+    }, 320);
+  };
+
+  const openModal = (type: ModalType) => {
+    setActiveModal(type);
+  };
 
   const generatePin = () => {
     return Math.random().toString(36).substring(2, 8).toUpperCase();
@@ -245,198 +270,253 @@ const Index = () => {
 
   const roleButtonClass = (active: boolean, tone: "primary" | "accent") =>
     cn(
-      "role-button inline-flex items-center justify-center gap-2",
-      active && (tone === "primary" ? "role-button-active-primary" : "role-button-active-accent"),
+      "home-role-btn",
+      active && (tone === "primary" ? "home-role-btn-active-primary" : "home-role-btn-active-accent"),
     );
 
   return (
-    <div className="app-shell">
-      <main className="screen safe-bottom gap-5">
-        <header className="game-topbar">
-          <div className="brand-lockup">
-            <p className="label-text">party game</p>
-            <h1 className="brand-mark">ხუმარა</h1>
-            <p className="brand-subtitle">წაიხუმრე შენებურად</p>
-          </div>
-          <div className="icon-tile h-12 w-12 text-primary">
-            <Sparkles className="h-5 w-5" />
-          </div>
-        </header>
+    <div className="home-shell">
+      {/* Background glow effects */}
+      <div className="home-glow" />
 
-        <section className="grid grid-cols-3 gap-2">
-          <div className="game-stat">
-            <p className="text-[11px] font-bold text-text-muted">Players</p>
-            <p className="text-sm font-black text-foreground">3-8</p>
+      {/* Main content */}
+      <main className="home-screen">
+        {/* Hero section with logo */}
+        <section className="home-hero">
+          <div className="home-logo-wrap">
+            <img
+              src="/jokerlogo.png"
+              alt="ხუმარა"
+              className="home-logo-img"
+              draggable={false}
+            />
+            <div className="home-logo-glow" />
           </div>
-          <div className="game-stat">
-            <p className="text-[11px] font-bold text-text-muted">Mode</p>
-            <p className="text-sm font-black text-foreground">Online</p>
-          </div>
-          <div className="game-stat">
-            <p className="text-[11px] font-bold text-text-muted">Round</p>
-            <p className="text-sm font-black text-foreground">1-10</p>
-          </div>
+          <h1 className="home-brand">ხუმარა</h1>
+          <p className="home-subtitle">PARTY GAME</p>
         </section>
 
-        <section className="grid gap-4 md:grid-cols-2">
-          <Card className="p-4 sm:p-5">
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <div>
-                <Badge variant="primary" className="mb-3">
-                  <Plus />
-                  ახალი
-                </Badge>
-                <h2 className="screen-title text-xl sm:text-2xl">შექმენი ოთახი</h2>
-                <p className="body-text mt-1">მოიწვიე მეგობრები PIN-ით</p>
-              </div>
-              <div className="icon-tile text-primary">
-                <Users className="h-5 w-5" />
-              </div>
+        {/* Action cards */}
+        <section className="home-actions">
+          {/* Create Room Card */}
+          <button
+            type="button"
+            className="home-card home-card-create"
+            onClick={() => openModal("create")}
+            id="btn-create-room"
+          >
+            <div className="home-card-glow home-card-glow-create" />
+            <div className="home-card-badge home-card-badge-create">
+              <Plus className="h-3.5 w-3.5" />
+              <span>ახალი</span>
             </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="label-text" htmlFor="create-name">
-                  სახელი
-                </label>
-                <Input
-                  id="create-name"
-                  placeholder="შენი სახელი"
-                  value={createPlayerName}
-                  onChange={(event) => setCreatePlayerName(event.target.value)}
-                  maxLength={20}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <p className="label-text">როლი</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    aria-pressed={createRole === "player"}
-                    onClick={() => setCreateRole("player")}
-                    className={roleButtonClass(createRole === "player", "primary")}
-                  >
-                    <Laugh className="h-4 w-4" />
-                    ხუმარა
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={createRole === "judge"}
-                    onClick={() => setCreateRole("judge")}
-                    className={roleButtonClass(createRole === "judge", "primary")}
-                  >
-                    <Gavel className="h-4 w-4" />
-                    მსაჯული
-                  </button>
-                </div>
-              </div>
-
-              <Button onClick={createRoom} disabled={isCreating} size="lg" className="w-full">
-                {isCreating ? "იქმნება..." : "ოთახის შექმნა"}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+            <div className="home-card-icon-wrap home-card-icon-create">
+              <Users className="h-8 w-8" />
             </div>
-          </Card>
+            <h2 className="home-card-title">შექმენი<br />ოთახი</h2>
+            <p className="home-card-desc">მოიწვიე მეგობრები<br />PIN-ით</p>
+          </button>
 
-          <Card className="p-4 sm:p-5">
-            <div className="mb-5 flex items-start justify-between gap-3">
-              <div>
-                <Badge variant="accent" className="mb-3">
-                  <LogIn />
-                  შესვლა
-                </Badge>
-                <h2 className="screen-title text-xl sm:text-2xl">შეუერთდი ოთახს</h2>
-                <p className="body-text mt-1">შეიყვანე PIN და აირჩიე როლი</p>
-              </div>
-              <div className="icon-tile text-accent">
-                <Gamepad2 className="h-5 w-5" />
-              </div>
+          {/* Join Room Card */}
+          <button
+            type="button"
+            className="home-card home-card-join"
+            onClick={() => openModal("join")}
+            id="btn-join-room"
+          >
+            <div className="home-card-glow home-card-glow-join" />
+            <div className="home-card-badge home-card-badge-join">
+              <LogIn className="h-3.5 w-3.5" />
             </div>
-
-            <div className="space-y-4">
-              <div className="space-y-2">
-                <label className="label-text" htmlFor="join-name">
-                  სახელი
-                </label>
-                <Input
-                  id="join-name"
-                  placeholder="შენი სახელი"
-                  value={joinPlayerName}
-                  onChange={(event) => setJoinPlayerName(event.target.value)}
-                  maxLength={20}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <label className="label-text" htmlFor="room-pin">
-                  PIN
-                </label>
-                <Input
-                  id="room-pin"
-                  placeholder="ოთახის PIN"
-                  value={roomPin}
-                  onChange={(event) => {
-                    setRoomPin(event.target.value.toUpperCase());
-                    setShowRoleError(false);
-                  }}
-                  className="font-black uppercase"
-                  maxLength={6}
-                />
-              </div>
-
-              <div className="space-y-2">
-                <p className="label-text">როლი</p>
-                <div className="grid grid-cols-2 gap-2">
-                  <button
-                    type="button"
-                    aria-pressed={joinRole === "player"}
-                    onClick={() => {
-                      setJoinRole("player");
-                      setShowRoleError(false);
-                    }}
-                    className={roleButtonClass(joinRole === "player", "accent")}
-                  >
-                    <Laugh className="h-4 w-4" />
-                    ხუმარა
-                  </button>
-                  <button
-                    type="button"
-                    aria-pressed={joinRole === "judge"}
-                    onClick={() => {
-                      setJoinRole("judge");
-                      setShowRoleError(false);
-                    }}
-                    className={roleButtonClass(joinRole === "judge", "accent")}
-                  >
-                    <Gavel className="h-4 w-4" />
-                    მსაჯული
-                  </button>
-                </div>
-                {showRoleError && <p className="rounded-xl bg-danger/15 px-3 py-2 text-sm font-bold text-danger">მსაჯული უკვე არსებობს</p>}
-              </div>
-
-              <Button onClick={joinRoom} disabled={isJoining} size="lg" variant="accent" className="w-full">
-                {isJoining ? "ემატება..." : "შეუერთდი თამაშს"}
-                <ArrowRight className="h-4 w-4" />
-              </Button>
+            <div className="home-card-icon-wrap home-card-icon-join">
+              <Gamepad2 className="h-8 w-8" />
             </div>
-          </Card>
-        </section>
-
-        <section className="soft-panel p-4">
-          <div className="mb-3 flex items-center gap-2">
-            <Gamepad2 className="h-5 w-5 text-success" />
-            <h2 className="section-title">როგორ ვითამაშოთ?</h2>
-          </div>
-          <ol className="grid gap-2 text-sm font-semibold leading-relaxed text-text-soft sm:grid-cols-2">
-            <li>1. შექმენი ან შეუერთდი ოთახს PIN-ით.</li>
-            <li>2. აირჩიე როლი: ხუმარა ან მსაჯული.</li>
-            <li>3. მინიმუმ 3 მოთამაშე იწყებს თამაშს.</li>
-            <li>4. აირჩიე ყველაზე სასაცილო პასუხი და მოიგე ქულები.</li>
-          </ol>
+            <h2 className="home-card-title">შეუერთდი<br />ოთახს</h2>
+            <p className="home-card-desc">შეიყვანე PIN და<br />არჩიე როლი</p>
+          </button>
         </section>
       </main>
+
+      {/* Modal Overlay */}
+      {activeModal && (
+        <div
+          className={cn("home-modal-overlay", modalVisible && "home-modal-overlay-visible")}
+          onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
+        >
+          <div className={cn("home-modal-panel", modalVisible && "home-modal-panel-visible")}>
+            {/* Modal Header */}
+            <div className="home-modal-header">
+              <div className="home-modal-header-left">
+                <div className={cn(
+                  "home-modal-icon",
+                  activeModal === "create" ? "home-modal-icon-create" : "home-modal-icon-join"
+                )}>
+                  {activeModal === "create" ? <Users className="h-5 w-5" /> : <Gamepad2 className="h-5 w-5" />}
+                </div>
+                <div>
+                  <p className="home-modal-kicker">
+                    {activeModal === "create" ? "ახალი ოთახი" : "შეუერთდი"}
+                  </p>
+                  <h2 className="home-modal-title">
+                    {activeModal === "create" ? "შექმენი ოთახი" : "შეუერთდი ოთახს"}
+                  </h2>
+                </div>
+              </div>
+              <button
+                type="button"
+                className="home-modal-close"
+                onClick={closeModal}
+                aria-label="დახურვა"
+              >
+                <X className="h-5 w-5" />
+              </button>
+            </div>
+
+            {/* Modal Body */}
+            <div className="home-modal-body">
+              {activeModal === "create" ? (
+                <>
+                  <div className="home-field">
+                    <label className="home-field-label" htmlFor="modal-create-name">
+                      სახელი
+                    </label>
+                    <Input
+                      id="modal-create-name"
+                      placeholder="შენი სახელი"
+                      value={createPlayerName}
+                      onChange={(e) => setCreatePlayerName(e.target.value)}
+                      maxLength={20}
+                      className="home-input"
+                    />
+                  </div>
+
+                  <div className="home-field">
+                    <p className="home-field-label">როლი</p>
+                    <div className="home-role-grid">
+                      <button
+                        type="button"
+                        aria-pressed={createRole === "player"}
+                        onClick={() => setCreateRole("player")}
+                        className={roleButtonClass(createRole === "player", "primary")}
+                      >
+                        <Laugh className="h-5 w-5" />
+                        ხუმარა
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={createRole === "judge"}
+                        onClick={() => setCreateRole("judge")}
+                        className={roleButtonClass(createRole === "judge", "primary")}
+                      >
+                        <Gavel className="h-5 w-5" />
+                        მსაჯული
+                      </button>
+                    </div>
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={createRoom}
+                    disabled={isCreating}
+                    className="home-submit-btn home-submit-btn-create"
+                  >
+                    {isCreating ? (
+                      <span className="home-spinner" />
+                    ) : (
+                      <>
+                        ოთახის შექმნა
+                        <ArrowRight className="h-5 w-5" />
+                      </>
+                    )}
+                  </button>
+                </>
+              ) : (
+                <>
+                  <div className="home-field">
+                    <label className="home-field-label" htmlFor="modal-join-name">
+                      სახელი
+                    </label>
+                    <Input
+                      id="modal-join-name"
+                      placeholder="შენი სახელი"
+                      value={joinPlayerName}
+                      onChange={(e) => setJoinPlayerName(e.target.value)}
+                      maxLength={20}
+                      className="home-input"
+                    />
+                  </div>
+
+                  <div className="home-field">
+                    <label className="home-field-label" htmlFor="modal-join-pin">
+                      PIN
+                    </label>
+                    <Input
+                      id="modal-join-pin"
+                      placeholder="ოთახის PIN"
+                      value={roomPin}
+                      onChange={(e) => {
+                        setRoomPin(e.target.value.toUpperCase());
+                        setShowRoleError(false);
+                      }}
+                      className="home-input home-input-pin"
+                      maxLength={6}
+                    />
+                  </div>
+
+                  <div className="home-field">
+                    <p className="home-field-label">როლი</p>
+                    <div className="home-role-grid">
+                      <button
+                        type="button"
+                        aria-pressed={joinRole === "player"}
+                        onClick={() => {
+                          setJoinRole("player");
+                          setShowRoleError(false);
+                        }}
+                        className={roleButtonClass(joinRole === "player", "accent")}
+                      >
+                        <Laugh className="h-5 w-5" />
+                        ხუმარა
+                      </button>
+                      <button
+                        type="button"
+                        aria-pressed={joinRole === "judge"}
+                        onClick={() => {
+                          setJoinRole("judge");
+                          setShowRoleError(false);
+                        }}
+                        className={roleButtonClass(joinRole === "judge", "accent")}
+                      >
+                        <Gavel className="h-5 w-5" />
+                        მსაჯული
+                      </button>
+                    </div>
+                    {showRoleError && (
+                      <p className="home-role-error">მსაჯული უკვე არსებობს</p>
+                    )}
+                  </div>
+
+                  <button
+                    type="button"
+                    onClick={joinRoom}
+                    disabled={isJoining}
+                    className="home-submit-btn home-submit-btn-join"
+                  >
+                    {isJoining ? (
+                      <span className="home-spinner" />
+                    ) : (
+                      <>
+                        შეუერთდი თამაშს
+                        <ArrowRight className="h-5 w-5" />
+                      </>
+                    )}
+                  </button>
+                </>
+              )}
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
