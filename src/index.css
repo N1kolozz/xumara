@@ -880,7 +880,7 @@
   .home-shell {
     position: fixed;
     inset: 0;
-    width: 100vw;
+    width: 100%;
     height: 100vh;
     height: 100dvh;
     overflow: hidden;
@@ -1316,7 +1316,7 @@
     border: 1px solid hsl(0 0% 100% / 0.1) !important;
     background: hsl(0 0% 100% / 0.05) !important;
     color: hsl(48 34% 96%) !important;
-    font-size: 0.95rem !important;
+    font-size: 16px !important;
     font-weight: 700 !important;
     padding: 0 1rem !important;
     transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
