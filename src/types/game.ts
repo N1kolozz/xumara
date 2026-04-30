@@ -21,7 +21,7 @@ export interface Player {
 }
 
 export interface GameState {
-  id: string;
+  id?: string;
   room_id: string;
   phase: string;
   current_judge_id: string | null;
