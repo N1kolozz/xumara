@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Role } from "@/types/game";
 import { RoleSelector } from "./RoleSelector";
+import styles from "./Home.module.css";
 
 interface CreateRoomModalProps {
   isCreating: boolean;
@@ -15,8 +16,8 @@ export const CreateRoomModal = ({ isCreating, onCreate }: CreateRoomModalProps) 
 
   return (
     <>
-      <div className="home-field">
-        <label className="home-field-label" htmlFor="modal-create-name">
+      <div className={styles["home-field"]}>
+        <label className={styles["home-field-label"]} htmlFor="modal-create-name">
           სახელი
         </label>
         <Input
@@ -25,7 +26,7 @@ export const CreateRoomModal = ({ isCreating, onCreate }: CreateRoomModalProps) 
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={20}
-          className="home-input"
+          className={styles["home-input"]}
         />
       </div>
 
@@ -35,10 +36,10 @@ export const CreateRoomModal = ({ isCreating, onCreate }: CreateRoomModalProps) 
         type="button"
         onClick={() => onCreate(name, role)}
         disabled={isCreating}
-        className="home-submit-btn home-submit-btn-create"
+        className={`${styles["home-submit-btn"]} ${styles["home-submit-btn-create"]}`}
       >
         {isCreating ? (
-          <span className="home-spinner" />
+          <span className={styles["home-spinner"]} />
         ) : (
           <>
             ოთახის შექმნა

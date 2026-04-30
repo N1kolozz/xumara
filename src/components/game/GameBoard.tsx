@@ -7,6 +7,7 @@ import { cn } from "@/lib/utils";
 import { Player, GameState, Room, CardData } from "@/types/game";
 import { useGameBoardData } from "@/hooks/useGameBoardData";
 import { useGameBoardActions } from "@/hooks/useGameBoardActions";
+import s from "./GameBoard.module.css";
 
 interface GameBoardProps {
   room: Room;
@@ -257,38 +258,38 @@ const GameBoard = ({
   };
 
   return (
-    <div className="app-shell game-native-shell game-reference-shell">
-      <main className="game-reference-screen">
-        <header className="reference-nav">
-          <Button variant="surface" size="icon" className="reference-nav-button" onClick={onReturnToLobby} aria-label="ლობის დაბრუნება">
+    <div className={cn("app-shell game-native-shell", s["game-reference-shell"])}>
+      <main className={s["game-reference-screen"]}>
+        <header className={s["reference-nav"]}>
+          <Button variant="surface" size="icon" className={s["reference-nav-button"]} onClick={onReturnToLobby} aria-label="ლობის დაბრუნება">
             <LogOut className="h-5 w-5" />
           </Button>
 
-          <Badge variant={isJudge ? "secondary" : "primary"} className="reference-role-pill">
+          <Badge variant={isJudge ? "secondary" : "primary"} className={s["reference-role-pill"]}>
             {isJudge ? <Gavel /> : <Users />}
             {roleLabel}
           </Badge>
         </header>
 
-        <section className="reference-status-grid" aria-label="თამაშის სტატუსი">
-          <div className="reference-status-card reference-status-card-right">
-            <h2 className="reference-round-text">რაუნდი {gameState.round_number} / {gameState.max_rounds}</h2>
-            <Progress value={roundProgress} className="reference-progress" />
+        <section className={s["reference-status-grid"]} aria-label="თამაშის სტატუსი">
+          <div className={cn(s["reference-status-card"], s["reference-status-card-right"])}>
+            <h2 className={s["reference-round-text"]}>რაუნდი {gameState.round_number} / {gameState.max_rounds}</h2>
+            <Progress value={roundProgress} className={s["reference-progress"]} />
           </div>
         </section>
 
-        <section className="reference-play-area" aria-label="მთავარი სათამაშო მაგიდა">
-          <article className="reference-question-card">
-            <p className="reference-question-text">{inboxCard.text_ge}</p>
+        <section className={s["reference-play-area"]} aria-label="მთავარი სათამაშო მაგიდა">
+          <article className={s["reference-question-card"]}>
+            <p className={s["reference-question-text"]}>{inboxCard.text_ge}</p>
           </article>
 
           <div
             ref={tableDropRef}
-            className={cn("reference-table-perspective", canChooseAnswer && "reference-table-perspective-droppable")}
+            className={cn(s["reference-table-perspective"], canChooseAnswer && s["reference-table-perspective-droppable"])}
             aria-label="ბარათის დასადები მაგიდა"
           >
-            <div className="reference-table-felt" />
-            <div className="reference-table-card-layer">
+            <div className={s["reference-table-felt"]} />
+            <div className={s["reference-table-card-layer"]}>
               {tableCards.map((submission, index) => {
                 const cardText = submission.cards?.text_ge;
                 const canPickWinner = canJudgeCards;
@@ -297,7 +298,7 @@ const GameBoard = ({
                   <button
                     type="button"
                     key={submission.id}
-                    className={cn("reference-table-card", canPickWinner && "reference-table-card-pickable")}
+                    className={cn(s["reference-table-card"], canPickWinner && s["reference-table-card-pickable"])}
                     style={getTableCardStyle(index, tableCards.length)}
                     disabled={!canPickWinner}
                     onClick={() => canPickWinner && handleSelectWinner(submission.card_id)}
@@ -311,7 +312,7 @@ const GameBoard = ({
 
           <button
             type="button"
-            className={cn("reference-score-tab", isScoreboardOpen && "reference-score-tab-open")}
+            className={cn(s["reference-score-tab"], isScoreboardOpen && s["reference-score-tab-open"])}
             aria-label="ქულების დაფის გახსნა"
             aria-expanded={isScoreboardOpen}
             onClick={() => setIsScoreboardOpen(true)}
@@ -320,32 +321,32 @@ const GameBoard = ({
           </button>
 
           <div
-            className={cn("reference-score-overlay", isScoreboardOpen && "reference-score-overlay-open")}
+            className={cn(s["reference-score-overlay"], isScoreboardOpen && s["reference-score-overlay-open"])}
             aria-hidden={!isScoreboardOpen}
           >
             <button
               type="button"
-              className="reference-score-backdrop"
+              className={s["reference-score-backdrop"]}
               aria-label="ქულების დაფის დახურვა"
               onClick={() => setIsScoreboardOpen(false)}
               tabIndex={isScoreboardOpen ? 0 : -1}
             />
 
-            <aside className="reference-score-panel" aria-label="ქულები">
-              <div className="reference-score-panel-head">
-                <div className="reference-score-title-wrap">
-                  <div className="reference-score-icon">
+            <aside className={s["reference-score-panel"]} aria-label="ქულები">
+              <div className={s["reference-score-panel-head"]}>
+                <div className={s["reference-score-title-wrap"]}>
+                  <div className={s["reference-score-icon"]}>
                     <Trophy className="h-5 w-5" />
                   </div>
                   <div>
-                    <p className="reference-score-kicker">SCORE</p>
-                    <h3 className="reference-score-title">ქულები</h3>
+                    <p className={s["reference-score-kicker"]}>SCORE</p>
+                    <h3 className={s["reference-score-title"]}>ქულები</h3>
                   </div>
                 </div>
 
                 <button
                   type="button"
-                  className="reference-score-close"
+                  className={s["reference-score-close"]}
                   aria-label="ქულების დაფის დახურვა"
                   onClick={() => setIsScoreboardOpen(false)}
                 >
@@ -354,13 +355,13 @@ const GameBoard = ({
               </div>
 
               {currentJudge && (
-                <div className="reference-judge-chip">
+                <div className={s["reference-judge-chip"]}>
                   <Gavel className="h-4 w-4" />
                   <span>{currentJudge.name}</span>
                 </div>
               )}
 
-              <div className="reference-score-list">
+              <div className={s["reference-score-list"]}>
                 {scorePlayers.map((player, index) => {
                   const isLeader = !player.is_judge && scoreLeader?.id === player.id && player.score > 0;
                   const isCurrentPlayer = player.id === currentPlayer.id;
@@ -369,15 +370,15 @@ const GameBoard = ({
                     <div
                       key={player.id}
                       className={cn(
-                        "reference-score-row",
-                        isLeader && "reference-score-row-leader",
-                        isCurrentPlayer && "reference-score-row-current",
+                        s["reference-score-row"],
+                        isLeader && s["reference-score-row-leader"],
+                        isCurrentPlayer && s["reference-score-row-current"],
                       )}
                     >
-                      <div className="reference-score-rank">
+                      <div className={s["reference-score-rank"]}>
                         {isLeader ? <Crown className="h-4 w-4" /> : index + 1}
                       </div>
-                      <div className="reference-score-name">
+                      <div className={s["reference-score-name"]}>
                         <span>{player.name}</span>
                         {player.is_judge && <small>მსაჯული</small>}
                       </div>
@@ -390,7 +391,7 @@ const GameBoard = ({
           </div>
 
           <div
-            className="reference-answer-fan"
+            className={s["reference-answer-fan"]}
             aria-label="ბარათების არჩევა"
             onPointerDown={handleFanPointerDown}
             onPointerMove={handleFanPointerMove}
@@ -408,7 +409,7 @@ const GameBoard = ({
                     key={card.id}
                     data-card-id={card.id}
                     data-card-index={index}
-                    className={cn("reference-answer-card", isActive ? "reference-answer-card-active" : "reference-answer-card-side")}
+                    className={cn(s["reference-answer-card"], isActive ? s["reference-answer-card-active"] : s["reference-answer-card-side"])}
                     style={getFanCardStyle(index)}
                     aria-pressed={isPressed}
                     onClick={() => handleFanCardClick(card, index)}
@@ -419,19 +420,19 @@ const GameBoard = ({
                       }
                     }}
                   >
-                    <div className="reference-answer-head">
-                      <span className="reference-answer-icon">
+                    <div className={s["reference-answer-head"]}>
+                      <span className={s["reference-answer-icon"]}>
                         <Inbox className="h-4 w-4" />
                       </span>
-                      <span className="reference-answer-label">{card.type === "inbox" ? "INBOX" : "REPLY"}</span>
+                      <span className={s["reference-answer-label"]}>{card.type === "inbox" ? "INBOX" : "REPLY"}</span>
                     </div>
-                    <span className="reference-answer-text">{card.text_ge}</span>
-                    <span className="reference-answer-strip" />
+                    <span className={s["reference-answer-text"]}>{card.text_ge}</span>
+                    <span className={s["reference-answer-strip"]} />
                   </button>
                 );
               })
             ) : (
-              <div className="reference-state-message">
+              <div className={s["reference-state-message"]}>
                 {gameState.phase === "submitting" && isJudge && (
                   <>
                     <Trophy className="h-8 w-8 text-accent" />
@@ -460,13 +461,13 @@ const GameBoard = ({
           </div>
         </section>
 
-        <footer className="reference-bottom-action">
-          <div className="reference-card-progress">
+        <footer className={s["reference-bottom-action"]}>
+          <div className={s["reference-card-progress"]}>
             {fanCards.map((_, index) => (
               <button
                 type="button"
                 key={index}
-                className={cn("reference-card-dot", index === activeCardIndex && "reference-card-dot-active")}
+                className={cn(s["reference-card-dot"], index === activeCardIndex && s["reference-card-dot-active"])}
                 onClick={() => {
                   setCurrentCardIndex(index);
                   if (canChooseAnswer && fanCards[index]) {
@@ -481,7 +482,7 @@ const GameBoard = ({
 
         {draggingCard && (
           <div
-            className="reference-drag-card"
+            className={s["reference-drag-card"]}
             style={{
               "--drag-x": `${draggingCard.x}px`,
               "--drag-y": `${draggingCard.y}px`,

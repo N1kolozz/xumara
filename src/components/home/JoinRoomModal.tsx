@@ -3,6 +3,7 @@ import { ArrowRight } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Role } from "@/types/game";
 import { RoleSelector } from "./RoleSelector";
+import styles from "./Home.module.css";
 
 interface JoinRoomModalProps {
   isJoining: boolean;
@@ -18,8 +19,8 @@ export const JoinRoomModal = ({ isJoining, onJoin, showRoleError, setShowRoleErr
 
   return (
     <>
-      <div className="home-field">
-        <label className="home-field-label" htmlFor="modal-join-name">
+      <div className={styles["home-field"]}>
+        <label className={styles["home-field-label"]} htmlFor="modal-join-name">
           სახელი
         </label>
         <Input
@@ -28,12 +29,12 @@ export const JoinRoomModal = ({ isJoining, onJoin, showRoleError, setShowRoleErr
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={20}
-          className="home-input"
+          className={styles["home-input"]}
         />
       </div>
 
-      <div className="home-field">
-        <label className="home-field-label" htmlFor="modal-join-pin">
+      <div className={styles["home-field"]}>
+        <label className={styles["home-field-label"]} htmlFor="modal-join-pin">
           PIN
         </label>
         <Input
@@ -44,7 +45,7 @@ export const JoinRoomModal = ({ isJoining, onJoin, showRoleError, setShowRoleErr
             setPin(e.target.value.toUpperCase());
             setShowRoleError(false);
           }}
-          className="home-input home-input-pin"
+          className={`${styles["home-input"]} ${styles["home-input-pin"]}`}
           maxLength={6}
         />
       </div>
@@ -63,10 +64,10 @@ export const JoinRoomModal = ({ isJoining, onJoin, showRoleError, setShowRoleErr
         type="button"
         onClick={() => onJoin(name, pin, role)}
         disabled={isJoining}
-        className="home-submit-btn home-submit-btn-join"
+        className={`${styles["home-submit-btn"]} ${styles["home-submit-btn-join"]}`}
       >
         {isJoining ? (
-          <span className="home-spinner" />
+          <span className={styles["home-spinner"]} />
         ) : (
           <>
             შეუერთდი თამაშს

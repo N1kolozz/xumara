@@ -3,6 +3,7 @@ import { Users, Gamepad2, X, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModalType } from "@/types/game";
 import { useRoomSetup } from "@/hooks/useRoomSetup";
+import styles from "@/components/home/Home.module.css";
 
 import HomeHero from "@/components/home/HomeHero";
 import ActionCards from "@/components/home/ActionCards";
@@ -49,12 +50,12 @@ const Index = () => {
   };
 
   return (
-    <div className="home-shell">
+    <div className={styles["home-shell"]}>
       {/* Background glow effects */}
-      <div className="home-glow" />
+      <div className={styles["home-glow"]} />
 
       <button 
-        className="home-info-btn"
+        className={styles["home-info-btn"]}
         onClick={() => openModal("info")}
         aria-label="ინფორმაცია"
       >
@@ -62,7 +63,7 @@ const Index = () => {
       </button>
 
       {/* Main content */}
-      <main className="home-screen">
+      <main className={styles["home-screen"]}>
         <HomeHero />
         <ActionCards openModal={openModal} />
       </main>
@@ -70,17 +71,17 @@ const Index = () => {
       {/* Modal Overlay */}
       {activeModal && (
         <div
-          className={cn("home-modal-overlay", modalVisible && "home-modal-overlay-visible")}
+          className={cn(styles["home-modal-overlay"], modalVisible && styles["home-modal-overlay-visible"])}
           onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
         >
-          <div className={cn("home-modal-panel", modalVisible && "home-modal-panel-visible")}>
+          <div className={cn(styles["home-modal-panel"], modalVisible && styles["home-modal-panel-visible"])}>
             {/* Modal Header */}
-            <div className="home-modal-header">
-              <div className="home-modal-header-left">
+            <div className={styles["home-modal-header"]}>
+              <div className={styles["home-modal-header-left"]}>
                 <div className={cn(
-                  "home-modal-icon",
-                  activeModal === "create" ? "home-modal-icon-create" : 
-                  activeModal === "join" ? "home-modal-icon-join" : 
+                  styles["home-modal-icon"],
+                  activeModal === "create" ? styles["home-modal-icon-create"] : 
+                  activeModal === "join" ? styles["home-modal-icon-join"] : 
                   "border border-primary/30 bg-primary/20 text-primary"
                 )}>
                   {activeModal === "create" ? <Users className="h-5 w-5" /> : 
@@ -88,12 +89,12 @@ const Index = () => {
                    <Info className="h-5 w-5" />}
                 </div>
                 <div>
-                  <p className="home-modal-kicker">
+                  <p className={styles["home-modal-kicker"]}>
                     {activeModal === "create" ? "ახალი ოთახი" : 
                      activeModal === "join" ? "შეუერთდი" : 
                      "ინფორმაცია"}
                   </p>
-                  <h2 className="home-modal-title">
+                  <h2 className={styles["home-modal-title"]}>
                     {activeModal === "create" ? "შექმენი ოთახი" : 
                      activeModal === "join" ? "შეუერთდი ოთახს" : 
                      "როგორ ვითამაშოთ"}
@@ -102,7 +103,7 @@ const Index = () => {
               </div>
               <button
                 type="button"
-                className="home-modal-close"
+                className={styles["home-modal-close"]}
                 onClick={closeModal}
                 aria-label="დახურვა"
               >
@@ -111,7 +112,7 @@ const Index = () => {
             </div>
 
             {/* Modal Body */}
-            <div className="home-modal-body">
+            <div className={styles["home-modal-body"]}>
               {activeModal === "create" ? (
                 <CreateRoomModal 
                   isCreating={isCreating} 
