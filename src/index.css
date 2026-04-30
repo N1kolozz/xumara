@@ -923,7 +923,7 @@
     flex-direction: column;
     align-items: center;
     flex: 1;
-    justify-content: center;
+    justify-content: space-between;
     min-height: 0;
     padding-bottom: 1.75rem;
   }
@@ -933,8 +933,8 @@
     display: flex;
     align-items: center;
     justify-content: center;
-    width: clamp(18rem, 65vw, 24rem);
-    height: clamp(18rem, 65vw, 24rem);
+    width: clamp(15rem, 65vw, 24rem);
+    height: clamp(15rem, 65vw, 24rem);
   }
 
   .home-logo-img {
@@ -989,6 +989,34 @@
     text-shadow: 0 0 20px hsl(185 80% 48% / 0.22);
   }
 
+  .home-info-btn {
+    position: absolute;
+    top: max(1.5rem, env(safe-area-inset-top));
+    right: max(1rem, env(safe-area-inset-right));
+    z-index: 50;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    width: 2.8rem;
+    height: 2.8rem;
+    border-radius: 50%;
+    border: 1px solid hsl(185 70% 42% / 0.3);
+    background: hsl(185 70% 20% / 0.2);
+    color: hsl(185 80% 70%);
+    backdrop-filter: blur(12px);
+    cursor: pointer;
+    transition: all 0.2s ease;
+  }
+
+  .home-info-btn:hover {
+    background: hsl(185 70% 20% / 0.4);
+    transform: scale(1.05);
+  }
+
+  .home-info-btn:active {
+    transform: scale(0.95);
+  }
+
   /* ─── Action Cards ─── */
   .home-actions {
     display: grid;
@@ -1012,7 +1040,7 @@
     transition: transform 0.2s ease, box-shadow 0.2s ease;
     -webkit-tap-highlight-color: transparent;
     touch-action: manipulation;
-    min-height: clamp(13rem, 36vw, 17rem);
+    min-height: clamp(15rem, 36vw, 17rem);
   }
 
   .home-card:active {

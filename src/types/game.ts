@@ -1,5 +1,5 @@
 export type Role = "player" | "judge";
-export type ModalType = "create" | "join" | null;
+export type ModalType = "create" | "join" | "info" | null;
 
 export interface Room {
   id: string;

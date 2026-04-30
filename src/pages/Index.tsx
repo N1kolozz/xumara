@@ -1,5 +1,5 @@
 import { useState, useEffect } from "react";
-import { Users, Gamepad2, X } from "lucide-react";
+import { Users, Gamepad2, X, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModalType } from "@/types/game";
 import { useRoomSetup } from "@/hooks/useRoomSetup";
@@ -8,6 +8,7 @@ import HomeHero from "@/components/home/HomeHero";
 import ActionCards from "@/components/home/ActionCards";
 import { CreateRoomModal } from "@/components/home/CreateRoomModal";
 import { JoinRoomModal } from "@/components/home/JoinRoomModal";
+import { InfoModal } from "@/components/home/InfoModal";
 
 const Index = () => {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
@@ -52,6 +53,14 @@ const Index = () => {
       {/* Background glow effects */}
       <div className="home-glow" />
 
+      <button 
+        className="home-info-btn"
+        onClick={() => openModal("info")}
+        aria-label="ინფორმაცია"
+      >
+        <Info className="w-5 h-5" />
+      </button>
+
       {/* Main content */}
       <main className="home-screen">
         <HomeHero />
@@ -70,16 +79,24 @@ const Index = () => {
               <div className="home-modal-header-left">
                 <div className={cn(
                   "home-modal-icon",
-                  activeModal === "create" ? "home-modal-icon-create" : "home-modal-icon-join"
+                  activeModal === "create" ? "home-modal-icon-create" : 
+                  activeModal === "join" ? "home-modal-icon-join" : 
+                  "border border-primary/30 bg-primary/20 text-primary"
                 )}>
-                  {activeModal === "create" ? <Users className="h-5 w-5" /> : <Gamepad2 className="h-5 w-5" />}
+                  {activeModal === "create" ? <Users className="h-5 w-5" /> : 
+                   activeModal === "join" ? <Gamepad2 className="h-5 w-5" /> : 
+                   <Info className="h-5 w-5" />}
                 </div>
                 <div>
                   <p className="home-modal-kicker">
-                    {activeModal === "create" ? "ახალი ოთახი" : "შეუერთდი"}
+                    {activeModal === "create" ? "ახალი ოთახი" : 
+                     activeModal === "join" ? "შეუერთდი" : 
+                     "ინფორმაცია"}
                   </p>
                   <h2 className="home-modal-title">
-                    {activeModal === "create" ? "შექმენი ოთახი" : "შეუერთდი ოთახს"}
+                    {activeModal === "create" ? "შექმენი ოთახი" : 
+                     activeModal === "join" ? "შეუერთდი ოთახს" : 
+                     "როგორ ვითამაშოთ"}
                   </h2>
                 </div>
               </div>
@@ -105,7 +122,7 @@ const Index = () => {
                     }
                   }} 
                 />
-              ) : (
+              ) : activeModal === "join" ? (
                 <JoinRoomModal 
                   isJoining={isJoining} 
                   onJoin={async (name, pin, role) => {
@@ -117,6 +134,8 @@ const Index = () => {
                   showRoleError={showRoleError}
                   setShowRoleError={setShowRoleError}
                 />
+              ) : (
+                <InfoModal />
               )}
             </div>
           </div>
