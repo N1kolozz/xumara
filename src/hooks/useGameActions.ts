@@ -71,7 +71,7 @@ export const useGameActions = ({
           title: "დაბრუნდით ლობიში",
           description: isJudge
             ? "მსაჯული დაბრუნდა ლობიში - ამიტომ, ყველა დაბრუნდით ლობიში"
-            : "არასაკმარისი მოთამაშე - ამიტომ, ყველა დაბრუნდით ლობიში",
+            : "არასაკმარისი მოთამაშე",
         });
       } else {
         await supabase.from("players").update({ in_game: false }).eq("id", currentPlayer.id);
@@ -168,7 +168,7 @@ export const useGameActions = ({
 
     if (players.length < 3) {
       toast({
-        title: "არასაკმარისი ხუმარები",
+        title: "არასაკმარისი ხუმარა",
         description: "თამაშის დასაწყებად მინიმუმ 3 ხუმარა არის საჭირო",
         variant: "destructive",
       });
@@ -316,10 +316,6 @@ export const useGameActions = ({
         }
       }
 
-      toast({
-        title: "თამაში დაიწყო!",
-        description: "გისურვებთ წარმატებას!",
-      });
     } catch (error) {
       toast({
         title: "შეცდომა",
