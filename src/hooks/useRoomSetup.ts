@@ -114,10 +114,6 @@ export const useRoomSetup = () => {
       localStorage.setItem(`player_${room.id}`, player.id);
       await supabase.from("rooms").update({ host_id: player.id }).eq("id", room.id);
 
-      toast({
-        title: "ოთახი შეიქმნა",
-        description: `PIN: ${room.pin}`,
-      });
       navigate(`/game/${room.id}`);
       return true;
     } catch (error) {

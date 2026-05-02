@@ -153,11 +153,6 @@ export const useGameActions = ({
       sessionStorage.removeItem(`player_${room.id}`);
       localStorage.removeItem(`player_${room.id}`);
 
-      toast({
-        title: "გასული ხართ თამაშიდან",
-        description: "წარმატებით დატოვეთ ოთახი",
-      });
-
       navigate("/");
     } catch (error) {
       toast({
