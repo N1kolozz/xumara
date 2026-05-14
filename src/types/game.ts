@@ -18,6 +18,7 @@ export interface Player {
   in_game: boolean;
   user_id: string;
   joined_at: string;
+  hand?: string[] | null;
 }
 
 export interface GameState {

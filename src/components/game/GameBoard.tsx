@@ -1,10 +1,10 @@
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Crown, Gavel, Inbox, LogOut, Send, Trophy, Users, X } from "lucide-react";
+import { Crown, Gavel, Inbox, LogOut, MessageCircle, Send, Trophy, Users, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
-import { Player, GameState, Room, CardData } from "@/types/game";
+import { Player, GameState, Room, CardData, Submission } from "@/types/game";
 import { useGameBoardData } from "@/hooks/useGameBoardData";
 import { useGameBoardActions } from "@/hooks/useGameBoardActions";
 import s from "./GameBoard.module.css";
@@ -54,6 +54,7 @@ const GameBoard = ({
 
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
+  const [previewSubmission, setPreviewSubmission] = useState<Submission | null>(null);
   const [draggingCard, setDraggingCard] = useState<{ card: CardData; x: number; y: number } | null>(null);
   const tableDropRef = useRef<HTMLDivElement | null>(null);
   const fanDragRef = useRef<FanDragState | null>(null);
@@ -312,7 +313,7 @@ const GameBoard = ({
                     className={cn(s.referenceTableCard, canPickWinner && s.referenceTableCardPickable)}
                     style={getTableCardStyle(index, tableCards.length)}
                     disabled={!canPickWinner}
-                    onClick={() => canPickWinner && handleSelectWinner(submission.card_id)}
+                    onClick={() => canPickWinner && setPreviewSubmission(submission)}
                   >
                     <span>{cardText}</span>
                   </button>
@@ -367,7 +368,9 @@ const GameBoard = ({
                       </span>
                       <span className={s.referenceAnswerLabel}>{card.type === "inbox" ? "INBOX" : "REPLY"}</span>
                     </div>
-                    <span className={s.referenceAnswerText}>{card.text_ge}</span>
+                    <span className={s.referenceAnswerText}>
+                      <span className={s.referenceAnswerInner}>{card.text_ge}</span>
+                    </span>
                     <span className={s.referenceAnswerStrip} />
                   </button>
                 );
@@ -483,6 +486,49 @@ const GameBoard = ({
             ))}
           </div>
         </footer>
+
+        {previewSubmission && (
+          <div
+            className={s.cardPreviewOverlay}
+            onClick={() => setPreviewSubmission(null)}
+          >
+            <div
+              className={s.cardPreviewModal}
+              onClick={(e) => e.stopPropagation()}
+            >
+              <div className={s.cardPreviewCard}>
+                <div className={s.cardPreviewHead}>
+                  <span className={s.cardPreviewIcon}>
+                    <MessageCircle className="h-4 w-4" />
+                  </span>
+                  <span className={s.cardPreviewLabel}>REPLY</span>
+                </div>
+                <p className={s.cardPreviewText}>{previewSubmission.cards?.text_ge}</p>
+                <span className={s.cardPreviewStrip} />
+              </div>
+              <div className={s.cardPreviewActions}>
+                <button
+                  type="button"
+                  className={s.cardPreviewCancel}
+                  onClick={() => setPreviewSubmission(null)}
+                >
+                  გაუქმება
+                </button>
+                <button
+                  type="button"
+                  className={s.cardPreviewSelect}
+                  onClick={() => {
+                    void handleSelectWinner(previewSubmission.card_id);
+                    setPreviewSubmission(null);
+                  }}
+                >
+                  <Crown className="h-4 w-4" />
+                  გამარჯვებული
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
 
         {draggingCard && (
           <div

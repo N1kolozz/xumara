@@ -48,7 +48,7 @@ export const useGameActions = ({
       if (isJudge || remainingComedians < 2) {
         await supabase.from("game_state").delete().eq("room_id", room.id);
         await supabase.from("submissions").delete().eq("room_id", room.id);
-        await supabase.from("player_hands").delete().eq("room_id", room.id);
+        await supabase.rpc("clear_room_hands", { p_room_id: room.id });
         await supabase.from("players").update({ in_game: false }).eq("room_id", room.id);
         await supabase.from("rooms").update({ status: "lobby" }).eq("id", room.id);
 
@@ -74,8 +74,7 @@ export const useGameActions = ({
             : "არასაკმარისი მოთამაშე",
         });
       } else {
-        await supabase.from("players").update({ in_game: false }).eq("id", currentPlayer.id);
-        await supabase.from("player_hands").delete().eq("room_id", room.id).eq("player_id", currentPlayer.id);
+        await supabase.from("players").update({ in_game: false, hand: [] }).eq("id", currentPlayer.id);
         await supabase.from("submissions").delete().eq("room_id", room.id).eq("player_id", currentPlayer.id);
 
         setRoom({ ...room, status: "lobby" });
@@ -124,7 +123,7 @@ export const useGameActions = ({
           if (isJudge || remainingComedians < 2) {
             await supabase.from("game_state").delete().eq("room_id", room.id);
             await supabase.from("submissions").delete().eq("room_id", room.id);
-            await supabase.from("player_hands").delete().eq("room_id", room.id);
+            await supabase.rpc("clear_room_hands", { p_room_id: room.id });
             await supabase.from("players").update({ in_game: false }).eq("room_id", room.id);
             await supabase.from("rooms").update({ status: "lobby" }).eq("id", room.id);
 
@@ -202,7 +201,7 @@ export const useGameActions = ({
       }
 
       await supabase.from("submissions").delete().eq("room_id", room.id);
-      await supabase.from("player_hands").delete().eq("room_id", room.id);
+      await supabase.rpc("clear_room_hands", { p_room_id: room.id });
 
       const { error: playersUpdateError } = await supabase
         .from("players")
@@ -268,42 +267,12 @@ export const useGameActions = ({
 
         if (gameStateError) throw gameStateError;
 
-        const { data: replyCards } = await supabase.from("cards").select("*").eq("type", "reply");
-        const freshNonJudgePlayers = updatedPlayers?.filter(p => !p.is_judge) || [];
+        const { error: handError } = await supabase.rpc("deal_initial_cards", { p_room_id: room.id });
 
-        if (replyCards && replyCards.length >= 6 * freshNonJudgePlayers.length) {
-          const nonJudgePlayers = freshNonJudgePlayers;
-          const shuffledCards = [...replyCards].sort(() => Math.random() - 0.5);
-          let cardIndex = 0;
-          const allCardInserts = [];
-
-          for (const player of nonJudgePlayers) {
-            const playerCards = shuffledCards.slice(cardIndex, cardIndex + 6);
-            cardIndex += 6;
-
-            for (const card of playerCards) {
-              allCardInserts.push({
-                player_id: player.id,
-                card_id: card.id,
-                room_id: room.id,
-              });
-            }
-          }
-
-          const { error: handError } = await supabase.from("player_hands").insert(allCardInserts);
-
-          if (handError) {
-            toast({
-              title: "შეცდომა",
-              description: "ბარათების დარიგება ვერ მოხერხდა",
-              variant: "destructive",
-            });
-            return;
-          }
-        } else {
+        if (handError) {
           toast({
-            title: "არასაკმარისი ბარათები",
-            description: "ბაზაში არ არის საკმარისი ბარათები თამაშისთვის",
+            title: "შეცდომა",
+            description: "ბარათების დარიგება ვერ მოხერხდა",
             variant: "destructive",
           });
           return;

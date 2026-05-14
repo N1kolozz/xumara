@@ -138,6 +138,7 @@ export type Database = {
       }
       players: {
         Row: {
+          hand: string[] | null
           id: string
           in_game: boolean
           is_host: boolean
@@ -149,6 +150,7 @@ export type Database = {
           user_id: string | null
         }
         Insert: {
+          hand?: string[] | null
           id?: string
           in_game?: boolean
           is_host?: boolean
@@ -160,6 +162,7 @@ export type Database = {
           user_id?: string | null
         }
         Update: {
+          hand?: string[] | null
           id?: string
           in_game?: boolean
           is_host?: boolean
@@ -261,7 +264,22 @@ export type Database = {
       [_ in never]: never
     }
     Functions: {
-      [_ in never]: never
+      deal_initial_cards: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
+      deal_one_card: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
+      remove_card_from_hand: {
+        Args: { p_player_id: string; p_card_id: string }
+        Returns: undefined
+      }
+      clear_room_hands: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

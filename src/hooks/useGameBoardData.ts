@@ -32,15 +32,22 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
     }
 
     if (!isJudge && gameState.phase === "submitting") {
-      const { data: handData } = await supabase
-        .from("player_hands")
-        .select("card_id, cards(*)")
-        .eq("player_id", currentPlayer.id)
-        .eq("room_id", room.id);
+      const { data: playerData } = await supabase
+        .from("players")
+        .select("hand")
+        .eq("id", currentPlayer.id)
+        .single();
 
-      if (handData) {
-        const cards = handData.map((h) => h.cards).filter(Boolean) as CardData[];
-        setPlayerCards(cards);
+      if (playerData?.hand && playerData.hand.length > 0) {
+        const { data: cardsData } = await supabase
+          .from("cards")
+          .select("*")
+          .in("id", playerData.hand);
+        if (cardsData) {
+          setPlayerCards(cardsData as CardData[]);
+        }
+      } else {
+        setPlayerCards([]);
       }
     }
 
