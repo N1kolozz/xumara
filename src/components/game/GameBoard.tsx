@@ -289,6 +289,17 @@ const GameBoard = ({
             aria-label="ბარათის დასადები მაგიდა"
           >
             <div className={s.referenceTableFelt} />
+
+            {isJudge && gameState.phase === "submitting" && (
+              <div className={s.referenceTableJudgeWait}>
+                <Trophy className={s.referenceTableJudgeWaitIcon} />
+                <p className={s.referenceTableJudgeWaitTitle}>ბარათები იგზავნება</p>
+                <span className={s.referenceTableJudgeWaitCount}>
+                  გაგზავნილია {submissions.length} / {activeComedians.length}
+                </span>
+              </div>
+            )}
+
             <div className={s.referenceTableCardLayer}>
               {tableCards.map((submission, index) => {
                 const cardText = submission.cards?.text_ge;
@@ -319,76 +330,6 @@ const GameBoard = ({
           >
             <Trophy className="h-6 w-14" />
           </button>
-
-          <div
-            className={cn(s.referenceScoreOverlay, isScoreboardOpen && s.referenceScoreOverlayOpen)}
-            aria-hidden={!isScoreboardOpen}
-          >
-            <button
-              type="button"
-              className={s.referenceScoreBackdrop}
-              aria-label="ქულების დაფის დახურვა"
-              onClick={() => setIsScoreboardOpen(false)}
-              tabIndex={isScoreboardOpen ? 0 : -1}
-            />
-
-            <aside className={s.referenceScorePanel} aria-label="ქულები">
-              <div className={s.referenceScorePanelHead}>
-                <div className={s.referenceScoreTitleWrap}>
-                  <div className={s.referenceScoreIcon}>
-                    <Trophy className="h-5 w-5" />
-                  </div>
-                  <div>
-                    <p className={s.referenceScoreKicker}>SCORE</p>
-                    <h3 className={s.referenceScoreTitle}>ქულები</h3>
-                  </div>
-                </div>
-
-                <button
-                  type="button"
-                  className={s.referenceScoreClose}
-                  aria-label="ქულების დაფის დახურვა"
-                  onClick={() => setIsScoreboardOpen(false)}
-                >
-                  <X className="h-4 w-4" />
-                </button>
-              </div>
-
-              {currentJudge && (
-                <div className={s.referenceJudgeChip}>
-                  <Gavel className="h-4 w-4" />
-                  <span>{currentJudge.name}</span>
-                </div>
-              )}
-
-              <div className={s.referenceScoreList}>
-                {scorePlayers.map((player, index) => {
-                  const isLeader = !player.is_judge && scoreLeader?.id === player.id && player.score > 0;
-                  const isCurrentPlayer = player.id === currentPlayer.id;
-
-                  return (
-                    <div
-                      key={player.id}
-                      className={cn(
-                        s.referenceScoreRow,
-                        isLeader && s.referenceScoreRowLeader,
-                        isCurrentPlayer && s.referenceScoreRowCurrent,
-                      )}
-                    >
-                      <div className={s.referenceScoreRank}>
-                        {isLeader ? <Crown className="h-4 w-4" /> : index + 1}
-                      </div>
-                      <div className={s.referenceScoreName}>
-                        <span>{player.name}</span>
-                        {player.is_judge && <small>მსაჯული</small>}
-                      </div>
-                      <strong>{player.score}</strong>
-                    </div>
-                  );
-                })}
-              </div>
-            </aside>
-          </div>
 
           <div
             className={s.referenceAnswerFan}
@@ -431,17 +372,9 @@ const GameBoard = ({
                   </button>
                 );
               })
-            ) : (
+            ) : !isJudge ? (
               <div className={s.referenceStateMessage}>
-                {gameState.phase === "submitting" && isJudge && (
-                  <>
-                    <Trophy className="h-8 w-8 text-accent" />
-                    <p>ბარათები იგზავნება</p>
-                    <span>გაგზავნილია {submissions.length} / {activeComedians.length}</span>
-                  </>
-                )}
-
-                {gameState.phase === "submitting" && !isJudge && hasSubmitted && (
+                {gameState.phase === "submitting" && hasSubmitted && (
                   <>
                     <Send className="h-8 w-8 text-primary" />
                     <p>პასუხი გაგზავნილია</p>
@@ -449,7 +382,7 @@ const GameBoard = ({
                   </>
                 )}
 
-                {gameState.phase === "judging" && !isJudge && (
+                {gameState.phase === "judging" && (
                   <>
                     <Users className="h-8 w-8 text-primary" />
                     <p>მსაჯული არჩევს</p>
@@ -457,9 +390,80 @@ const GameBoard = ({
                   </>
                 )}
               </div>
-            )}
+            ) : null}
           </div>
         </section>
+
+        {/* Score overlay lives outside referencePlayArea so its z-[70] competes at the same level as nav (z-50) and status grid (z-40) */}
+        <div
+          className={cn(s.referenceScoreOverlay, isScoreboardOpen && s.referenceScoreOverlayOpen)}
+          aria-hidden={!isScoreboardOpen}
+        >
+          <button
+            type="button"
+            className={s.referenceScoreBackdrop}
+            aria-label="ქულების დაფის დახურვა"
+            onClick={() => setIsScoreboardOpen(false)}
+            tabIndex={isScoreboardOpen ? 0 : -1}
+          />
+
+          <aside className={s.referenceScorePanel} aria-label="ქულები">
+            <div className={s.referenceScorePanelHead}>
+              <div className={s.referenceScoreTitleWrap}>
+                <div className={s.referenceScoreIcon}>
+                  <Trophy className="h-5 w-5" />
+                </div>
+                <div>
+                  <p className={s.referenceScoreKicker}>SCORE</p>
+                  <h3 className={s.referenceScoreTitle}>ქულები</h3>
+                </div>
+              </div>
+
+              <button
+                type="button"
+                className={s.referenceScoreClose}
+                aria-label="ქულების დაფის დახურვა"
+                onClick={() => setIsScoreboardOpen(false)}
+              >
+                <X className="h-4 w-4" />
+              </button>
+            </div>
+
+            {currentJudge && (
+              <div className={s.referenceJudgeChip}>
+                <Gavel className="h-4 w-4" />
+                <span>{currentJudge.name}</span>
+              </div>
+            )}
+
+            <div className={s.referenceScoreList}>
+              {scorePlayers.map((player, index) => {
+                const isLeader = !player.is_judge && scoreLeader?.id === player.id && player.score > 0;
+                const isCurrentPlayer = player.id === currentPlayer.id;
+
+                return (
+                  <div
+                    key={player.id}
+                    className={cn(
+                      s.referenceScoreRow,
+                      isLeader && s.referenceScoreRowLeader,
+                      isCurrentPlayer && s.referenceScoreRowCurrent,
+                    )}
+                  >
+                    <div className={s.referenceScoreRank}>
+                      {isLeader ? <Crown className="h-4 w-4" /> : index + 1}
+                    </div>
+                    <div className={s.referenceScoreName}>
+                      <span>{player.name}</span>
+                      {player.is_judge && <small>მსაჯული</small>}
+                    </div>
+                    <strong>{player.score}</strong>
+                  </div>
+                );
+              })}
+            </div>
+          </aside>
+        </div>
 
         <footer className={s.referenceBottomAction}>
           <div className={s.referenceCardProgress}>
