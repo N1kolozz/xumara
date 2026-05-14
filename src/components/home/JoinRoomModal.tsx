@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Role } from "@/types/game";
 import { RoleSelector } from "./RoleSelector";
-import styles from "./Home.module.css";
+import s from "./Home.module.css";
 
 interface JoinRoomModalProps {
   isJoining: boolean;
@@ -19,8 +20,8 @@ export const JoinRoomModal = ({ isJoining, onJoin, showRoleError, setShowRoleErr
 
   return (
     <>
-      <div className={styles["home-field"]}>
-        <label className={styles["home-field-label"]} htmlFor="modal-join-name">
+      <div className={s.homeField}>
+        <label className={s.homeFieldLabel} htmlFor="modal-join-name">
           სახელი
         </label>
         <Input
@@ -29,12 +30,12 @@ export const JoinRoomModal = ({ isJoining, onJoin, showRoleError, setShowRoleErr
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={20}
-          className={styles["home-input"]}
+          className={s.homeInput}
         />
       </div>
 
-      <div className={styles["home-field"]}>
-        <label className={styles["home-field-label"]} htmlFor="modal-join-pin">
+      <div className={s.homeField}>
+        <label className={s.homeFieldLabel} htmlFor="modal-join-pin">
           PIN
         </label>
         <Input
@@ -45,29 +46,29 @@ export const JoinRoomModal = ({ isJoining, onJoin, showRoleError, setShowRoleErr
             setPin(e.target.value.toUpperCase());
             setShowRoleError(false);
           }}
-          className={`${styles["home-input"]} ${styles["home-input-pin"]}`}
+          className={cn(s.homeInput, s.homeInputPin)}
           maxLength={6}
         />
       </div>
 
-      <RoleSelector 
-        role={role} 
+      <RoleSelector
+        role={role}
         setRole={(newRole) => {
           setRole(newRole);
           setShowRoleError(false);
-        }} 
-        tone="accent" 
-        error={showRoleError} 
+        }}
+        tone="accent"
+        error={showRoleError}
       />
 
       <button
         type="button"
         onClick={() => onJoin(name, pin, role)}
         disabled={isJoining}
-        className={`${styles["home-submit-btn"]} ${styles["home-submit-btn-join"]}`}
+        className={cn(s.homeSubmitBtn, s.homeSubmitBtnJoin)}
       >
         {isJoining ? (
-          <span className={styles["home-spinner"]} />
+          <span className={s.homeSpinner} />
         ) : (
           <>
             შეუერთდი თამაშს

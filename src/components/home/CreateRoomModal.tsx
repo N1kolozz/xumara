@@ -1,9 +1,10 @@
 import { useState } from "react";
 import { ArrowRight } from "lucide-react";
+import { cn } from "@/lib/utils";
 import { Input } from "@/components/ui/input";
 import { Role } from "@/types/game";
 import { RoleSelector } from "./RoleSelector";
-import styles from "./Home.module.css";
+import s from "./Home.module.css";
 
 interface CreateRoomModalProps {
   isCreating: boolean;
@@ -16,8 +17,8 @@ export const CreateRoomModal = ({ isCreating, onCreate }: CreateRoomModalProps) 
 
   return (
     <>
-      <div className={styles["home-field"]}>
-        <label className={styles["home-field-label"]} htmlFor="modal-create-name">
+      <div className={s.homeField}>
+        <label className={s.homeFieldLabel} htmlFor="modal-create-name">
           სახელი
         </label>
         <Input
@@ -26,7 +27,7 @@ export const CreateRoomModal = ({ isCreating, onCreate }: CreateRoomModalProps) 
           value={name}
           onChange={(e) => setName(e.target.value)}
           maxLength={20}
-          className={styles["home-input"]}
+          className={s.homeInput}
         />
       </div>
 
@@ -36,10 +37,10 @@ export const CreateRoomModal = ({ isCreating, onCreate }: CreateRoomModalProps) 
         type="button"
         onClick={() => onCreate(name, role)}
         disabled={isCreating}
-        className={`${styles["home-submit-btn"]} ${styles["home-submit-btn-create"]}`}
+        className={cn(s.homeSubmitBtn, s.homeSubmitBtnCreate)}
       >
         {isCreating ? (
-          <span className={styles["home-spinner"]} />
+          <span className={s.homeSpinner} />
         ) : (
           <>
             ოთახის შექმნა

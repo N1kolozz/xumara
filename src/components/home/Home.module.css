@@ -1,4 +1,4 @@
-  .home-shell {
+  .homeShell {
     position: fixed;
     inset: 0;
     width: 100%;
@@ -8,7 +8,7 @@
     background: #050a12;
   }
 
-  .home-glow {
+  .homeGlow {
     position: absolute;
     inset: 0;
     pointer-events: none;
@@ -19,7 +19,7 @@
       linear-gradient(180deg, #060d18 0%, #080e1a 40%, #0a1220 100%);
   }
 
-  .home-screen {
+  .homeScreen {
     position: relative;
     z-index: 10;
     display: flex;
@@ -39,7 +39,7 @@
   }
 
   /* ─── Hero ─── */
-  .home-hero {
+  .homeHero {
     display: flex;
     flex-direction: column;
     align-items: center;
@@ -49,7 +49,7 @@
     padding-bottom: 1.75rem;
   }
 
-  .home-logo-wrap {
+  .homeLogoWrap {
     position: relative;
     display: flex;
     align-items: center;
@@ -58,7 +58,7 @@
     height: clamp(15rem, 65vw, 24rem);
   }
 
-  .home-logo-img {
+  .homeLogoImg {
     position: relative;
     z-index: 2;
     width: 100%;
@@ -66,30 +66,30 @@
     object-fit: contain;
     filter: drop-shadow(0 0 40px hsl(185 80% 48% / 0.3))
             drop-shadow(0 0 80px hsl(37 94% 58% / 0.18));
-    animation: home-logo-float 4s ease-in-out infinite;
+    animation: homeLogoFloat 4s ease-in-out infinite;
   }
 
-  @keyframes home-logo-float {
+  @keyframes homeLogoFloat {
     0%, 100% { transform: translateY(0); }
     50% { transform: translateY(-6px); }
   }
 
-  .home-logo-glow {
+  .homeLogoGlow {
     position: absolute;
     inset: -20%;
     z-index: 1;
     border-radius: 50%;
     background: radial-gradient(circle, hsl(185 80% 48% / 0.12) 0%, transparent 60%);
     filter: blur(20px);
-    animation: home-glow-pulse 3s ease-in-out infinite;
+    animation: homeGlowPulse 3s ease-in-out infinite;
   }
 
-  @keyframes home-glow-pulse {
+  @keyframes homeGlowPulse {
     0%, 100% { opacity: 0.7; transform: scale(1); }
     50% { opacity: 1; transform: scale(1.08); }
   }
 
-  .home-brand {
+  .homeBrand {
     font-size: clamp(3.4rem, 14vw, 4.6rem);
     font-weight: 900;
     line-height: 1;
@@ -100,7 +100,7 @@
     letter-spacing: 0.02em;
   }
 
-  .home-subtitle {
+  .homeSubtitle {
     margin-top: 0.5rem;
     font-size: clamp(0.85rem, 3.5vw, 1.1rem);
     font-weight: 800;
@@ -110,7 +110,7 @@
     text-shadow: 0 0 20px hsl(185 80% 48% / 0.22);
   }
 
-  .home-info-btn {
+  .homeInfoBtn {
     position: absolute;
     top: max(1.5rem, env(safe-area-inset-top));
     right: max(1rem, env(safe-area-inset-right));
@@ -129,17 +129,17 @@
     transition: all 0.2s ease;
   }
 
-  .home-info-btn:hover {
+  .homeInfoBtn:hover {
     background: hsl(185 70% 20% / 0.4);
     transform: scale(1.05);
   }
 
-  .home-info-btn:active {
+  .homeInfoBtn:active {
     transform: scale(0.95);
   }
 
   /* ─── Action Cards ─── */
-  .home-actions {
+  .homeActions {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.85rem;
@@ -147,7 +147,7 @@
     flex-shrink: 0;
   }
 
-  .home-card {
+  .homeCard {
     position: relative;
     display: flex;
     flex-direction: column;
@@ -164,11 +164,11 @@
     min-height: clamp(15rem, 36vw, 17rem);
   }
 
-  .home-card:active {
+  .homeCard:active {
     transform: scale(0.97);
   }
 
-  .home-card-create {
+  .homeCardCreate {
     border-color: hsl(185 70% 42% / 0.3);
     background: linear-gradient(165deg,
       hsl(185 70% 20% / 0.38) 0%,
@@ -180,7 +180,7 @@
       0 16px 48px hsl(185 70% 8% / 0.4);
   }
 
-  .home-card-join {
+  .homeCardJoin {
     border-color: hsl(37 70% 42% / 0.3);
     background: linear-gradient(165deg,
       hsl(37 50% 22% / 0.35) 0%,
@@ -192,26 +192,26 @@
       0 16px 48px hsl(37 70% 8% / 0.4);
   }
 
-  .home-card-glow {
+  .homeCardGlow {
     position: absolute;
     inset: 0;
     pointer-events: none;
     border-radius: inherit;
   }
 
-  .home-card-glow-create {
+  .homeCardGlowCreate {
     background:
       radial-gradient(ellipse 100% 80% at 20% 0%, hsl(185 80% 48% / 0.1), transparent 50%),
       radial-gradient(ellipse 80% 60% at 80% 100%, hsl(185 60% 30% / 0.06), transparent 40%);
   }
 
-  .home-card-glow-join {
+  .homeCardGlowJoin {
     background:
       radial-gradient(ellipse 100% 80% at 80% 0%, hsl(37 80% 48% / 0.1), transparent 50%),
       radial-gradient(ellipse 80% 60% at 20% 100%, hsl(37 60% 30% / 0.06), transparent 40%);
   }
 
-  .home-card-badge {
+  .homeCardBadge {
     display: inline-flex;
     align-items: center;
     gap: 0.35rem;
@@ -225,20 +225,20 @@
     z-index: 2;
   }
 
-  .home-card-badge-create {
+  .homeCardBadgeCreate {
     background: hsl(185 80% 48% / 0.18);
     color: hsl(185 80% 60%);
     border: 1px solid hsl(185 80% 48% / 0.25);
   }
 
-  .home-card-badge-join {
+  .homeCardBadgeJoin {
     background: hsl(37 80% 48% / 0.18);
     color: hsl(37 80% 60%);
     border: 1px solid hsl(37 80% 48% / 0.25);
     align-self: flex-end;
   }
 
-  .home-card-icon-wrap {
+  .homeCardIconWrap {
     position: absolute;
     top: 50%;
     left: 50%;
@@ -247,27 +247,27 @@
     z-index: 1;
   }
 
-  .home-card-icon-create {
+  .homeCardIconCreate {
     color: hsl(185 80% 48%);
     font-size: 4rem;
   }
 
-  .home-card-icon-create svg {
+  .homeCardIconCreate svg {
     width: 6rem;
     height: 6rem;
   }
 
-  .home-card-icon-join {
+  .homeCardIconJoin {
     color: hsl(37 80% 48%);
     font-size: 4rem;
   }
 
-  .home-card-icon-join svg {
+  .homeCardIconJoin svg {
     width: 6rem;
     height: 6rem;
   }
 
-  .home-card-title {
+  .homeCardTitle {
     position: relative;
     z-index: 2;
     font-size: clamp(1.4rem, 5.5vw, 1.75rem);
@@ -277,7 +277,7 @@
     margin-top: auto;
   }
 
-  .home-card-desc {
+  .homeCardDesc {
     position: relative;
     z-index: 2;
     font-size: clamp(0.75rem, 3vw, 0.88rem);
@@ -288,7 +288,7 @@
   }
 
   /* ─── Modal ─── */
-  .home-modal-overlay {
+  .homeModalOverlay {
     position: absolute;
     inset: 0;
     z-index: 100;
@@ -302,12 +302,12 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  .home-modal-overlay-visible {
+  .homeModalOverlayVisible {
     background: hsl(0 0% 0% / 0.6);
     backdrop-filter: blur(6px);
   }
 
-  .home-modal-panel {
+  .homeModalPanel {
     position: relative;
     width: 100%;
     max-width: 28rem;
@@ -332,25 +332,25 @@
     flex-shrink: 0;
   }
 
-  .home-modal-panel-visible {
+  .homeModalPanelVisible {
     transform: translateY(0);
     opacity: 1;
   }
 
-  .home-modal-header {
+  .homeModalHeader {
     display: flex;
     align-items: center;
     justify-content: space-between;
     margin-bottom: 1.5rem;
   }
 
-  .home-modal-header-left {
+  .homeModalHeaderLeft {
     display: flex;
     align-items: center;
     gap: 0.75rem;
   }
 
-  .home-modal-icon {
+  .homeModalIcon {
     display: grid;
     place-items: center;
     width: 2.75rem;
@@ -359,21 +359,21 @@
     flex-shrink: 0;
   }
 
-  .home-modal-icon-create {
+  .homeModalIconCreate {
     background: linear-gradient(145deg, hsl(185 80% 48% / 0.2), hsl(185 60% 30% / 0.12));
     border: 1px solid hsl(185 80% 48% / 0.25);
     color: hsl(185 80% 60%);
     box-shadow: 0 0 20px hsl(185 80% 48% / 0.12);
   }
 
-  .home-modal-icon-join {
+  .homeModalIconJoin {
     background: linear-gradient(145deg, hsl(37 80% 48% / 0.2), hsl(37 60% 30% / 0.12));
     border: 1px solid hsl(37 80% 48% / 0.25);
     color: hsl(37 80% 60%);
     box-shadow: 0 0 20px hsl(37 80% 48% / 0.12);
   }
 
-  .home-modal-kicker {
+  .homeModalKicker {
     font-size: 0.65rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -382,7 +382,7 @@
     line-height: 1;
   }
 
-  .home-modal-title {
+  .homeModalTitle {
     font-size: 1.15rem;
     font-weight: 900;
     color: hsl(48 34% 96%);
@@ -390,7 +390,7 @@
     margin-top: 0.2rem;
   }
 
-  .home-modal-close {
+  .homeModalClose {
     display: grid;
     place-items: center;
     width: 2.5rem;
@@ -405,25 +405,25 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  .home-modal-close:active {
+  .homeModalClose:active {
     transform: scale(0.92);
     background: hsl(0 0% 100% / 0.1);
   }
 
-  .home-modal-body {
+  .homeModalBody {
     display: flex;
     flex-direction: column;
     gap: 1.1rem;
   }
 
   /* ─── Form Fields ─── */
-  .home-field {
+  .homeField {
     display: flex;
     flex-direction: column;
     gap: 0.5rem;
   }
 
-  .home-field-label {
+  .homeFieldLabel {
     font-size: 0.72rem;
     font-weight: 800;
     text-transform: uppercase;
@@ -431,7 +431,7 @@
     color: hsl(0 0% 100% / 0.45);
   }
 
-  .home-input {
+  .homeInput {
     height: 3.25rem !important;
     border-radius: 1rem !important;
     border: 1px solid hsl(0 0% 100% / 0.1) !important;
@@ -443,13 +443,13 @@
     transition: border-color 0.2s ease, box-shadow 0.2s ease !important;
   }
 
-  .home-input:focus {
+  .homeInput:focus {
     border-color: hsl(185 80% 48% / 0.4) !important;
     box-shadow: 0 0 0 3px hsl(185 80% 48% / 0.08) !important;
     outline: none !important;
   }
 
-  .home-input-pin {
+  .homeInputPin {
     font-weight: 900 !important;
     text-transform: uppercase;
     letter-spacing: 0.2em;
@@ -458,13 +458,13 @@
   }
 
   /* ─── Role Buttons ─── */
-  .home-role-grid {
+  .homeRoleGrid {
     display: grid;
     grid-template-columns: 1fr 1fr;
     gap: 0.5rem;
   }
 
-  .home-role-btn {
+  .homeRoleBtn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -481,11 +481,11 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  .home-role-btn:active {
+  .homeRoleBtn:active {
     transform: scale(0.97);
   }
 
-  .home-role-btn-active-primary {
+  .homeRoleBtnActivePrimary {
     border-color: hsl(185 80% 48% / 0.5);
     background: hsl(185 80% 48% / 0.15);
     color: hsl(185 80% 60%);
@@ -493,7 +493,7 @@
                 inset 0 0 12px hsl(185 80% 48% / 0.06);
   }
 
-  .home-role-btn-active-accent {
+  .homeRoleBtnActiveAccent {
     border-color: hsl(37 80% 48% / 0.5);
     background: hsl(37 80% 48% / 0.15);
     color: hsl(37 80% 60%);
@@ -501,7 +501,7 @@
                 inset 0 0 12px hsl(37 80% 48% / 0.06);
   }
 
-  .home-role-error {
+  .homeRoleError {
     border-radius: 0.75rem;
     background: hsl(355 82% 61% / 0.15);
     padding: 0.5rem 0.75rem;
@@ -511,7 +511,7 @@
   }
 
   /* ─── Submit Buttons ─── */
-  .home-submit-btn {
+  .homeSubmitBtn {
     display: inline-flex;
     align-items: center;
     justify-content: center;
@@ -528,16 +528,16 @@
     -webkit-tap-highlight-color: transparent;
   }
 
-  .home-submit-btn:active:not(:disabled) {
+  .homeSubmitBtn:active:not(:disabled) {
     transform: scale(0.97);
   }
 
-  .home-submit-btn:disabled {
+  .homeSubmitBtn:disabled {
     opacity: 0.6;
     cursor: not-allowed;
   }
 
-  .home-submit-btn-create {
+  .homeSubmitBtnCreate {
     background: linear-gradient(135deg, hsl(185 80% 45%) 0%, hsl(185 70% 38%) 100%);
     color: hsl(185 90% 8%);
     box-shadow:
@@ -545,7 +545,7 @@
       0 12px 36px hsl(185 80% 10% / 0.35);
   }
 
-  .home-submit-btn-join {
+  .homeSubmitBtnJoin {
     background: linear-gradient(135deg, hsl(37 85% 52%) 0%, hsl(37 75% 42%) 100%);
     color: hsl(37 90% 8%);
     box-shadow:
@@ -553,16 +553,16 @@
       0 12px 36px hsl(37 80% 10% / 0.35);
   }
 
-  .home-spinner {
+  .homeSpinner {
     display: inline-block;
     width: 1.25rem;
     height: 1.25rem;
     border-radius: 50%;
     border: 2.5px solid currentColor;
     border-top-color: transparent;
-    animation: home-spin 0.7s linear infinite;
+    animation: homeSpin 0.7s linear infinite;
   }
 
-  @keyframes home-spin {
+  @keyframes homeSpin {
     to { transform: rotate(360deg); }
   }

@@ -3,7 +3,7 @@ import { Users, Gamepad2, X, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModalType } from "@/types/game";
 import { useRoomSetup } from "@/hooks/useRoomSetup";
-import styles from "@/components/home/Home.module.css";
+import s from "@/components/home/Home.module.css";
 
 import HomeHero from "@/components/home/HomeHero";
 import ActionCards from "@/components/home/ActionCards";
@@ -24,7 +24,6 @@ const Index = () => {
     setShowRoleError,
   } = useRoomSetup();
 
-  // Animate modal in/out
   useEffect(() => {
     if (activeModal) {
       requestAnimationFrame(() => {
@@ -34,7 +33,6 @@ const Index = () => {
   }, [activeModal]);
 
   const closeModal = () => {
-    // Blur any focused input to dismiss the keyboard before closing
     if (document.activeElement instanceof HTMLElement) {
       document.activeElement.blur();
     }
@@ -50,60 +48,56 @@ const Index = () => {
   };
 
   return (
-    <div className={styles["home-shell"]}>
-      {/* Background glow effects */}
-      <div className={styles["home-glow"]} />
+    <div className={s.homeShell}>
+      <div className={s.homeGlow} />
 
-      <button 
-        className={styles["home-info-btn"]}
+      <button
+        className={s.homeInfoBtn}
         onClick={() => openModal("info")}
         aria-label="ინფორმაცია"
       >
         <Info className="w-5 h-5" />
       </button>
 
-      {/* Main content */}
-      <main className={styles["home-screen"]}>
+      <main className={s.homeScreen}>
         <HomeHero />
         <ActionCards openModal={openModal} />
       </main>
 
-      {/* Modal Overlay */}
       {activeModal && (
         <div
-          className={cn(styles["home-modal-overlay"], modalVisible && styles["home-modal-overlay-visible"])}
+          className={cn(s.homeModalOverlay, modalVisible && s.homeModalOverlayVisible)}
           onClick={(e) => { if (e.target === e.currentTarget) closeModal(); }}
         >
-          <div className={cn(styles["home-modal-panel"], modalVisible && styles["home-modal-panel-visible"])}>
-            {/* Modal Header */}
-            <div className={styles["home-modal-header"]}>
-              <div className={styles["home-modal-header-left"]}>
+          <div className={cn(s.homeModalPanel, modalVisible && s.homeModalPanelVisible)}>
+            <div className={s.homeModalHeader}>
+              <div className={s.homeModalHeaderLeft}>
                 <div className={cn(
-                  styles["home-modal-icon"],
-                  activeModal === "create" ? styles["home-modal-icon-create"] : 
-                  activeModal === "join" ? styles["home-modal-icon-join"] : 
+                  s.homeModalIcon,
+                  activeModal === "create" ? s.homeModalIconCreate :
+                  activeModal === "join" ? s.homeModalIconJoin :
                   "border border-primary/30 bg-primary/20 text-primary"
                 )}>
-                  {activeModal === "create" ? <Users className="h-5 w-5" /> : 
-                   activeModal === "join" ? <Gamepad2 className="h-5 w-5" /> : 
+                  {activeModal === "create" ? <Users className="h-5 w-5" /> :
+                   activeModal === "join" ? <Gamepad2 className="h-5 w-5" /> :
                    <Info className="h-5 w-5" />}
                 </div>
                 <div>
-                  <p className={styles["home-modal-kicker"]}>
-                    {activeModal === "create" ? "ახალი ოთახი" : 
-                     activeModal === "join" ? "შეუერთდი" : 
+                  <p className={s.homeModalKicker}>
+                    {activeModal === "create" ? "ახალი ოთახი" :
+                     activeModal === "join" ? "შეუერთდი" :
                      "ინფორმაცია"}
                   </p>
-                  <h2 className={styles["home-modal-title"]}>
-                    {activeModal === "create" ? "შექმენი ოთახი" : 
-                     activeModal === "join" ? "შეუერთდი ოთახს" : 
+                  <h2 className={s.homeModalTitle}>
+                    {activeModal === "create" ? "შექმენი ოთახი" :
+                     activeModal === "join" ? "შეუერთდი ოთახს" :
                      "როგორ ვითამაშოთ"}
                   </h2>
                 </div>
               </div>
               <button
                 type="button"
-                className={styles["home-modal-close"]}
+                className={s.homeModalClose}
                 onClick={closeModal}
                 aria-label="დახურვა"
               >
@@ -111,27 +105,26 @@ const Index = () => {
               </button>
             </div>
 
-            {/* Modal Body */}
-            <div className={styles["home-modal-body"]}>
+            <div className={s.homeModalBody}>
               {activeModal === "create" ? (
-                <CreateRoomModal 
-                  isCreating={isCreating} 
+                <CreateRoomModal
+                  isCreating={isCreating}
                   onCreate={async (name, role) => {
                     if (role) {
                       const success = await createRoom(name, role);
                       if (success) closeModal();
                     }
-                  }} 
+                  }}
                 />
               ) : activeModal === "join" ? (
-                <JoinRoomModal 
-                  isJoining={isJoining} 
+                <JoinRoomModal
+                  isJoining={isJoining}
                   onJoin={async (name, pin, role) => {
                     if (role) {
                       const success = await joinRoom(name, pin, role);
                       if (success) closeModal();
                     }
-                  }} 
+                  }}
                   showRoleError={showRoleError}
                   setShowRoleError={setShowRoleError}
                 />

@@ -1,7 +1,7 @@
 import { Laugh, Gavel } from "lucide-react";
 import { Role } from "@/types/game";
 import { cn } from "@/lib/utils";
-import styles from "./Home.module.css";
+import s from "./Home.module.css";
 
 interface RoleSelectorProps {
   role: Role | null;
@@ -13,14 +13,14 @@ interface RoleSelectorProps {
 export const RoleSelector = ({ role, setRole, tone, error }: RoleSelectorProps) => {
   const roleButtonClass = (active: boolean) =>
     cn(
-      styles["home-role-btn"],
-      active && (tone === "primary" ? styles["home-role-btn-active-primary"] : styles["home-role-btn-active-accent"])
+      s.homeRoleBtn,
+      active && (tone === "primary" ? s.homeRoleBtnActivePrimary : s.homeRoleBtnActiveAccent)
     );
 
   return (
-    <div className={styles["home-field"]}>
-      <p className={styles["home-field-label"]}>როლი</p>
-      <div className={styles["home-role-grid"]}>
+    <div className={s.homeField}>
+      <p className={s.homeFieldLabel}>როლი</p>
+      <div className={s.homeRoleGrid}>
         <button
           type="button"
           aria-pressed={role === "player"}
@@ -40,7 +40,7 @@ export const RoleSelector = ({ role, setRole, tone, error }: RoleSelectorProps) 
           მსაჯული
         </button>
       </div>
-      {error && <p className={styles["home-role-error"]}>მსაჯული უკვე არსებობს</p>}
+      {error && <p className={s.homeRoleError}>მსაჯული უკვე არსებობს</p>}
     </div>
   );
 };

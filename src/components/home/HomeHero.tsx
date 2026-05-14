@@ -1,19 +1,19 @@
-import styles from "./Home.module.css";
+import s from "./Home.module.css";
 
 const HomeHero = () => {
   return (
-    <section className={styles["home-hero"]}>
-      <div className={styles["home-logo-wrap"]}>
+    <section className={s.homeHero}>
+      <div className={s.homeLogoWrap}>
         <img
           src="/jokerlogo.png"
           alt="ხუმარა"
-          className={styles["home-logo-img"]}
+          className={s.homeLogoImg}
           draggable={false}
         />
-        <div className={styles["home-logo-glow"]} />
+        <div className={s.homeLogoGlow} />
       </div>
-      <h1 className={styles["home-brand"]}>ხუმარა</h1>
-      <p className={styles["home-subtitle"]}>PARTY GAME</p>
+      <h1 className={s.homeBrand}>ხუმარა</h1>
+      <p className={s.homeSubtitle}>PARTY GAME</p>
     </section>
   );
 };
