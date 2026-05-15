@@ -1,4 +1,4 @@
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Room, Player, GameState, CardData, Submission } from "@/types/game";
@@ -16,26 +16,44 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
   const [playerCards, setPlayerCards] = useState<CardData[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
 
-  const loadGameData = async () => {
-    if (!gameState) return;
+  // Refs so subscription callbacks always see the latest values without causing
+  // subscription teardown/rebuild on every render.
+  const gameStateRef = useRef(gameState);
+  const roomRef = useRef(room);
+  const currentPlayerRef = useRef(currentPlayer);
+  const playersRef = useRef(players);
 
-    const freshPlayerData = players.find(p => p.id === currentPlayer.id);
-    const isJudge = freshPlayerData?.is_judge ?? currentPlayer.is_judge;
+  useEffect(() => { gameStateRef.current = gameState; }, [gameState]);
+  useEffect(() => { roomRef.current = room; }, [room]);
+  useEffect(() => { currentPlayerRef.current = currentPlayer; }, [currentPlayer]);
+  useEffect(() => { playersRef.current = players; }, [players]);
 
-    if (gameState.current_inbox_card_id) {
+  // Stable function that reads from refs — safe to call inside subscriptions.
+  const loadGameData = useCallback(async () => {
+    const gs = gameStateRef.current;
+    if (!gs) return;
+
+    const rm = roomRef.current;
+    const cp = currentPlayerRef.current;
+    const pl = playersRef.current;
+
+    const freshPlayerData = pl.find(p => p.id === cp.id);
+    const isJudge = freshPlayerData?.is_judge ?? cp.is_judge;
+
+    if (gs.current_inbox_card_id) {
       const { data: inboxData } = await supabase
         .from("cards")
         .select("*")
-        .eq("id", gameState.current_inbox_card_id)
+        .eq("id", gs.current_inbox_card_id)
         .single();
       if (inboxData) setInboxCard(inboxData as CardData);
     }
 
-    if (!isJudge && gameState.phase === "submitting") {
+    if (!isJudge && gs.phase === "submitting") {
       const { data: playerData } = await supabase
         .from("players")
         .select("hand")
-        .eq("id", currentPlayer.id)
+        .eq("id", cp.id)
         .single();
 
       if (playerData?.hand && playerData.hand.length > 0) {
@@ -54,17 +72,42 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
     const { data: submissionsData } = await supabase
       .from("submissions")
       .select("*, cards(*), players(name)")
-      .eq("room_id", room.id)
-      .eq("round_number", gameState.round_number);
+      .eq("room_id", rm.id)
+      .eq("round_number", gs.round_number);
 
     if (submissionsData) {
       setSubmissions(submissionsData as unknown as Submission[]);
     }
-  };
+  }, []);
+
+  // Lightweight refresh — only submissions, used by the debounced subscription handler.
+  const refreshSubmissions = useCallback(async () => {
+    const gs = gameStateRef.current;
+    const rm = roomRef.current;
+    if (!gs) return;
+
+    const { data: submissionsData } = await supabase
+      .from("submissions")
+      .select("*, cards(*), players(name)")
+      .eq("room_id", rm.id)
+      .eq("round_number", gs.round_number);
+
+    if (submissionsData) {
+      setSubmissions(submissionsData as unknown as Submission[]);
+    }
+  }, []);
 
   useEffect(() => {
     if (!gameState) return;
     loadGameData();
+
+    // Debounce: multiple players submitting in quick succession fire N events.
+    // Batch them into a single query after 150 ms of quiet.
+    let debounceTimer: ReturnType<typeof setTimeout> | null = null;
+    const debouncedRefreshSubmissions = () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
+      debounceTimer = setTimeout(refreshSubmissions, 150);
+    };
 
     const submissionsChannel = supabase.channel(`submissions_${room.id}`)
       .on("postgres_changes", {
@@ -72,18 +115,7 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
         schema: "public",
         table: "submissions",
         filter: `room_id=eq.${room.id}`
-      }, async () => {
-        if (!gameState) return;
-        const { data: submissionsData } = await supabase
-          .from("submissions")
-          .select("*, cards(*), players(name)")
-          .eq("room_id", room.id)
-          .eq("round_number", gameState.round_number);
-        
-        if (submissionsData) {
-          setSubmissions(submissionsData as unknown as Submission[]);
-        }
-      })
+      }, debouncedRefreshSubmissions)
       .on("broadcast", { event: "round_winner" }, (payload) => {
         toast({
           title: "გამარჯვებული შეირჩა!",
@@ -92,34 +124,35 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
       })
       .subscribe();
 
-    const gameStateChannel = supabase.channel(`game_state_${room.id}`).on("postgres_changes", {
-      event: "*",
-      schema: "public",
-      table: "game_state",
-      filter: `room_id=eq.${room.id}`
-    }, (payload) => {
-      if (payload.eventType === "UPDATE" && payload.new.winner_name && payload.new.winner_score !== null) {
-        const isDraw = payload.new.winner_name.includes(",");
-        if (isDraw) {
+    const gameStateChannel = supabase.channel(`game_state_${room.id}`)
+      .on("postgres_changes", {
+        event: "*",
+        schema: "public",
+        table: "game_state",
+        filter: `room_id=eq.${room.id}`
+      }, (payload) => {
+        if (payload.eventType === "UPDATE" && payload.new.winner_name && payload.new.winner_score !== null) {
+          const isDraw = payload.new.winner_name.includes(",");
           toast({
             title: "თამაში დასრულდა!",
-            description: `${payload.new.winner_name} მოთამაშეებს შორის დამთავრდა ფრე ${payload.new.winner_score} ქულით!`
-          });
-        } else {
-          toast({
-            title: "თამაში დასრულდა!",
-            description: `${payload.new.winner_name} არის გამარჯვებული ${payload.new.winner_score} ქულით!`
+            description: isDraw
+              ? `${payload.new.winner_name} მოთამაშეებს შორის დამთავრდა ფრე ${payload.new.winner_score} ქულით!`
+              : `${payload.new.winner_name} არის გამარჯვებული ${payload.new.winner_score} ქულით!`
           });
         }
-      }
-      loadGameData();
-    }).subscribe();
+        loadGameData();
+      })
+      .subscribe();
 
     return () => {
+      if (debounceTimer) clearTimeout(debounceTimer);
       supabase.removeChannel(submissionsChannel);
       supabase.removeChannel(gameStateChannel);
     };
-  }, [gameState?.round_number, gameState?.phase, currentPlayer.id, players]);
+  // Exclude `players` from deps — we use playersRef so subscriptions aren't
+  // torn down and rebuilt on every player-list update.
+  // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.round_number, gameState?.phase, currentPlayer.id]);
 
   return {
     inboxCard,

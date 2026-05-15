@@ -42,7 +42,7 @@ const GameBoard = ({
 
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
 
-  const { handleSubmitCard, handleSelectWinner } = useGameBoardActions({
+  const { handleSubmitCard, handleSelectWinner, isSelectingWinner } = useGameBoardActions({
     room,
     players,
     currentPlayer,
@@ -59,16 +59,21 @@ const GameBoard = ({
   const tableDropRef = useRef<HTMLDivElement | null>(null);
   const fanDragRef = useRef<FanDragState | null>(null);
   const fanDidDragRef = useRef(false);
+  // RAF throttle refs — drag ghost updates are capped to one per animation frame.
+  const rafIdRef = useRef<number | null>(null);
+  const pendingDragPosRef = useRef<{ card: CardData; x: number; y: number } | null>(null);
   const handCards = useMemo(() => playerCards.slice(0, 6), [playerCards]);
-  const currentPlayerData = players.find(p => p.id === currentPlayer.id);
-  const isJudge = currentPlayerData?.is_judge || false;
-  const hasSubmitted = submissions.some((submission) => submission.player_id === currentPlayer.id);
+  const currentPlayerData = useMemo(() => players.find(p => p.id === currentPlayer.id), [players, currentPlayer.id]);
+  const isJudge = currentPlayerData?.is_judge ?? false;
+  const hasSubmitted = useMemo(() => submissions.some((s) => s.player_id === currentPlayer.id), [submissions, currentPlayer.id]);
   const activeComedians = useMemo(() => players.filter((player) => !player.is_judge && player.in_game), [players]);
   const scorePlayers = useMemo(() => players.filter((player) => player.in_game).sort((a, b) => b.score - a.score), [players]);
-  const scoreLeader = scorePlayers.find((player) => !player.is_judge);
-  const currentJudge = scorePlayers.find((player) => player.is_judge);
-  const roundProgress = gameState?.max_rounds ? (gameState.round_number / gameState.max_rounds) * 100 : 0;
+  const scoreLeader = useMemo(() => scorePlayers.find((player) => !player.is_judge), [scorePlayers]);
+  const currentJudge = useMemo(() => scorePlayers.find((player) => player.is_judge), [scorePlayers]);
+  const roundProgress = useMemo(() => gameState?.max_rounds ? (gameState.round_number / gameState.max_rounds) * 100 : 0, [gameState?.round_number, gameState?.max_rounds]);
   const activeCardIndex = Math.max(0, Math.min(currentCardIndex, Math.max(handCards.length - 1, 0)));
+  // Must be computed before the early return so hook call order is stable.
+  const tableCards = useMemo(() => submissions.filter((s) => s.cards), [submissions]);
 
   useEffect(() => {
     if (handCards.length === 0) {
@@ -111,11 +116,11 @@ const GameBoard = ({
   }
 
   const roleLabel = isJudge ? "მსაჯული" : "ხუმარა";
-  const fanCards = handCards.slice(0, 6);
+  // handCards is already sliced to 6 — no second slice needed.
+  const fanCards = handCards;
   const canChooseAnswer = gameState.phase === "submitting" && !isJudge && !hasSubmitted;
   const canJudgeCards = gameState.phase === "judging" && isJudge;
   const showCardFan = canChooseAnswer;
-  const tableCards = submissions.filter((submission) => submission.cards);
 
   const getFanCardStyle = (index: number) => {
     const relativeIndex = index - activeCardIndex;
@@ -208,7 +213,17 @@ const GameBoard = ({
 
       const card = fanCards.find((item) => item.id === fanDragRef.current?.cardId);
       if (card) {
-        setDraggingCard({ card, x: event.clientX, y: event.clientY });
+        // Throttle drag-ghost state updates to one per animation frame so we
+        // don't trigger a React re-render on every pointer move event (60 fps).
+        pendingDragPosRef.current = { card, x: event.clientX, y: event.clientY };
+        if (!rafIdRef.current) {
+          rafIdRef.current = requestAnimationFrame(() => {
+            if (pendingDragPosRef.current) {
+              setDraggingCard(pendingDragPosRef.current);
+            }
+            rafIdRef.current = null;
+          });
+        }
       }
 
       event.preventDefault();
@@ -235,6 +250,13 @@ const GameBoard = ({
 
   const handleFanPointerEnd = (event: ReactPointerEvent<HTMLDivElement>) => {
     const dragState = fanDragRef.current;
+
+    // Cancel any pending RAF drag-ghost update.
+    if (rafIdRef.current) {
+      cancelAnimationFrame(rafIdRef.current);
+      rafIdRef.current = null;
+    }
+    pendingDragPosRef.current = null;
 
     if (dragState?.pointerId === event.pointerId) {
       const tableRect = tableDropRef.current?.getBoundingClientRect();
@@ -517,6 +539,7 @@ const GameBoard = ({
                 <button
                   type="button"
                   className={s.cardPreviewSelect}
+                  disabled={isSelectingWinner}
                   onClick={() => {
                     void handleSelectWinner(previewSubmission.card_id);
                     setPreviewSubmission(null);

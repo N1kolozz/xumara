@@ -196,7 +196,8 @@
   }
 
   .referenceTableCard {
-    @apply absolute flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.16] bg-[rgba(225,255,239,0.84)] px-1 py-1 text-center text-[0.66rem] font-black leading-tight text-[#10241e] shadow-[0_12px_32px_hsl(160_45%_3%/0.36),0_0_20px_hsl(var(--primary)/0.18)] transition-all duration-200;
+    @apply absolute flex items-center justify-center overflow-hidden rounded-xl border border-white/[0.16] bg-[rgba(225,255,239,0.84)] px-1 py-1 text-center text-[0.66rem] font-black leading-tight text-[#10241e] shadow-[0_12px_32px_hsl(160_45%_3%/0.36),0_0_20px_hsl(var(--primary)/0.18)];
+    transition: box-shadow 200ms ease, border-color 200ms ease;
     left: var(--table-card-x);
     top: var(--table-card-y);
     width: clamp(4.4rem, 15vw, 6.1rem);
@@ -324,7 +325,7 @@
   }
 
   .referenceAnswerCard {
-    @apply absolute left-1/2 top-1/2 flex flex-col justify-between overflow-hidden border text-left transition-all duration-300 ease-out focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
+    @apply absolute left-1/2 top-1/2 flex flex-col justify-between overflow-hidden border text-left focus-visible:outline-none focus-visible:ring-2 focus-visible:ring-ring focus-visible:ring-offset-2;
     width: clamp(8.75rem, 38vw, 10.7rem);
     height: clamp(12rem, 28dvh, 13.85rem);
     border-radius: 1.35rem;
@@ -333,6 +334,9 @@
     transform: translate(calc(-50% + var(--fan-x)), calc(-50% + var(--fan-y))) rotate(var(--fan-r)) scale(var(--fan-scale));
     transform-origin: bottom center;
     touch-action: manipulation;
+    /* Only transition compositor-friendly properties — avoids triggering layout. */
+    transition: transform 300ms ease-out, opacity 300ms ease-out;
+    will-change: transform, opacity;
   }
 
   .referenceAnswerCardSide {
@@ -427,11 +431,14 @@
 
   .referenceDragCard {
     @apply pointer-events-none fixed z-[90] flex items-center justify-center rounded-[1.25rem] border border-primary/45 bg-[linear-gradient(155deg,#eafff3_0%,#bfffe2_28%,#43e4b2_100%)] px-4 py-5 text-center text-sm font-black leading-tight text-[#10241e] shadow-[0_0_52px_hsl(var(--primary)/0.38),0_22px_66px_hsl(160_48%_3%/0.55)];
-    left: var(--drag-x);
-    top: var(--drag-y);
+    /* Use transform (not left/top) so position updates stay on the compositor
+       thread and never trigger layout. */
+    left: 0;
+    top: 0;
     width: 9.8rem;
     height: 12.5rem;
-    transform: translate(-50%, -50%) rotate(-4deg) scale(1.03);
+    transform: translate(calc(var(--drag-x) - 50%), calc(var(--drag-y) - 50%)) rotate(-4deg) scale(1.03);
+    will-change: transform;
   }
 
   .referenceBottomStatus {

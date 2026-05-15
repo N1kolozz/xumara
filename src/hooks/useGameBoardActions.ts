@@ -25,6 +25,7 @@ export const useGameBoardActions = ({
 }: UseGameBoardActionsProps) => {
   const { toast } = useToast();
   const [isSubmittingCard, setIsSubmittingCard] = useState(false);
+  const [isSelectingWinner, setIsSelectingWinner] = useState(false);
 
   const handleSubmitCard = async (cardId: string | null) => {
     if (!cardId || !gameState || isSubmittingCard) return;
@@ -68,11 +69,12 @@ export const useGameBoardActions = ({
 
   const handleSelectWinner = async (cardId: string) => {
     const currentPlayerData = players.find(p => p.id === currentPlayer.id);
-    if (!currentPlayerData?.is_judge || !gameState) return;
+    if (!currentPlayerData?.is_judge || !gameState || isSelectingWinner) return;
 
     const winningSubmission = submissions.find(s => s.card_id === cardId);
     if (!winningSubmission) return;
 
+    setIsSelectingWinner(true);
     try {
       await supabase.from("submissions").update({ is_winner: true }).eq("id", winningSubmission.id);
 
@@ -137,11 +139,14 @@ export const useGameBoardActions = ({
         description: "გამარჯვებულის შერჩევა ვერ მოხერხდა",
         variant: "destructive"
       });
+    } finally {
+      setIsSelectingWinner(false);
     }
   };
 
   return {
     handleSubmitCard,
     handleSelectWinner,
+    isSelectingWinner,
   };
 };
