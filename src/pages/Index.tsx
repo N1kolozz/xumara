@@ -1,4 +1,5 @@
 import { useState, useEffect } from "react";
+import { useSearchParams } from "react-router-dom";
 import { Users, Gamepad2, X, Info } from "lucide-react";
 import { cn } from "@/lib/utils";
 import { ModalType } from "@/types/game";
@@ -14,6 +15,8 @@ import { InfoModal } from "@/components/home/InfoModal";
 const Index = () => {
   const [activeModal, setActiveModal] = useState<ModalType>(null);
   const [modalVisible, setModalVisible] = useState(false);
+  const [initialPin, setInitialPin] = useState("");
+  const [searchParams, setSearchParams] = useSearchParams();
 
   const {
     createRoom,
@@ -23,6 +26,18 @@ const Index = () => {
     showRoleError,
     setShowRoleError,
   } = useRoomSetup();
+
+  // Deep link from a shared QR / link: /?pin=XXXX opens join pre-filled.
+  useEffect(() => {
+    const pinParam = searchParams.get("pin");
+    if (pinParam) {
+      setInitialPin(pinParam.toUpperCase());
+      setActiveModal("join");
+      searchParams.delete("pin");
+      setSearchParams(searchParams, { replace: true });
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, []);
 
   useEffect(() => {
     if (activeModal) {
@@ -127,6 +142,7 @@ const Index = () => {
                   }}
                   showRoleError={showRoleError}
                   setShowRoleError={setShowRoleError}
+                  initialPin={initialPin}
                 />
               ) : (
                 <InfoModal />

@@ -16,20 +16,26 @@ export type Database = {
     Tables: {
       cards: {
         Row: {
+          category: string | null
           created_at: string
           id: string
+          is_blank: boolean
           text_ge: string
           type: string
         }
         Insert: {
+          category?: string | null
           created_at?: string
           id?: string
+          is_blank?: boolean
           text_ge: string
           type: string
         }
         Update: {
+          category?: string | null
           created_at?: string
           id?: string
+          is_blank?: boolean
           text_ge?: string
           type?: string
         }
@@ -40,7 +46,9 @@ export type Database = {
           current_inbox_card_id: string | null
           current_judge_id: string | null
           max_rounds: number
+          pack: string | null
           phase: string
+          phase_deadline: string | null
           room_id: string
           round_number: number
           updated_at: string
@@ -51,7 +59,9 @@ export type Database = {
           current_inbox_card_id?: string | null
           current_judge_id?: string | null
           max_rounds?: number
+          pack?: string | null
           phase?: string
+          phase_deadline?: string | null
           room_id: string
           round_number?: number
           updated_at?: string
@@ -62,7 +72,9 @@ export type Database = {
           current_inbox_card_id?: string | null
           current_judge_id?: string | null
           max_rounds?: number
+          pack?: string | null
           phase?: string
+          phase_deadline?: string | null
           room_id?: string
           round_number?: number
           updated_at?: string
@@ -210,6 +222,7 @@ export type Database = {
       submissions: {
         Row: {
           card_id: string
+          custom_text: string | null
           id: string
           is_winner: boolean
           player_id: string
@@ -219,6 +232,7 @@ export type Database = {
         }
         Insert: {
           card_id: string
+          custom_text?: string | null
           id?: string
           is_winner?: boolean
           player_id: string
@@ -228,6 +242,7 @@ export type Database = {
         }
         Update: {
           card_id?: string
+          custom_text?: string | null
           id?: string
           is_winner?: boolean
           player_id?: string

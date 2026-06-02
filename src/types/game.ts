@@ -29,6 +29,8 @@ export interface GameState {
   current_inbox_card_id: string | null;
   round_number: number;
   max_rounds: number;
+  pack?: string | null;
+  phase_deadline?: string | null;
   winner_name?: string | null;
   winner_score?: number | null;
 }
@@ -37,6 +39,8 @@ export interface CardData {
   id: string;
   text_ge: string;
   type: string;
+  category?: string | null;
+  is_blank?: boolean;
 }
 
 export interface Submission {
@@ -44,6 +48,7 @@ export interface Submission {
   player_id: string;
   card_id: string;
   round_number: number;
+  custom_text?: string | null;
   cards?: CardData | null;
   is_winner?: boolean;
 }

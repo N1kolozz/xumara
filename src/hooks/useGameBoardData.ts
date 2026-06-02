@@ -15,6 +15,25 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
   const [inboxCard, setInboxCard] = useState<CardData | null>(null);
   const [playerCards, setPlayerCards] = useState<CardData[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
+  const [reactions, setReactions] = useState<{ id: string; emoji: string }[]>([]);
+
+  // Holds the submissions realtime channel so we can broadcast reactions on it.
+  const reactionChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
+
+  // Spawn a floating reaction that removes itself shortly after.
+  const addReaction = useCallback((emoji: string) => {
+    if (!emoji) return;
+    const id = `${Date.now()}-${Math.random().toString(36).slice(2, 7)}`;
+    setReactions((prev) => [...prev, { id, emoji }]);
+    setTimeout(() => {
+      setReactions((prev) => prev.filter((r) => r.id !== id));
+    }, 1800);
+  }, []);
+
+  const sendReaction = useCallback((emoji: string) => {
+    addReaction(emoji); // optimistic — sender sees it immediately
+    reactionChannelRef.current?.send({ type: "broadcast", event: "reaction", payload: { emoji } });
+  }, [addReaction]);
 
   // Refs so subscription callbacks always see the latest values without causing
   // subscription teardown/rebuild on every render.
@@ -122,7 +141,12 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
           description: `${payload.payload.winnerName} მოიგო ეს რაუნდი!`
         });
       })
+      .on("broadcast", { event: "reaction" }, (payload) => {
+        addReaction(payload.payload?.emoji);
+      })
       .subscribe();
+
+    reactionChannelRef.current = submissionsChannel;
 
     const gameStateChannel = supabase.channel(`game_state_${room.id}`)
       .on("postgres_changes", {
@@ -146,6 +170,7 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
+      reactionChannelRef.current = null;
       supabase.removeChannel(submissionsChannel);
       supabase.removeChannel(gameStateChannel);
     };
@@ -159,5 +184,7 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
     playerCards,
     setPlayerCards,
     submissions,
+    reactions,
+    sendReaction,
   };
 };

@@ -141,7 +141,11 @@
   }
 
   .referenceTableFelt {
-    @apply absolute inset-0;
+    @apply absolute inset-x-0 top-0;
+    /* Extend the felt past the table area so the green floor reaches the screen
+       bottom (clipped by the shell's overflow-hidden) — no black gap under the
+       cards / reaction dock. */
+    bottom: -10rem;
     clip-path: polygon(31% 0%, 69% 0%, 98% 100%, 2% 100%);
     background:
       linear-gradient(90deg, rgba(255,255,255,0.08), transparent 8%, transparent 92%, rgba(255,255,255,0.08)),
@@ -638,4 +642,184 @@
 
   .cardPreviewSelect:active {
     transform: scale(0.98);
+  }
+
+  /* ── Round countdown pill ── */
+
+  .referenceTimerPill {
+    @apply z-50 inline-flex items-center gap-1.5 rounded-full border border-white/15 bg-white/[0.09] px-3 py-1.5 text-sm font-black text-foreground backdrop-blur-xl;
+    min-width: 3.4rem;
+    justify-content: center;
+  }
+
+  .referenceTimerPillUrgent {
+    @apply border-red-400/50 text-red-100;
+    background: hsl(0 72% 45% / 0.24);
+    animation: timerPulse 1s ease-in-out infinite;
+  }
+
+  @keyframes timerPulse {
+    0%, 100% { opacity: 1; }
+    50% { opacity: 0.5; }
+  }
+
+  /* ── Face-down + reveal table cards ── */
+
+  .referenceTableCardBack {
+    background: linear-gradient(150deg, #11463a, #0a2c24);
+    border-color: hsl(var(--primary) / 0.35);
+    color: hsl(var(--primary) / 0.6);
+  }
+
+  .referenceTableCardBackMark {
+    @apply text-lg font-black;
+    color: hsl(var(--primary) / 0.55);
+  }
+
+  .referenceTableCardFlipIn {
+    animation: tableFlipIn 0.5s ease-out both;
+  }
+
+  @keyframes tableFlipIn {
+    from {
+      transform: translate(-50%, -50%) rotate(var(--table-card-r)) rotateY(90deg);
+      opacity: 0;
+    }
+    to {
+      transform: translate(-50%, -50%) rotate(var(--table-card-r)) rotateY(0deg);
+      opacity: 1;
+    }
+  }
+
+  /* ── Blank (write-your-own) hand card ── */
+
+  .referenceAnswerCardBlank {
+    border-style: dashed !important;
+    border-color: hsl(var(--accent) / 0.55) !important;
+  }
+
+  .referenceAnswerCardBlank .referenceAnswerStrip {
+    background: hsl(var(--accent) / 0.75);
+  }
+
+  /* ── Reactions ── */
+
+  .referenceReactionDock {
+    @apply absolute left-1/2 z-[55] flex -translate-x-1/2 items-center gap-1.5 rounded-full border border-white/15 bg-[rgba(24,34,37,0.82)] px-2.5 py-1.5 shadow-[0_18px_46px_hsl(160_45%_3%/0.5)] backdrop-blur-xl;
+    bottom: max(1rem, env(safe-area-inset-bottom));
+  }
+
+  .referenceReactionBtn {
+    @apply grid h-10 w-10 place-items-center rounded-full text-xl transition-transform;
+    touch-action: manipulation;
+  }
+
+  .referenceReactionBtn:active {
+    transform: scale(1.3);
+  }
+
+  .referenceReactionFloatLayer {
+    @apply pointer-events-none absolute inset-0 z-[60] overflow-hidden;
+  }
+
+  .referenceReactionParticle {
+    @apply absolute text-3xl;
+    bottom: 6rem;
+    animation: reactionFloat 1.8s ease-out forwards;
+  }
+
+  @keyframes reactionFloat {
+    0%   { transform: translateY(0) scale(0.6); opacity: 0; }
+    15%  { transform: translateY(-0.5rem) scale(1.1); opacity: 1; }
+    100% { transform: translateY(-14rem) scale(1); opacity: 0; }
+  }
+
+  /* ── Blank composer modal ── */
+
+  .blankComposer {
+    @apply flex w-[min(86vw,22rem)] flex-col gap-3 rounded-[1.6rem] border border-accent/35 bg-[rgba(24,34,37,0.96)] p-5 shadow-[0_24px_80px_hsl(160_55%_3%/0.62)] backdrop-blur-2xl;
+    animation: cardPreviewModalIn 0.32s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .blankComposerHead {
+    @apply flex items-center gap-2 text-sm font-black uppercase tracking-wide text-accent;
+  }
+
+  .blankComposerInput {
+    @apply w-full resize-none rounded-2xl border border-white/15 bg-white/[0.06] p-3 text-base font-bold text-foreground outline-none placeholder:text-text-muted;
+  }
+
+  .blankComposerInput:focus {
+    border-color: hsl(var(--accent) / 0.6);
+  }
+
+  /* ── Results / rematch overlay ── */
+
+  .resultsOverlay {
+    @apply fixed inset-0 z-[95] grid place-items-center p-5;
+    background: rgba(2, 6, 5, 0.78);
+    backdrop-filter: blur(10px);
+    -webkit-backdrop-filter: blur(10px);
+    animation: cardPreviewOverlayIn 0.25s ease-out forwards;
+  }
+
+  .resultsPanel {
+    @apply flex w-[min(88vw,23rem)] flex-col items-center gap-1 rounded-[1.9rem] border border-white/15 bg-[rgba(20,30,33,0.95)] p-6 text-center shadow-[0_30px_90px_hsl(160_55%_3%/0.7)] backdrop-blur-2xl;
+    animation: cardPreviewModalIn 0.4s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .resultsCrown {
+    @apply mb-1 grid h-16 w-16 place-items-center rounded-full border border-accent/40 bg-accent/15 text-accent shadow-[0_0_36px_hsl(var(--accent)/0.3)];
+  }
+
+  .resultsKicker {
+    @apply text-[0.66rem] font-black uppercase tracking-wider text-white/45;
+  }
+
+  .resultsWinner {
+    @apply text-2xl font-black leading-tight text-foreground;
+  }
+
+  .resultsScore {
+    @apply text-sm font-black text-primary;
+  }
+
+  .resultsScores {
+    @apply mt-4 w-full space-y-1.5;
+  }
+
+  .resultsRow {
+    @apply grid grid-cols-[1.6rem_minmax(0,1fr)_2.4rem] items-center gap-2 rounded-xl border border-white/10 bg-white/[0.05] px-3 py-2 text-left;
+  }
+
+  .resultsRowCurrent {
+    @apply border-primary/30 bg-primary/10;
+  }
+
+  .resultsRank {
+    @apply text-sm font-black text-text-soft;
+  }
+
+  .resultsName {
+    @apply truncate text-sm font-black text-foreground;
+  }
+
+  .resultsRow strong {
+    @apply text-right text-sm font-black text-primary;
+  }
+
+  .resultsActions {
+    @apply mt-5 flex w-full items-center gap-2;
+  }
+
+  .resultsRematchBtn {
+    @apply inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-[linear-gradient(135deg,#dffff0,#27f2a1_42%,#24d6b1)] px-4 py-3 text-sm font-black text-[#092018] shadow-[0_0_34px_hsl(var(--primary)/0.25)] active:scale-[0.98];
+  }
+
+  .resultsLobbyBtn {
+    @apply inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.08] px-4 py-3 text-sm font-black text-foreground active:scale-[0.98];
+  }
+
+  .resultsWaitHint {
+    @apply flex-1 text-center text-xs font-bold text-text-soft;
   }

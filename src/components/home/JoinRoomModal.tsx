@@ -11,11 +11,12 @@ interface JoinRoomModalProps {
   onJoin: (name: string, pin: string, role: Role | null) => void;
   showRoleError: boolean;
   setShowRoleError: (show: boolean) => void;
+  initialPin?: string;
 }
 
-export const JoinRoomModal = ({ isJoining, onJoin, showRoleError, setShowRoleError }: JoinRoomModalProps) => {
+export const JoinRoomModal = ({ isJoining, onJoin, showRoleError, setShowRoleError, initialPin = "" }: JoinRoomModalProps) => {
   const [name, setName] = useState("");
-  const [pin, setPin] = useState("");
+  const [pin, setPin] = useState(initialPin);
   const [role, setRole] = useState<Role | null>(null);
 
   return (

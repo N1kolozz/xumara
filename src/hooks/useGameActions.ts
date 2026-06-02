@@ -2,6 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Room, Player, GameState } from "@/types/game";
+import { HAND_SIZE, SUBMIT_MS } from "@/lib/gameConfig";
 import React from "react";
 
 interface UseGameActionsProps {
@@ -162,7 +163,7 @@ export const useGameActions = ({
     }
   };
 
-  const handleStartGame = async (maxRounds: number) => {
+  const handleStartGame = async (maxRounds: number, pack: string | null = null) => {
     if (!currentPlayer?.is_host || !room) return;
 
     if (players.length < 3) {
@@ -195,6 +196,26 @@ export const useGameActions = ({
         toast({
           title: "თამაში უკვე დაწყებულია",
           description: "თამაში უკვე მიმდინარეობს",
+          variant: "destructive",
+        });
+        return;
+      }
+
+      // Validate the chosen pack has enough reply cards before we start — the
+      // category filter can otherwise silently starve the deal RPC.
+      const comedianCount = players.filter((p) => !p.is_judge).length;
+      let supplyQuery = supabase
+        .from("cards")
+        .select("*", { count: "exact", head: true })
+        .eq("type", "reply")
+        .eq("is_blank", false);
+      if (pack) supplyQuery = supplyQuery.eq("category", pack);
+      const { count: replyCount } = await supplyQuery;
+
+      if ((replyCount ?? 0) < comedianCount * HAND_SIZE) {
+        toast({
+          title: "ბარათები არ კმარა",
+          description: `ამ პაკეტში არ არის საკმარისი ბარათი ${comedianCount} ხუმარასთვის`,
           variant: "destructive",
         });
         return;
@@ -250,7 +271,9 @@ export const useGameActions = ({
         setCurrentPlayer(refreshedCurrentPlayer as Player);
       }
 
-      const { data: inboxCards } = await supabase.from("cards").select("*").eq("type", "inbox");
+      let inboxQuery = supabase.from("cards").select("*").eq("type", "inbox");
+      if (pack) inboxQuery = inboxQuery.eq("category", pack);
+      const { data: inboxCards } = await inboxQuery;
 
       if (inboxCards && inboxCards.length > 0) {
         const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
@@ -263,6 +286,8 @@ export const useGameActions = ({
           round_number: 1,
           phase: "submitting",
           max_rounds: maxRounds,
+          pack,
+          phase_deadline: new Date(Date.now() + SUBMIT_MS).toISOString(),
         }).select().single();
 
         if (gameStateError) throw gameStateError;
@@ -294,9 +319,79 @@ export const useGameActions = ({
     }
   };
 
+  // Restart the same room with the same pack + rounds, keeping everyone seated.
+  const handleRematch = async () => {
+    if (!currentPlayer?.is_host || !room) return;
+
+    try {
+      const { data: gs } = await supabase
+        .from("game_state")
+        .select("*")
+        .eq("room_id", room.id)
+        .maybeSingle();
+      if (!gs) return;
+
+      const pack = gs.pack ?? null;
+
+      await supabase.from("submissions").delete().eq("room_id", room.id);
+      await supabase.rpc("clear_room_hands", { p_room_id: room.id });
+      await supabase.from("players").update({ score: 0, in_game: true }).eq("room_id", room.id);
+
+      let inboxQuery = supabase.from("cards").select("*").eq("type", "inbox");
+      if (pack) inboxQuery = inboxQuery.eq("category", pack);
+      const { data: inboxCards } = await inboxQuery;
+      if (!inboxCards || inboxCards.length === 0) return;
+      const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
+
+      // deal_initial_cards reads the (unchanged) pack from game_state.
+      await supabase.rpc("deal_initial_cards", { p_room_id: room.id });
+
+      await supabase.from("game_state").update({
+        round_number: 1,
+        phase: "submitting",
+        current_inbox_card_id: randomInbox.id,
+        winner_name: null,
+        winner_score: null,
+        phase_deadline: new Date(Date.now() + SUBMIT_MS).toISOString(),
+      }).eq("room_id", room.id);
+
+      await supabase.from("rooms").update({ status: "playing" }).eq("id", room.id);
+    } catch (error) {
+      toast({
+        title: "შეცდომა",
+        description: "თამაშის თავიდან დაწყება ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    }
+  };
+
+  // After a game finishes, send the whole room back to the lobby (full reset).
+  const handleEndToLobby = async () => {
+    if (!room) return;
+
+    try {
+      await supabase.from("game_state").delete().eq("room_id", room.id);
+      await supabase.from("submissions").delete().eq("room_id", room.id);
+      await supabase.rpc("clear_room_hands", { p_room_id: room.id });
+      await supabase.from("players").update({ score: 0, in_game: false }).eq("room_id", room.id);
+      await supabase.from("rooms").update({ status: "lobby" }).eq("id", room.id);
+
+      setRoom({ ...room, status: "lobby" });
+      setCurrentPlayer((prev) => (prev ? { ...prev, in_game: false } : prev));
+    } catch (error) {
+      toast({
+        title: "შეცდომა",
+        description: "ლობიში დაბრუნება ვერ მოხერხდა",
+        variant: "destructive",
+      });
+    }
+  };
+
   return {
     handleStartGame,
     handleLeaveGame,
     handleReturnToLobby,
+    handleRematch,
+    handleEndToLobby,
   };
 };

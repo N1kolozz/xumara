@@ -1,13 +1,20 @@
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Crown, Gavel, Inbox, LogOut, MessageCircle, Send, Trophy, Users, X } from "lucide-react";
+import { Clock, Crown, Gavel, Home, Inbox, LogOut, MessageCircle, Pencil, RotateCcw, Send, Trophy, Users, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
 import { Player, GameState, Room, CardData, Submission } from "@/types/game";
 import { useGameBoardData } from "@/hooks/useGameBoardData";
 import { useGameBoardActions } from "@/hooks/useGameBoardActions";
+import { BLANK_CARD_ID, BLANK_CARD_TEXT, HAND_SIZE, REACTION_EMOJIS, REVEAL_PER_CARD_MS } from "@/lib/gameConfig";
 import s from "./GameBoard.module.css";
+
+// Permanent "write-your-own" card appended to every hand (the 6th slot).
+const BLANK_CARD: CardData = { id: BLANK_CARD_ID, text_ge: BLANK_CARD_TEXT, type: "reply", is_blank: true };
+
+// Stable-ish horizontal spawn position for a floating reaction (15%–85%).
+const reactionX = (id: string) => 15 + (id.charCodeAt(id.length - 1) % 70);
 
 interface GameBoardProps {
   room: Room;
@@ -15,6 +22,8 @@ interface GameBoardProps {
   currentPlayer: Player;
   gameState: GameState | null;
   onReturnToLobby: () => void;
+  onRematch: () => void;
+  onEndToLobby: () => void;
 }
 
 type FanDragState = {
@@ -31,9 +40,11 @@ const GameBoard = ({
   players,
   currentPlayer,
   gameState,
-  onReturnToLobby
+  onReturnToLobby,
+  onRematch,
+  onEndToLobby,
 }: GameBoardProps) => {
-  const { inboxCard, playerCards, setPlayerCards, submissions } = useGameBoardData({
+  const { inboxCard, playerCards, setPlayerCards, submissions, reactions, sendReaction } = useGameBoardData({
     room,
     players,
     currentPlayer,
@@ -42,7 +53,7 @@ const GameBoard = ({
 
   const [selectedCard, setSelectedCard] = useState<string | null>(null);
 
-  const { handleSubmitCard, handleSelectWinner, isSelectingWinner } = useGameBoardActions({
+  const { handleSubmitCard, handleSelectWinner, isSelectingWinner, isSubmittingCard } = useGameBoardActions({
     room,
     players,
     currentPlayer,
@@ -55,6 +66,11 @@ const GameBoard = ({
   const [currentCardIndex, setCurrentCardIndex] = useState(0);
   const [isScoreboardOpen, setIsScoreboardOpen] = useState(false);
   const [previewSubmission, setPreviewSubmission] = useState<Submission | null>(null);
+  // Blank-card composer: null = closed, string = open with current draft text.
+  const [blankInput, setBlankInput] = useState<string | null>(null);
+  // Reveal animation + live countdown clock.
+  const [revealedCount, setRevealedCount] = useState(0);
+  const [nowTs, setNowTs] = useState(() => Date.now());
   const [draggingCard, setDraggingCard] = useState<{ card: CardData; x: number; y: number } | null>(null);
   const tableDropRef = useRef<HTMLDivElement | null>(null);
   const fanDragRef = useRef<FanDragState | null>(null);
@@ -62,7 +78,8 @@ const GameBoard = ({
   // RAF throttle refs — drag ghost updates are capped to one per animation frame.
   const rafIdRef = useRef<number | null>(null);
   const pendingDragPosRef = useRef<{ card: CardData; x: number; y: number } | null>(null);
-  const handCards = useMemo(() => playerCards.slice(0, 6), [playerCards]);
+  // 5 real cards + the permanent blank slot.
+  const handCards = useMemo(() => [...playerCards.slice(0, HAND_SIZE), BLANK_CARD], [playerCards]);
   const currentPlayerData = useMemo(() => players.find(p => p.id === currentPlayer.id), [players, currentPlayer.id]);
   const isJudge = currentPlayerData?.is_judge ?? false;
   const hasSubmitted = useMemo(() => submissions.some((s) => s.player_id === currentPlayer.id), [submissions, currentPlayer.id]);
@@ -87,10 +104,10 @@ const GameBoard = ({
   }, [gameState?.round_number, gameState?.phase]);
 
   useEffect(() => {
-    if (gameState?.phase === "submitting" && !isJudge && !hasSubmitted && handCards.length > 0 && !selectedCard) {
-      setSelectedCard(handCards[0].id);
+    if (gameState?.phase === "submitting" && !isJudge && !hasSubmitted && playerCards.length > 0 && !selectedCard) {
+      setSelectedCard(playerCards[0].id);
     }
-  }, [gameState?.phase, handCards, hasSubmitted, isJudge, selectedCard]);
+  }, [gameState?.phase, playerCards, hasSubmitted, isJudge, selectedCard]);
 
   useEffect(() => {
     document.documentElement.classList.add("game-native-locked");
@@ -101,6 +118,27 @@ const GameBoard = ({
       document.body.classList.remove("game-native-locked");
     };
   }, []);
+
+  // Ticking clock for the round countdown.
+  useEffect(() => {
+    const id = window.setInterval(() => setNowTs(Date.now()), 500);
+    return () => window.clearInterval(id);
+  }, []);
+
+  // Reveal cards one-by-one when the round enters the revealing phase.
+  useEffect(() => {
+    if (gameState?.phase !== "revealing") return;
+    setRevealedCount(0);
+    const total = submissions.filter((sub) => sub.cards).length;
+    let i = 0;
+    const id = window.setInterval(() => {
+      i += 1;
+      setRevealedCount(i);
+      if (i >= total) window.clearInterval(id);
+    }, REVEAL_PER_CARD_MS);
+    return () => window.clearInterval(id);
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [gameState?.phase, gameState?.round_number]);
 
   if (!gameState || !inboxCard) {
     return (
@@ -116,11 +154,30 @@ const GameBoard = ({
   }
 
   const roleLabel = isJudge ? "მსაჯული" : "ხუმარა";
-  // handCards is already sliced to 6 — no second slice needed.
   const fanCards = handCards;
-  const canChooseAnswer = gameState.phase === "submitting" && !isJudge && !hasSubmitted;
-  const canJudgeCards = gameState.phase === "judging" && isJudge;
+  const phase = gameState.phase;
+  const isFinished = !!gameState.winner_name;
+  const canChooseAnswer = phase === "submitting" && !isJudge && !hasSubmitted;
+  const canJudgeCards = phase === "judging" && isJudge;
+  const showReactions = phase === "revealing" || phase === "judging";
   const showCardFan = canChooseAnswer;
+
+  // Round countdown (driven by game_state.phase_deadline).
+  const deadlineMs = gameState.phase_deadline ? new Date(gameState.phase_deadline).getTime() : null;
+  const secondsLeft = deadlineMs !== null ? Math.max(0, Math.ceil((deadlineMs - nowTs) / 1000)) : null;
+  const showTimer = !isFinished && secondsLeft !== null && (phase === "submitting" || phase === "judging");
+
+  // Submitting a blank opens the composer; everything else submits directly.
+  const submitCard = (cardId: string) => {
+    if (cardId === BLANK_CARD_ID) {
+      setBlankInput("");
+      return;
+    }
+    void handleSubmitCard(cardId);
+  };
+
+  const isRevealed = (index: number) =>
+    phase === "judging" || (phase === "revealing" && index < revealedCount);
 
   const getFanCardStyle = (index: number) => {
     const relativeIndex = index - activeCardIndex;
@@ -267,7 +324,7 @@ const GameBoard = ({
         && event.clientY <= tableRect.bottom;
 
       if (dragState.mode === "drag" && dragState.cardId && droppedOnTable) {
-        void handleSubmitCard(dragState.cardId);
+        submitCard(dragState.cardId);
       }
 
       fanDragRef.current = null;
@@ -287,6 +344,13 @@ const GameBoard = ({
           <Button variant="surface" size="icon" className={s.referenceNavButton} onClick={onReturnToLobby} aria-label="ლობის დაბრუნება">
             <LogOut className="h-5 w-5" />
           </Button>
+
+          {showTimer && (
+            <div className={cn(s.referenceTimerPill, secondsLeft !== null && secondsLeft <= 10 && s.referenceTimerPillUrgent)}>
+              <Clock className="h-4 w-4" />
+              <span>{secondsLeft}</span>
+            </div>
+          )}
 
           <Badge variant={isJudge ? "secondary" : "primary"} className={s.referenceRolePill}>
             {isJudge ? <Gavel /> : <Users />}
@@ -325,19 +389,25 @@ const GameBoard = ({
 
             <div className={s.referenceTableCardLayer}>
               {tableCards.map((submission, index) => {
-                const cardText = submission.cards?.text_ge;
-                const canPickWinner = canJudgeCards;
+                const revealed = isRevealed(index);
+                const cardText = submission.custom_text ?? submission.cards?.text_ge;
+                const canPickWinner = canJudgeCards && revealed;
 
                 return (
                   <button
                     type="button"
                     key={submission.id}
-                    className={cn(s.referenceTableCard, canPickWinner && s.referenceTableCardPickable)}
+                    className={cn(
+                      s.referenceTableCard,
+                      !revealed && s.referenceTableCardBack,
+                      revealed && phase === "revealing" && s.referenceTableCardFlipIn,
+                      canPickWinner && s.referenceTableCardPickable,
+                    )}
                     style={getTableCardStyle(index, tableCards.length)}
                     disabled={!canPickWinner}
                     onClick={() => canPickWinner && setPreviewSubmission(submission)}
                   >
-                    <span>{cardText}</span>
+                    {revealed ? <span>{cardText}</span> : <span className={s.referenceTableCardBackMark}>?</span>}
                   </button>
                 );
               })}
@@ -367,28 +437,34 @@ const GameBoard = ({
                 const isActive = index === activeCardIndex;
                 const isPressed = canChooseAnswer ? selectedCard === card.id : isActive;
 
+                const isBlank = card.is_blank;
+
                 return (
                   <button
                     type="button"
                     key={card.id}
                     data-card-id={card.id}
                     data-card-index={index}
-                    className={cn(s.referenceAnswerCard, isActive ? s.referenceAnswerCardActive : s.referenceAnswerCardSide)}
+                    className={cn(
+                      s.referenceAnswerCard,
+                      isActive ? s.referenceAnswerCardActive : s.referenceAnswerCardSide,
+                      isBlank && s.referenceAnswerCardBlank,
+                    )}
                     style={getFanCardStyle(index)}
                     aria-pressed={isPressed}
                     onClick={() => handleFanCardClick(card, index)}
                     onKeyDown={(event) => {
                       if (canChooseAnswer && isActive && (event.key === "Enter" || event.key === " ")) {
                         event.preventDefault();
-                        void handleSubmitCard(card.id);
+                        submitCard(card.id);
                       }
                     }}
                   >
                     <div className={s.referenceAnswerHead}>
                       <span className={s.referenceAnswerIcon}>
-                        <Inbox className="h-4 w-4" />
+                        {isBlank ? <Pencil className="h-4 w-4" /> : <Inbox className="h-4 w-4" />}
                       </span>
-                      <span className={s.referenceAnswerLabel}>{card.type === "inbox" ? "INBOX" : "REPLY"}</span>
+                      <span className={s.referenceAnswerLabel}>{isBlank ? "BLANK" : "REPLY"}</span>
                     </div>
                     <span className={s.referenceAnswerText}>
                       <span className={s.referenceAnswerInner}>{card.text_ge}</span>
@@ -404,6 +480,14 @@ const GameBoard = ({
                     <Send className="h-8 w-8 text-primary" />
                     <p>პასუხი გაგზავნილია</p>
                     <span>დაელოდე სხვა მოთამაშეებს</span>
+                  </>
+                )}
+
+                {gameState.phase === "revealing" && (
+                  <>
+                    <MessageCircle className="h-8 w-8 text-primary" />
+                    <p>ბარათები იხსნება</p>
+                    <span>ნახე ვინ რა დადო</span>
                   </>
                 )}
 
@@ -492,7 +576,7 @@ const GameBoard = ({
 
         <footer className={s.referenceBottomAction}>
           <div className={s.referenceCardProgress}>
-            {fanCards.map((_, index) => (
+            {showCardFan && fanCards.map((_, index) => (
               <button
                 type="button"
                 key={index}
@@ -508,6 +592,36 @@ const GameBoard = ({
             ))}
           </div>
         </footer>
+
+        {/* Reaction dock — everyone can cheer during reveal / judging */}
+        {showReactions && !isFinished && (
+          <div className={s.referenceReactionDock}>
+            {REACTION_EMOJIS.map((emoji) => (
+              <button
+                key={emoji}
+                type="button"
+                className={s.referenceReactionBtn}
+                onClick={() => sendReaction(emoji)}
+                aria-label={`რეაქცია ${emoji}`}
+              >
+                {emoji}
+              </button>
+            ))}
+          </div>
+        )}
+
+        {/* Floating reactions */}
+        <div className={s.referenceReactionFloatLayer} aria-hidden>
+          {reactions.map((r) => (
+            <span
+              key={r.id}
+              className={s.referenceReactionParticle}
+              style={{ left: `${reactionX(r.id)}%` } as CSSProperties}
+            >
+              {r.emoji}
+            </span>
+          ))}
+        </div>
 
         {previewSubmission && (
           <div
@@ -525,7 +639,7 @@ const GameBoard = ({
                   </span>
                   <span className={s.cardPreviewLabel}>REPLY</span>
                 </div>
-                <p className={s.cardPreviewText}>{previewSubmission.cards?.text_ge}</p>
+                <p className={s.cardPreviewText}>{previewSubmission.custom_text ?? previewSubmission.cards?.text_ge}</p>
                 <span className={s.cardPreviewStrip} />
               </div>
               <div className={s.cardPreviewActions}>
@@ -546,7 +660,7 @@ const GameBoard = ({
                   }}
                 >
                   <Crown className="h-4 w-4" />
-                  გამარჯვებული
+                  არჩევა
                 </button>
               </div>
             </div>
@@ -562,6 +676,95 @@ const GameBoard = ({
             } as CSSProperties}
           >
             <span>{draggingCard.card.text_ge}</span>
+          </div>
+        )}
+
+        {/* Blank-card composer */}
+        {blankInput !== null && (
+          <div className={s.cardPreviewOverlay} onClick={() => setBlankInput(null)}>
+            <div className={s.blankComposer} onClick={(e) => e.stopPropagation()}>
+              <div className={s.blankComposerHead}>
+                <Pencil className="h-4 w-4" />
+                <span>შენი პასუხი</span>
+              </div>
+              <textarea
+                className={s.blankComposerInput}
+                value={blankInput}
+                onChange={(e) => setBlankInput(e.target.value)}
+                maxLength={120}
+                rows={3}
+                autoFocus
+                placeholder="დაწერე სასაცილო პასუხი..."
+              />
+              <div className={s.cardPreviewActions}>
+                <button type="button" className={s.cardPreviewCancel} onClick={() => setBlankInput(null)}>
+                  გაუქმება
+                </button>
+                <button
+                  type="button"
+                  className={s.cardPreviewSelect}
+                  disabled={!blankInput.trim() || isSubmittingCard}
+                  onClick={() => {
+                    const text = blankInput;
+                    setBlankInput(null);
+                    void handleSubmitCard(BLANK_CARD_ID, text);
+                  }}
+                >
+                  <Send className="h-4 w-4" />
+                  გაგზავნა
+                </button>
+              </div>
+            </div>
+          </div>
+        )}
+
+        {/* Results / rematch overlay */}
+        {isFinished && (
+          <div className={s.resultsOverlay}>
+            <div className={s.resultsPanel}>
+              <div className={s.resultsCrown}>
+                <Trophy className="h-8 w-8" />
+              </div>
+              <p className={s.resultsKicker}>თამაში დასრულდა</p>
+              <h2 className={s.resultsWinner}>{gameState.winner_name}</h2>
+              <span className={s.resultsScore}>{gameState.winner_score} ქულა</span>
+
+              <div className={s.resultsScores}>
+                {scorePlayers.map((player, index) => (
+                  <div
+                    key={player.id}
+                    className={cn(s.resultsRow, player.id === currentPlayer.id && s.resultsRowCurrent)}
+                  >
+                    <span className={s.resultsRank}>{index + 1}</span>
+                    <span className={s.resultsName}>{player.name}</span>
+                    <strong>{player.score}</strong>
+                  </div>
+                ))}
+              </div>
+
+              <div className={s.resultsActions}>
+                {currentPlayerData?.is_host ? (
+                  <>
+                    <button type="button" className={s.resultsLobbyBtn} onClick={onEndToLobby}>
+                      <Home className="h-4 w-4" />
+                      ლობი
+                    </button>
+                    <button type="button" className={s.resultsRematchBtn} onClick={onRematch}>
+                      <RotateCcw className="h-4 w-4" />
+                      კიდევ ერთხელ
+                    </button>
+                  </>
+                ) : (
+                  <>
+                    <button type="button" className={s.resultsLobbyBtn} onClick={onReturnToLobby}>
+                      <LogOut className="h-4 w-4" />
+                      გასვლა
+                    </button>
+                    <div className={s.resultsWaitHint}>დაელოდე მასპინძელს...</div>
+                  </>
+                )}
+              </div>
+            </div>
           </div>
         )}
       </main>

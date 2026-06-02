@@ -49,7 +49,7 @@ export const useGameSession = (roomId: string | undefined) => {
       setPlayers(typedPlayers);
       playersRef.current = typedPlayers;
 
-      let playerId = sessionStorage.getItem(`player_${roomId}`) || localStorage.getItem(`player_${roomId}`);
+      const playerId = sessionStorage.getItem(`player_${roomId}`) || localStorage.getItem(`player_${roomId}`);
       if (playerId) {
         sessionStorage.setItem(`player_${roomId}`, playerId);
         const player = typedPlayers.find((p) => p.id === playerId);

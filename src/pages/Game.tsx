@@ -20,7 +20,7 @@ const Game = () => {
     channelRef,
   } = useGameSession(roomId);
 
-  const { handleStartGame, handleLeaveGame, handleReturnToLobby } = useGameActions({
+  const { handleStartGame, handleLeaveGame, handleReturnToLobby, handleRematch, handleEndToLobby } = useGameActions({
     roomId,
     room,
     currentPlayer,
@@ -58,12 +58,14 @@ const Game = () => {
       onLeaveGame={handleLeaveGame}
     />
   ) : (
-    <GameBoard 
-      room={room} 
-      players={players} 
-      currentPlayer={currentPlayer} 
-      gameState={gameState} 
-      onReturnToLobby={handleReturnToLobby} 
+    <GameBoard
+      room={room}
+      players={players}
+      currentPlayer={currentPlayer}
+      gameState={gameState}
+      onReturnToLobby={handleReturnToLobby}
+      onRematch={handleRematch}
+      onEndToLobby={handleEndToLobby}
     />
   );
 };
