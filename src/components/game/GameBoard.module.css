@@ -387,12 +387,14 @@
     overflow-wrap: break-word;
   }
 
-  .referenceAnswerStrip {
-    @apply h-1.5 rounded-full bg-secondary/80 shadow-[0_0_18px_hsl(var(--secondary)/0.28)];
+  /* On the bright active card, swap the green chips for dark ones so the icon
+     and REPLY label stay readable. Side cards are dark, so they keep text-primary. */
+  .referenceAnswerCardActive .referenceAnswerIcon {
+    @apply border-[#10241e]/15 bg-[#10241e]/10 text-[#10241e];
   }
 
-  .referenceAnswerCardActive .referenceAnswerStrip {
-    @apply bg-primary;
+  .referenceAnswerCardActive .referenceAnswerLabel {
+    @apply border-[#10241e]/20 bg-[#10241e]/10 text-[#10241e];
   }
 
   .referenceStateMessage {
@@ -698,10 +700,6 @@
     border-color: hsl(var(--accent) / 0.55) !important;
   }
 
-  .referenceAnswerCardBlank .referenceAnswerStrip {
-    background: hsl(var(--accent) / 0.75);
-  }
-
   /* ── Reactions ── */
 
   .referenceReactionDock {
@@ -813,11 +811,11 @@
   }
 
   .resultsRematchBtn {
-    @apply inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-primary/40 bg-[linear-gradient(135deg,#dffff0,#27f2a1_42%,#24d6b1)] px-4 py-3 text-sm font-black text-[#092018] shadow-[0_0_34px_hsl(var(--primary)/0.25)] active:scale-[0.98];
+    @apply inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-primary/40 bg-[linear-gradient(135deg,#dffff0,#27f2a1_42%,#24d6b1)] px-4 py-3 text-sm font-black text-[#092018] shadow-[0_0_34px_hsl(var(--primary)/0.25)] active:scale-[0.98];
   }
 
   .resultsLobbyBtn {
-    @apply inline-flex flex-1 items-center justify-center gap-2 rounded-2xl border border-white/15 bg-white/[0.08] px-4 py-3 text-sm font-black text-foreground active:scale-[0.98];
+    @apply inline-flex flex-1 items-center justify-center gap-2 whitespace-nowrap rounded-2xl border border-white/15 bg-white/[0.08] px-4 py-3 text-sm font-black text-foreground active:scale-[0.98];
   }
 
   .resultsWaitHint {

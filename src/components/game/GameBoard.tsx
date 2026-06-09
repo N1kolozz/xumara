@@ -1,6 +1,6 @@
 import { type CSSProperties, type PointerEvent as ReactPointerEvent, useEffect, useMemo, useRef, useState } from "react";
 import { Button } from "@/components/ui/button";
-import { Clock, Crown, Gavel, Home, Inbox, LogOut, MessageCircle, Pencil, RotateCcw, Send, Trophy, Users, X } from "lucide-react";
+import { Clock, Crown, Gavel, Home, LogOut, MessageCircle, Pencil, RotateCcw, Send, Trophy, Users, X } from "lucide-react";
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
@@ -460,16 +460,16 @@ const GameBoard = ({
                       }
                     }}
                   >
-                    <div className={s.referenceAnswerHead}>
-                      <span className={s.referenceAnswerIcon}>
-                        {isBlank ? <Pencil className="h-4 w-4" /> : <Inbox className="h-4 w-4" />}
-                      </span>
-                      <span className={s.referenceAnswerLabel}>{isBlank ? "BLANK" : "REPLY"}</span>
-                    </div>
+                    {isBlank && (
+                      <div className={s.referenceAnswerHead}>
+                        <span className={s.referenceAnswerIcon}>
+                          <Pencil className="h-4 w-4" />
+                        </span>
+                      </div>
+                    )}
                     <span className={s.referenceAnswerText}>
                       <span className={s.referenceAnswerInner}>{card.text_ge}</span>
                     </span>
-                    <span className={s.referenceAnswerStrip} />
                   </button>
                 );
               })
@@ -574,25 +574,6 @@ const GameBoard = ({
           </aside>
         </div>
 
-        <footer className={s.referenceBottomAction}>
-          <div className={s.referenceCardProgress}>
-            {showCardFan && fanCards.map((_, index) => (
-              <button
-                type="button"
-                key={index}
-                className={cn(s.referenceCardDot, index === activeCardIndex && s.referenceCardDotActive)}
-                onClick={() => {
-                  setCurrentCardIndex(index);
-                  if (canChooseAnswer && fanCards[index]) {
-                    setSelectedCard(fanCards[index].id);
-                  }
-                }}
-                aria-label={`ბარათი ${index + 1}`}
-              />
-            ))}
-          </div>
-        </footer>
-
         {/* Reaction dock — everyone can cheer during reveal / judging */}
         {showReactions && !isFinished && (
           <div className={s.referenceReactionDock}>
@@ -633,14 +614,7 @@ const GameBoard = ({
               onClick={(e) => e.stopPropagation()}
             >
               <div className={s.cardPreviewCard}>
-                <div className={s.cardPreviewHead}>
-                  <span className={s.cardPreviewIcon}>
-                    <MessageCircle className="h-4 w-4" />
-                  </span>
-                  <span className={s.cardPreviewLabel}>REPLY</span>
-                </div>
                 <p className={s.cardPreviewText}>{previewSubmission.custom_text ?? previewSubmission.cards?.text_ge}</p>
-                <span className={s.cardPreviewStrip} />
               </div>
               <div className={s.cardPreviewActions}>
                 <button

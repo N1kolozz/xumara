@@ -24,21 +24,3 @@ export const revealDurationMs = (cardCount: number) =>
 
 // Ephemeral reactions broadcast during reveal/judging (no DB storage).
 export const REACTION_EMOJIS = ["😂", "🔥", "💀", "👏", "❤️"] as const;
-
-export interface PackDef {
-  // null => "Classic": no category filter, uses the whole (legacy) deck.
-  id: string | null;
-  label: string;
-  emoji: string;
-  hint: string;
-}
-
-export const PACKS: PackDef[] = [
-  { id: null, label: "კლასიკა", emoji: "🎲", hint: "ყველა ბარათი" },
-  { id: "verb", label: "ზმნები", emoji: "🏃", hint: "რას აკეთებ?" },
-  { id: "character", label: "ხასიათი", emoji: "🎭", hint: "როგორი ხარ?" },
-  { id: "logic", label: "ლოგიკა", emoji: "🧠", hint: "რატომ?" },
-];
-
-export const packLabel = (id: string | null | undefined) =>
-  PACKS.find((p) => p.id === (id ?? null))?.label ?? "კლასიკა";

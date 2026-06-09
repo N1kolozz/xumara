@@ -28,10 +28,24 @@ const GameCard = ({
   const content = (
     <div className="flex h-full flex-col justify-between gap-4">
       <div className="flex items-center justify-between">
-        <div className={cn("icon-tile h-9 w-9 rounded-xl", isInbox ? "text-secondary" : "text-primary")}>
+        <div
+          className={cn(
+            "icon-tile h-9 w-9 rounded-xl",
+            isInbox
+              ? "text-secondary"
+              : "border-[#10241e]/15 bg-[#10241e]/10 text-[#10241e]",
+          )}
+        >
           {isInbox ? <Inbox className="h-4 w-4" /> : <MessageCircle className="h-4 w-4" />}
         </div>
-        <div className={cn("card-label", isInbox ? "text-secondary" : "text-primary")}>
+        <div
+          className={cn(
+            "card-label",
+            isInbox
+              ? "text-secondary"
+              : "border-[#10241e]/20 bg-[#10241e]/10 text-[#10241e]",
+          )}
+        >
           {isInbox ? "INBOX" : "REPLY"}
         </div>
       </div>
@@ -47,8 +61,6 @@ const GameCard = ({
           {text}
         </p>
       </div>
-
-      <div className={cn("h-1.5 rounded-full", isInbox ? "bg-secondary/70" : "bg-primary/70")} />
     </div>
   );
 
