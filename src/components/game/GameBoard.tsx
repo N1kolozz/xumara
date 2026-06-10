@@ -4,6 +4,7 @@ import { Clock, Crown, Gavel, Home, LogOut, MessageCircle, Pencil, RotateCcw, Se
 import { Badge } from "@/components/ui/badge";
 import { Progress } from "@/components/ui/progress";
 import { cn } from "@/lib/utils";
+import { vibrate } from "@/lib/haptics";
 import { Player, GameState, Room, CardData, Submission } from "@/types/game";
 import { useGameBoardData } from "@/hooks/useGameBoardData";
 import { useGameBoardActions } from "@/hooks/useGameBoardActions";
@@ -44,7 +45,7 @@ const GameBoard = ({
   onRematch,
   onEndToLobby,
 }: GameBoardProps) => {
-  const { inboxCard, playerCards, setPlayerCards, submissions, reactions, sendReaction } = useGameBoardData({
+  const { inboxCard, playerCards, setPlayerCards, submissions, reactions, sendReaction, roundWinner } = useGameBoardData({
     room,
     players,
     currentPlayer,
@@ -58,7 +59,6 @@ const GameBoard = ({
     players,
     currentPlayer,
     gameState,
-    submissions,
     setPlayerCards,
     setSelectedCard,
   });
@@ -90,7 +90,13 @@ const GameBoard = ({
   const roundProgress = useMemo(() => gameState?.max_rounds ? (gameState.round_number / gameState.max_rounds) * 100 : 0, [gameState?.round_number, gameState?.max_rounds]);
   const activeCardIndex = Math.max(0, Math.min(currentCardIndex, Math.max(handCards.length - 1, 0)));
   // Must be computed before the early return so hook call order is stable.
-  const tableCards = useMemo(() => submissions.filter((s) => s.cards), [submissions]);
+  // Sorted by submission id (a random uuid): deterministic and identical on
+  // every client, but uncorrelated with submission time — so the judge can't
+  // tell who answered first from the card positions.
+  const tableCards = useMemo(
+    () => submissions.filter((s) => s.cards).sort((a, b) => a.id.localeCompare(b.id)),
+    [submissions],
+  );
 
   useEffect(() => {
     if (handCards.length === 0) {
@@ -140,6 +146,39 @@ const GameBoard = ({
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.phase, gameState?.round_number]);
 
+  // Countdown derived before the early return so the haptic effects below can
+  // keep a stable hook order.
+  const currentPhase = gameState?.phase;
+  const deadlineMs = gameState?.phase_deadline ? new Date(gameState.phase_deadline).getTime() : null;
+  const secondsLeft = deadlineMs !== null ? Math.max(0, Math.ceil((deadlineMs - nowTs) / 1000)) : null;
+
+  // ── Haptics (no-op where the Vibration API is unavailable) ────────────────
+  // Nudge when it's your turn to act: a new submitting round (players) or the
+  // judging phase opening (judge).
+  useEffect(() => {
+    if ((currentPhase === "submitting" && !isJudge) || (currentPhase === "judging" && isJudge)) {
+      vibrate(30);
+    }
+  }, [currentPhase, gameState?.round_number, isJudge]);
+
+  // A light tick as each table card flips over.
+  useEffect(() => {
+    if (currentPhase === "revealing" && revealedCount > 0) vibrate(10);
+  }, [currentPhase, revealedCount]);
+
+  // Winner celebration — stronger buzz if it's you.
+  useEffect(() => {
+    if (!roundWinner) return;
+    vibrate(roundWinner.playerId === currentPlayer.id ? [60, 40, 60] : 15);
+  }, [roundWinner, currentPlayer.id]);
+
+  // One warning buzz when the countdown enters the urgent zone.
+  useEffect(() => {
+    if (secondsLeft === 10 && (currentPhase === "submitting" || currentPhase === "judging")) {
+      vibrate(20);
+    }
+  }, [secondsLeft, currentPhase]);
+
   if (!gameState || !inboxCard) {
     return (
       <div className="app-shell">
@@ -162,9 +201,7 @@ const GameBoard = ({
   const showReactions = phase === "revealing" || phase === "judging";
   const showCardFan = canChooseAnswer;
 
-  // Round countdown (driven by game_state.phase_deadline).
-  const deadlineMs = gameState.phase_deadline ? new Date(gameState.phase_deadline).getTime() : null;
-  const secondsLeft = deadlineMs !== null ? Math.max(0, Math.ceil((deadlineMs - nowTs) / 1000)) : null;
+  // Round countdown (deadlineMs/secondsLeft are derived above the early return).
   const showTimer = !isFinished && secondsLeft !== null && (phase === "submitting" || phase === "judging");
 
   // Submitting a blank opens the composer; everything else submits directly.
@@ -629,7 +666,7 @@ const GameBoard = ({
                   className={s.cardPreviewSelect}
                   disabled={isSelectingWinner}
                   onClick={() => {
-                    void handleSelectWinner(previewSubmission.card_id);
+                    void handleSelectWinner(previewSubmission.id);
                     setPreviewSubmission(null);
                   }}
                 >
@@ -688,6 +725,26 @@ const GameBoard = ({
                   გაგზავნა
                 </button>
               </div>
+            </div>
+          </div>
+        )}
+
+        {/* Round-winner celebration — auto-dismisses after a few seconds and
+            never blocks input (pointer-events: none). Hidden once the final
+            results overlay takes over. */}
+        {roundWinner && !isFinished && (
+          <div className={s.roundWinnerOverlay} aria-live="polite">
+            <div className={s.roundWinnerPanel}>
+              <div className={s.roundWinnerCrown}>
+                <Crown className="h-7 w-7" />
+              </div>
+              <p className={s.roundWinnerKicker}>რაუნდის გამარჯვებული</p>
+              <h3 className={s.roundWinnerName}>{roundWinner.name}</h3>
+              {roundWinner.cardText && (
+                <div className={s.roundWinnerCardText}>
+                  <p>{roundWinner.cardText}</p>
+                </div>
+              )}
             </div>
           </div>
         )}

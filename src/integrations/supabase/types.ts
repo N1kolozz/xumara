@@ -295,6 +295,18 @@ export type Database = {
         Args: { p_room_id: string }
         Returns: undefined
       }
+      increment_player_score: {
+        Args: { p_player_id: string }
+        Returns: undefined
+      }
+      resolve_round: {
+        Args: { p_room_id: string; p_submission_id?: string }
+        Returns: undefined
+      }
+      resolve_room_phase: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never

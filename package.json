@@ -11,6 +11,7 @@
     "migrate": "npx supabase db push"
   },
   "dependencies": {
+    "@fontsource-variable/noto-sans-georgian": "^5.2.8",
     "@radix-ui/react-slot": "^1.2.3",
     "@radix-ui/react-toast": "^1.2.14",
     "@supabase/supabase-js": "^2.105.1",

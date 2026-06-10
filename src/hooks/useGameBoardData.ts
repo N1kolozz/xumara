@@ -10,12 +10,22 @@ interface UseGameBoardDataProps {
   gameState: GameState | null;
 }
 
+export interface RoundWinner {
+  name: string;
+  playerId: string | null;
+  cardText: string | null;
+}
+
 export const useGameBoardData = ({ room, players, currentPlayer, gameState }: UseGameBoardDataProps) => {
   const { toast } = useToast();
   const [inboxCard, setInboxCard] = useState<CardData | null>(null);
   const [playerCards, setPlayerCards] = useState<CardData[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [reactions, setReactions] = useState<{ id: string; emoji: string }[]>([]);
+  // Round-winner celebration overlay: set on the round_winner broadcast,
+  // auto-clears a few seconds later.
+  const [roundWinner, setRoundWinner] = useState<RoundWinner | null>(null);
+  const roundWinnerTimerRef = useRef<number | null>(null);
 
   // Holds the submissions realtime channel so we can broadcast reactions on it.
   const reactionChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -136,10 +146,15 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
         filter: `room_id=eq.${room.id}`
       }, debouncedRefreshSubmissions)
       .on("broadcast", { event: "round_winner" }, (payload) => {
-        toast({
-          title: "გამარჯვებული შეირჩა!",
-          description: `${payload.payload.winnerName} მოიგო ეს რაუნდი!`
+        const data = payload.payload ?? {};
+        if (!data.winnerName) return;
+        setRoundWinner({
+          name: data.winnerName,
+          playerId: data.winnerPlayerId ?? null,
+          cardText: data.cardText ?? null,
         });
+        if (roundWinnerTimerRef.current) window.clearTimeout(roundWinnerTimerRef.current);
+        roundWinnerTimerRef.current = window.setTimeout(() => setRoundWinner(null), 3200);
       })
       .on("broadcast", { event: "reaction" }, (payload) => {
         addReaction(payload.payload?.emoji);
@@ -170,6 +185,7 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
+      if (roundWinnerTimerRef.current) window.clearTimeout(roundWinnerTimerRef.current);
       reactionChannelRef.current = null;
       supabase.removeChannel(submissionsChannel);
       supabase.removeChannel(gameStateChannel);
@@ -186,5 +202,6 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
     submissions,
     reactions,
     sendReaction,
+    roundWinner,
   };
 };

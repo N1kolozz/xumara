@@ -661,8 +661,8 @@
   }
 
   @keyframes timerPulse {
-    0%, 100% { opacity: 1; }
-    50% { opacity: 0.5; }
+    0%, 100% { opacity: 1; transform: scale(1); }
+    50% { opacity: 0.55; transform: scale(1.08); }
   }
 
   /* ── Face-down + reveal table cards ── */
@@ -820,4 +820,47 @@
 
   .resultsWaitHint {
     @apply flex-1 text-center text-xs font-bold text-text-soft;
+  }
+
+  /* ── Round-winner celebration overlay ── */
+
+  .roundWinnerOverlay {
+    position: fixed;
+    inset: 0;
+    z-index: 90;
+    display: grid;
+    place-items: center;
+    padding: 1.5rem;
+    pointer-events: none;
+    background: rgba(2, 6, 5, 0.55);
+    backdrop-filter: blur(6px);
+    -webkit-backdrop-filter: blur(6px);
+    animation: cardPreviewOverlayIn 0.22s ease-out forwards;
+  }
+
+  .roundWinnerPanel {
+    @apply flex w-[min(84vw,20rem)] flex-col items-center gap-1.5 rounded-[1.9rem] border border-accent/30 bg-[rgba(20,30,33,0.95)] p-6 text-center shadow-[0_30px_90px_hsl(160_55%_3%/0.7)] backdrop-blur-2xl;
+    animation: cardPreviewModalIn 0.38s cubic-bezier(0.34, 1.56, 0.64, 1) forwards;
+  }
+
+  .roundWinnerCrown {
+    @apply grid h-14 w-14 place-items-center rounded-full border border-accent/40 bg-accent/15 text-accent shadow-[0_0_30px_hsl(var(--accent)/0.3)];
+  }
+
+  .roundWinnerKicker {
+    @apply mt-1 text-[0.66rem] font-black uppercase tracking-wider text-white/45;
+  }
+
+  .roundWinnerName {
+    @apply text-2xl font-black leading-tight text-foreground;
+  }
+
+  .roundWinnerCardText {
+    @apply mt-2 w-full rounded-2xl border border-primary/35 p-4;
+    background: linear-gradient(160deg, hsl(48 42% 92%), hsl(var(--primary) / 0.72));
+    box-shadow: 0 0 40px hsl(var(--primary) / 0.22);
+  }
+
+  .roundWinnerCardText p {
+    @apply text-base font-black leading-snug text-[#0d231c];
   }

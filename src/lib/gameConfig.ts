@@ -11,8 +11,11 @@ export const BLANK_CARD_TEXT = "✍️ შენი პასუხი";
 // as a permanent 6th slot. Must match deal_initial_cards in the migration.
 export const HAND_SIZE = 5;
 
-// Round-timer durations (ms). The judge's client is the authority that performs
-// the expiry transition; every client renders the countdown from phase_deadline.
+// Round-timer durations (ms). Expired phases are resolved server-side by the
+// pg_cron watchdog (resolve_expired_phases in the server_phase_watchdog
+// migration); clients render the countdown from phase_deadline and fire a
+// best-effort fallback RPC shortly after it passes. These durations are
+// mirrored in that migration's SQL — keep them in sync.
 export const SUBMIT_MS = 60_000;
 export const JUDGE_MS = 40_000;
 // Reveal pacing: cards flip one-by-one, then the judge can pick.
