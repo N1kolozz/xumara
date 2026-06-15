@@ -2,7 +2,7 @@ import { useEffect, useState } from "react";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Room, Player, GameState, CardData } from "@/types/game";
-import { BLANK_CARD_ID, revealDurationMs } from "@/lib/gameConfig";
+import { BLANK_CARD_ID } from "@/lib/gameConfig";
 import React from "react";
 
 interface UseGameBoardActionsProps {
@@ -26,22 +26,9 @@ export const useGameBoardActions = ({
   const [isSubmittingCard, setIsSubmittingCard] = useState(false);
   const [isSelectingWinner, setIsSelectingWinner] = useState(false);
 
-  // Move the round from submitting -> revealing as soon as the last player
-  // submits (no need to wait for the deadline). Guarded so concurrent callers
-  // only transition once.
-  const transitionToRevealing = async (subCount: number) => {
-    if (!gameState) return;
-    await supabase
-      .from("game_state")
-      .update({
-        phase: "revealing",
-        phase_deadline: new Date(Date.now() + revealDurationMs(subCount)).toISOString(),
-      })
-      .eq("room_id", room.id)
-      .eq("phase", "submitting")
-      .eq("round_number", gameState.round_number);
-  };
-
+  // Submission, hand removal and the submitting -> revealing transition all run
+  // server-side in the submit_card RPC (game_state and submissions are
+  // read-only to clients). The RPC reports whether the insert actually landed.
   const handleSubmitCard = async (cardId: string | null, customText?: string) => {
     if (!cardId || !gameState || isSubmittingCard) return;
     const isBlank = cardId === BLANK_CARD_ID;
@@ -49,39 +36,26 @@ export const useGameBoardActions = ({
     setIsSubmittingCard(true);
 
     try {
-      const { error: insertError } = await supabase.from("submissions").insert({
-        room_id: room.id,
-        player_id: currentPlayer.id,
-        card_id: cardId,
-        round_number: gameState.round_number,
-        custom_text: isBlank ? customText!.trim() : null,
+      const { data, error } = await supabase.rpc("submit_card", {
+        p_room_id: room.id,
+        p_player_id: currentPlayer.id,
+        p_card_id: cardId,
+        p_round_number: gameState.round_number,
+        p_custom_text: isBlank ? customText!.trim() : null,
       });
+      if (error) throw error;
 
-      if (insertError) {
-        // 23505 = unique violation: this player already has a submission for
-        // this round (double-tap or auto-resolve raced us) — keep the hand intact.
-        if (insertError.code === "23505") return;
-        throw insertError;
-      }
+      // Not inserted (duplicate / phase closed): keep the hand and selection as
+      // is — the realtime refresh will reconcile.
+      const inserted = (data as { inserted?: boolean } | null)?.inserted;
+      if (!inserted) return;
 
       // The blank is a permanent UI card — never remove it from the hand.
       if (!isBlank) {
-        await supabase.rpc("remove_card_from_hand", { p_player_id: currentPlayer.id, p_card_id: cardId });
         setPlayerCards((cards) => cards.filter((card) => card.id !== cardId));
       }
 
       setSelectedCard(null);
-
-      const nonJudgePlayers = players.filter(p => !p.is_judge && p.in_game);
-      const { data: currentSubmissions } = await supabase
-        .from("submissions")
-        .select("*")
-        .eq("room_id", room.id)
-        .eq("round_number", gameState.round_number);
-
-      if (currentSubmissions && currentSubmissions.length >= nonJudgePlayers.length) {
-        await transitionToRevealing(currentSubmissions.length);
-      }
     } catch (error) {
       toast({
         title: "შეცდომა",

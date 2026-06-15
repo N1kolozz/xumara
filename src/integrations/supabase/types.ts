@@ -307,6 +307,44 @@ export type Database = {
         Args: { p_room_id: string }
         Returns: undefined
       }
+      submit_card: {
+        Args: {
+          p_room_id: string
+          p_player_id: string
+          p_card_id: string
+          p_round_number: number
+          p_custom_text?: string | null
+        }
+        Returns: Json
+      }
+      start_game_state: {
+        Args: { p_room_id: string; p_max_rounds: number; p_pack?: string | null }
+        Returns: Database["public"]["Tables"]["game_state"]["Row"]
+      }
+      rematch_game: {
+        Args: { p_room_id: string }
+        Returns: undefined
+      }
+      reset_room_to_lobby: {
+        Args: { p_room_id: string; p_reset_scores?: boolean }
+        Returns: undefined
+      }
+      leave_game_round: {
+        Args: { p_room_id: string; p_player_id: string }
+        Returns: undefined
+      }
+      create_room: {
+        Args: { p_player_name: string; p_is_judge: boolean }
+        Returns: Json
+      }
+      join_room: {
+        Args: { p_pin: string; p_player_name: string; p_is_judge: boolean }
+        Returns: Json
+      }
+      leave_room: {
+        Args: { p_room_id: string; p_player_id: string }
+        Returns: Json
+      }
     }
     Enums: {
       [_ in never]: never

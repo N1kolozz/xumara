@@ -2,7 +2,7 @@ import { useNavigate } from "react-router-dom";
 import { supabase } from "@/integrations/supabase/client";
 import { useToast } from "@/hooks/use-toast";
 import { Room, Player, GameState } from "@/types/game";
-import { HAND_SIZE, SUBMIT_MS } from "@/lib/gameConfig";
+import { HAND_SIZE } from "@/lib/gameConfig";
 import React from "react";
 
 interface UseGameActionsProps {
@@ -47,11 +47,7 @@ export const useGameActions = ({
       const remainingComedians = isJudge ? activeComedianCount : activeComedianCount - 1;
 
       if (isJudge || remainingComedians < 2) {
-        await supabase.from("game_state").delete().eq("room_id", room.id);
-        await supabase.from("submissions").delete().eq("room_id", room.id);
-        await supabase.rpc("clear_room_hands", { p_room_id: room.id });
-        await supabase.from("players").update({ in_game: false }).eq("room_id", room.id);
-        await supabase.from("rooms").update({ status: "lobby" }).eq("id", room.id);
+        await supabase.rpc("reset_room_to_lobby", { p_room_id: room.id, p_reset_scores: false });
 
         const channel = supabase.channel(`room_${room.id}`);
         await channel.subscribe();
@@ -75,8 +71,7 @@ export const useGameActions = ({
             : "არასაკმარისი მოთამაშე",
         });
       } else {
-        await supabase.from("players").update({ in_game: false, hand: [] }).eq("id", currentPlayer.id);
-        await supabase.from("submissions").delete().eq("room_id", room.id).eq("player_id", currentPlayer.id);
+        await supabase.rpc("leave_game_round", { p_room_id: room.id, p_player_id: currentPlayer.id });
 
         setRoom({ ...room, status: "lobby" });
         setCurrentPlayer({ ...currentPlayer, in_game: false });
@@ -94,7 +89,6 @@ export const useGameActions = ({
     if (!currentPlayer || !room) return;
 
     try {
-      const isHost = currentPlayer.is_host;
       const isJudge = currentPlayer.is_judge;
 
       if (channelRef.current) {
@@ -108,46 +102,28 @@ export const useGameActions = ({
         });
       }
 
-      await supabase.from("players").delete().eq("id", currentPlayer.id);
+      // Player removal, empty-room cleanup, mid-game teardown and host
+      // reassignment all run atomically in leave_room (players/rooms are
+      // read-only to clients). It reports whether the room was sent back to the
+      // lobby so we can broadcast that to everyone still in it.
+      const { data: leaveResult } = await supabase.rpc("leave_room", {
+        p_room_id: room.id,
+        p_player_id: currentPlayer.id,
+      });
 
-      const { data: remainingPlayers } = await supabase
-        .from("players")
-        .select("*")
-        .eq("room_id", room.id);
-
-      if (!remainingPlayers || remainingPlayers.length === 0) {
-        await supabase.from("rooms").delete().eq("id", room.id);
-      } else {
-        if (room.status === "playing") {
-          const remainingComedians = remainingPlayers.filter(p => !p.is_judge).length;
-
-          if (isJudge || remainingComedians < 2) {
-            await supabase.from("game_state").delete().eq("room_id", room.id);
-            await supabase.from("submissions").delete().eq("room_id", room.id);
-            await supabase.rpc("clear_room_hands", { p_room_id: room.id });
-            await supabase.from("players").update({ in_game: false }).eq("room_id", room.id);
-            await supabase.from("rooms").update({ status: "lobby" }).eq("id", room.id);
-
-            const channel = supabase.channel(`room_${room.id}`);
-            await channel.subscribe();
-            await channel.send({
-              type: 'broadcast',
-              event: 'return_to_lobby',
-              payload: {
-                reason: isJudge ? 'judge_left' : 'insufficient_players',
-                playerName: currentPlayer.name
-              }
-            });
-            await supabase.removeChannel(channel);
+      const result = leaveResult as { returned_to_lobby?: boolean; reason?: string } | null;
+      if (result?.returned_to_lobby) {
+        const channel = supabase.channel(`room_${room.id}`);
+        await channel.subscribe();
+        await channel.send({
+          type: 'broadcast',
+          event: 'return_to_lobby',
+          payload: {
+            reason: result.reason ?? (isJudge ? 'judge_left' : 'insufficient_players'),
+            playerName: currentPlayer.name
           }
-        }
-
-        if (isHost && remainingPlayers.length > 0) {
-          const newHost = remainingPlayers[Math.floor(Math.random() * remainingPlayers.length)];
-          await supabase.from("rooms").update({ host_id: newHost.id }).eq("id", room.id);
-          await supabase.from("players").update({ is_host: true }).eq("id", newHost.id);
-          await supabase.from("players").update({ is_host: false }).eq("room_id", room.id).neq("id", newHost.id);
-        }
+        });
+        await supabase.removeChannel(channel);
       }
 
       sessionStorage.removeItem(`player_${room.id}`);
@@ -221,15 +197,16 @@ export const useGameActions = ({
         return;
       }
 
-      await supabase.from("submissions").delete().eq("room_id", room.id);
-      await supabase.rpc("clear_room_hands", { p_room_id: room.id });
+      // All the game-start writes (clear submissions/hands, reset players, set
+      // the room playing, create game_state, deal the opening hands) run
+      // atomically in the start_game_state RPC — the tables are read-only here.
+      const { data: newGameState, error: startError } = await supabase.rpc("start_game_state", {
+        p_room_id: room.id,
+        p_max_rounds: maxRounds,
+        p_pack: pack,
+      });
 
-      const { error: playersUpdateError } = await supabase
-        .from("players")
-        .update({ score: 0, in_game: true })
-        .eq("room_id", room.id);
-
-      if (playersUpdateError) throw playersUpdateError;
+      if (startError) throw startError;
 
       const { data: updatedPlayers } = await supabase
         .from("players")
@@ -251,14 +228,11 @@ export const useGameActions = ({
       await new Promise(resolve => setTimeout(resolve, 500));
       await supabase.removeChannel(broadcastChannel);
 
-      const { error: roomUpdateError, data: updatedRoomData } = await supabase
+      const { data: updatedRoomData } = await supabase
         .from("rooms")
-        .update({ status: "playing" })
+        .select("*")
         .eq("id", room.id)
-        .select()
         .single();
-
-      if (roomUpdateError) throw roomUpdateError;
 
       const { data: refreshedCurrentPlayer } = await supabase
         .from("players")
@@ -266,49 +240,9 @@ export const useGameActions = ({
         .eq("id", currentPlayer.id)
         .single();
 
-      if (updatedRoomData && refreshedCurrentPlayer) {
-        setRoom(updatedRoomData as Room);
-        setCurrentPlayer(refreshedCurrentPlayer as Player);
-      }
-
-      let inboxQuery = supabase.from("cards").select("*").eq("type", "inbox");
-      if (pack) inboxQuery = inboxQuery.eq("category", pack);
-      const { data: inboxCards } = await inboxQuery;
-
-      if (inboxCards && inboxCards.length > 0) {
-        const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
-        const judgePlayer = updatedPlayers?.find(p => p.is_judge) || updatedPlayers?.[0];
-
-        const { data: newGameState, error: gameStateError } = await supabase.from("game_state").insert({
-          room_id: room.id,
-          current_judge_id: judgePlayer.id,
-          current_inbox_card_id: randomInbox.id,
-          round_number: 1,
-          phase: "submitting",
-          max_rounds: maxRounds,
-          pack,
-          phase_deadline: new Date(Date.now() + SUBMIT_MS).toISOString(),
-        }).select().single();
-
-        if (gameStateError) throw gameStateError;
-
-        const { error: handError } = await supabase.rpc("deal_initial_cards", { p_room_id: room.id });
-
-        if (handError) {
-          toast({
-            title: "შეცდომა",
-            description: "ბარათების დარიგება ვერ მოხერხდა",
-            variant: "destructive",
-          });
-          return;
-        }
-
-        await new Promise(resolve => setTimeout(resolve, 300));
-
-        if (newGameState) {
-          setGameState(newGameState as GameState);
-        }
-      }
+      if (updatedRoomData) setRoom(updatedRoomData as Room);
+      if (refreshedCurrentPlayer) setCurrentPlayer(refreshedCurrentPlayer as Player);
+      if (newGameState) setGameState(newGameState as unknown as GameState);
 
     } catch (error) {
       toast({
@@ -324,38 +258,10 @@ export const useGameActions = ({
     if (!currentPlayer?.is_host || !room) return;
 
     try {
-      const { data: gs } = await supabase
-        .from("game_state")
-        .select("*")
-        .eq("room_id", room.id)
-        .maybeSingle();
-      if (!gs) return;
-
-      const pack = gs.pack ?? null;
-
-      await supabase.from("submissions").delete().eq("room_id", room.id);
-      await supabase.rpc("clear_room_hands", { p_room_id: room.id });
-      await supabase.from("players").update({ score: 0, in_game: true }).eq("room_id", room.id);
-
-      let inboxQuery = supabase.from("cards").select("*").eq("type", "inbox");
-      if (pack) inboxQuery = inboxQuery.eq("category", pack);
-      const { data: inboxCards } = await inboxQuery;
-      if (!inboxCards || inboxCards.length === 0) return;
-      const randomInbox = inboxCards[Math.floor(Math.random() * inboxCards.length)];
-
-      // deal_initial_cards reads the (unchanged) pack from game_state.
-      await supabase.rpc("deal_initial_cards", { p_room_id: room.id });
-
-      await supabase.from("game_state").update({
-        round_number: 1,
-        phase: "submitting",
-        current_inbox_card_id: randomInbox.id,
-        winner_name: null,
-        winner_score: null,
-        phase_deadline: new Date(Date.now() + SUBMIT_MS).toISOString(),
-      }).eq("room_id", room.id);
-
-      await supabase.from("rooms").update({ status: "playing" }).eq("id", room.id);
+      // Reset submissions/hands/scores, re-deal, pick a fresh inbox card and
+      // flip the room back to playing — all atomically, server-side.
+      const { error } = await supabase.rpc("rematch_game", { p_room_id: room.id });
+      if (error) throw error;
     } catch (error) {
       toast({
         title: "შეცდომა",
@@ -370,11 +276,7 @@ export const useGameActions = ({
     if (!room) return;
 
     try {
-      await supabase.from("game_state").delete().eq("room_id", room.id);
-      await supabase.from("submissions").delete().eq("room_id", room.id);
-      await supabase.rpc("clear_room_hands", { p_room_id: room.id });
-      await supabase.from("players").update({ score: 0, in_game: false }).eq("room_id", room.id);
-      await supabase.from("rooms").update({ status: "lobby" }).eq("id", room.id);
+      await supabase.rpc("reset_room_to_lobby", { p_room_id: room.id, p_reset_scores: true });
 
       setRoom({ ...room, status: "lobby" });
       setCurrentPlayer((prev) => (prev ? { ...prev, in_game: false } : prev));

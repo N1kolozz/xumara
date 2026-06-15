@@ -13,10 +13,6 @@ export const useRoomSetup = () => {
   const [isJoining, setIsJoining] = useState(false);
   const [showRoleError, setShowRoleError] = useState(false);
 
-  const generatePin = () => {
-    return Math.random().toString(36).substring(2, 8).toUpperCase();
-  };
-
   const getOrCreateGuestUser = async () => {
     const {
       data: { session },
@@ -67,54 +63,23 @@ export const useRoomSetup = () => {
 
     setIsCreating(true);
     try {
-      const user = await getOrCreateGuestUser();
-      let room = null;
-      let attempts = 0;
-      const maxAttempts = 5;
+      // Anonymous sign-in first so the RPC has an auth.uid() to own the player.
+      await getOrCreateGuestUser();
 
-      while (!room && attempts < maxAttempts) {
-        attempts++;
-        const pin = generatePin();
-        const { data: roomData, error: roomError } = await supabase
-          .from("rooms")
-          .insert({
-            pin,
-            status: "lobby",
-          })
-          .select()
-          .single();
+      // create_room generates a unique PIN, inserts the room + host player and
+      // wires up host_id atomically (rooms/players are read-only to clients).
+      const { data, error } = await supabase.rpc("create_room", {
+        p_player_name: playerName.trim(),
+        p_is_judge: role === "judge",
+      });
+      if (error) throw error;
 
-        if (roomError && roomError.code === "23505") {
-          continue;
-        }
+      const result = data as { room_id: string; player_id: string; pin: string };
 
-        if (roomError) throw roomError;
-        room = roomData;
-      }
+      sessionStorage.setItem(`player_${result.room_id}`, result.player_id);
+      localStorage.setItem(`player_${result.room_id}`, result.player_id);
 
-      if (!room) {
-        throw new Error("Failed to generate unique PIN after multiple attempts");
-      }
-
-      const { data: player, error: playerError } = await supabase
-        .from("players")
-        .insert({
-          room_id: room.id,
-          name: playerName,
-          is_host: true,
-          is_judge: role === "judge",
-          user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (playerError) throw playerError;
-
-      sessionStorage.setItem(`player_${room.id}`, player.id);
-      localStorage.setItem(`player_${room.id}`, player.id);
-      await supabase.from("rooms").update({ host_id: player.id }).eq("id", room.id);
-
-      navigate(`/game/${room.id}`);
+      navigate(`/game/${result.room_id}`);
       return true;
     } catch (error) {
       console.error("Failed to create room:", error);
@@ -151,67 +116,58 @@ export const useRoomSetup = () => {
     setIsJoining(true);
     setShowRoleError(false);
     try {
-      const user = await getOrCreateGuestUser();
-      const { data: room, error: roomError } = await supabase
-        .from("rooms")
-        .select("*")
-        .eq("pin", roomPin.toUpperCase())
-        .single();
+      // Anonymous sign-in first so the RPC has an auth.uid() to own the player.
+      await getOrCreateGuestUser();
 
-      if (roomError || !room) {
-        toast({
-          title: "ოთახი ვერ მოიძებნა",
-          description: "შეამოწმეთ PIN და სცადეთ ხელახლა",
-          variant: "destructive",
-        });
-        return false;
-      }
+      // join_room validates (room exists, in lobby, not full, judge free) and
+      // inserts the player atomically under a room lock, then reports the
+      // outcome so we can show the right message.
+      const { data, error } = await supabase.rpc("join_room", {
+        p_pin: roomPin.toUpperCase(),
+        p_player_name: playerName.trim(),
+        p_is_judge: role === "judge",
+      });
+      if (error) throw error;
 
-      if (room.status !== "lobby") {
-        toast({
-          title: "თამაში უკვე დაწყებულია",
-          description: "ამ ოთახში შესვლა შეუძლებელია",
-          variant: "destructive",
-        });
-        return false;
-      }
+      const result = data as {
+        ok: boolean;
+        reason?: string;
+        room_id?: string;
+        player_id?: string;
+      };
 
-      const { data: existingPlayers } = await supabase.from("players").select("*").eq("room_id", room.id);
-
-      if (existingPlayers && existingPlayers.length >= 8) {
-        toast({
-          title: "ოთახი სავსეა",
-          description: "ამ ოთახში მეტი მოთამაშე ვეღარ დაემატება",
-          variant: "destructive",
-        });
-        return false;
-      }
-
-      if (role === "judge") {
-        const existingJudge = existingPlayers?.find((player) => player.is_judge);
-        if (existingJudge) {
-          setShowRoleError(true);
-          return false;
+      if (!result.ok) {
+        switch (result.reason) {
+          case "started":
+            toast({
+              title: "თამაში უკვე დაწყებულია",
+              description: "ამ ოთახში შესვლა შეუძლებელია",
+              variant: "destructive",
+            });
+            return false;
+          case "full":
+            toast({
+              title: "ოთახი სავსეა",
+              description: "ამ ოთახში მეტი მოთამაშე ვეღარ დაემატება",
+              variant: "destructive",
+            });
+            return false;
+          case "judge_taken":
+            setShowRoleError(true);
+            return false;
+          default:
+            toast({
+              title: "ოთახი ვერ მოიძებნა",
+              description: "შეამოწმეთ PIN და სცადეთ ხელახლა",
+              variant: "destructive",
+            });
+            return false;
         }
       }
 
-      const { data: player, error: playerError } = await supabase
-        .from("players")
-        .insert({
-          room_id: room.id,
-          name: playerName,
-          is_host: false,
-          is_judge: role === "judge",
-          user_id: user.id,
-        })
-        .select()
-        .single();
-
-      if (playerError) throw playerError;
-
-      sessionStorage.setItem(`player_${room.id}`, player.id);
-      localStorage.setItem(`player_${room.id}`, player.id);
-      navigate(`/game/${room.id}`);
+      sessionStorage.setItem(`player_${result.room_id}`, result.player_id!);
+      localStorage.setItem(`player_${result.room_id}`, result.player_id!);
+      navigate(`/game/${result.room_id}`);
       return true;
     } catch (error) {
       console.error("Failed to join room:", error);

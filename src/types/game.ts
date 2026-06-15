@@ -1,6 +1,10 @@
 export type Role = "player" | "judge";
 export type ModalType = "create" | "join" | "info" | null;
 
+// The three phases a round moves through. Typing this as a union (instead of
+// `string`) makes typos in phase comparisons a compile error.
+export type GamePhase = "submitting" | "revealing" | "judging";
+
 export interface Room {
   id: string;
   pin: string;
@@ -24,7 +28,7 @@ export interface Player {
 export interface GameState {
   id?: string;
   room_id: string;
-  phase: string;
+  phase: GamePhase;
   current_judge_id: string | null;
   current_inbox_card_id: string | null;
   round_number: number;

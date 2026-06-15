@@ -23,9 +23,19 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
   const [submissions, setSubmissions] = useState<Submission[]>([]);
   const [reactions, setReactions] = useState<{ id: string; emoji: string }[]>([]);
   // Round-winner celebration overlay: set on the round_winner broadcast,
-  // auto-clears a few seconds later.
+  // auto-clears a few seconds later (see the dedicated effect below).
   const [roundWinner, setRoundWinner] = useState<RoundWinner | null>(null);
-  const roundWinnerTimerRef = useRef<number | null>(null);
+
+  // Auto-dismiss the round-winner overlay a few seconds after it appears. This
+  // lives in its own effect (keyed only on `roundWinner`) so the timer isn't
+  // cancelled when the realtime-channel effect tears down on the round advance
+  // that immediately follows the broadcast — which previously left the overlay
+  // stuck on screen and froze the game between rounds.
+  useEffect(() => {
+    if (!roundWinner) return;
+    const id = window.setTimeout(() => setRoundWinner(null), 3200);
+    return () => window.clearTimeout(id);
+  }, [roundWinner]);
 
   // Holds the submissions realtime channel so we can broadcast reactions on it.
   const reactionChannelRef = useRef<ReturnType<typeof supabase.channel> | null>(null);
@@ -57,6 +67,29 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
   useEffect(() => { currentPlayerRef.current = currentPlayer; }, [currentPlayer]);
   useEffect(() => { playersRef.current = players; }, [players]);
 
+  // Inbox (question) card — fetched in its own effect keyed on
+  // game_state.current_inbox_card_id, the single value every client shares.
+  // It used to be loaded inside loadGameData(), which runs from several places
+  // at once; those overlapping async calls could resolve out of order and let
+  // an older fetch win, leaving a stale question on screen while the round had
+  // already advanced — so players in the same round saw different questions.
+  // Keying off the prop's card id (always fresh, straight from the realtime
+  // payload) plus a cancellation flag makes the displayed question
+  // deterministic: only the response for the current card id is ever applied.
+  useEffect(() => {
+    const cardId = gameState?.current_inbox_card_id;
+    if (!cardId) {
+      setInboxCard(null);
+      return;
+    }
+    let cancelled = false;
+    (async () => {
+      const { data } = await supabase.from("cards").select("*").eq("id", cardId).single();
+      if (!cancelled && data) setInboxCard(data as CardData);
+    })();
+    return () => { cancelled = true; };
+  }, [gameState?.current_inbox_card_id]);
+
   // Stable function that reads from refs — safe to call inside subscriptions.
   const loadGameData = useCallback(async () => {
     const gs = gameStateRef.current;
@@ -68,15 +101,6 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
 
     const freshPlayerData = pl.find(p => p.id === cp.id);
     const isJudge = freshPlayerData?.is_judge ?? cp.is_judge;
-
-    if (gs.current_inbox_card_id) {
-      const { data: inboxData } = await supabase
-        .from("cards")
-        .select("*")
-        .eq("id", gs.current_inbox_card_id)
-        .single();
-      if (inboxData) setInboxCard(inboxData as CardData);
-    }
 
     if (!isJudge && gs.phase === "submitting") {
       const { data: playerData } = await supabase
@@ -148,13 +172,17 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
       .on("broadcast", { event: "round_winner" }, (payload) => {
         const data = payload.payload ?? {};
         if (!data.winnerName) return;
+        // Just set the winner — the auto-dismiss timer lives in its own effect
+        // (keyed on `roundWinner`) so it survives this channel being torn down
+        // and rebuilt when the round advances. resolve_round broadcasts the
+        // winner and advances game_state in the same transaction, so the round
+        // change arrives almost immediately; arming the timer here would let
+        // that teardown cancel it and leave the overlay stuck on screen.
         setRoundWinner({
           name: data.winnerName,
           playerId: data.winnerPlayerId ?? null,
           cardText: data.cardText ?? null,
         });
-        if (roundWinnerTimerRef.current) window.clearTimeout(roundWinnerTimerRef.current);
-        roundWinnerTimerRef.current = window.setTimeout(() => setRoundWinner(null), 3200);
       })
       .on("broadcast", { event: "reaction" }, (payload) => {
         addReaction(payload.payload?.emoji);
@@ -185,7 +213,6 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
 
     return () => {
       if (debounceTimer) clearTimeout(debounceTimer);
-      if (roundWinnerTimerRef.current) window.clearTimeout(roundWinnerTimerRef.current);
       reactionChannelRef.current = null;
       supabase.removeChannel(submissionsChannel);
       supabase.removeChannel(gameStateChannel);
