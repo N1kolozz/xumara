@@ -10,6 +10,7 @@ interface UseGameActionsProps {
   room: Room | null;
   currentPlayer: Player | null;
   players: Player[];
+  onlinePlayerIds: string[];
   setRoom: React.Dispatch<React.SetStateAction<Room | null>>;
   setCurrentPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
   setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
@@ -22,6 +23,7 @@ export const useGameActions = ({
   room,
   currentPlayer,
   players,
+  onlinePlayerIds,
   setRoom,
   setCurrentPlayer,
   setPlayers,
@@ -142,7 +144,32 @@ export const useGameActions = ({
   const handleStartGame = async (maxRounds: number, pack: string | null = null) => {
     if (!currentPlayer?.is_host || !room) return;
 
-    if (players.length < 3) {
+    // Evict anyone who's no longer connected (closed their tab) before dealing.
+    // Otherwise their stale row gets dealt in (in_game = true) and inflates the
+    // submission target — e.g. "0 / 3" when only 2 players are really present.
+    let activePlayers = players;
+    const onlineSet = new Set(onlinePlayerIds);
+    if (onlineSet.size > 0) {
+      const absent = players.filter((p) => !onlineSet.has(p.id));
+      if (absent.length > 0) {
+        await Promise.allSettled(
+          absent.map((p) =>
+            supabase.rpc("prune_absent_player", { p_room_id: room.id, p_player_id: p.id })
+          )
+        );
+        const { data: fresh } = await supabase
+          .from("players")
+          .select("*")
+          .eq("room_id", room.id)
+          .order("joined_at", { ascending: true });
+        if (fresh) {
+          activePlayers = fresh as Player[];
+          setPlayers(activePlayers);
+        }
+      }
+    }
+
+    if (activePlayers.length < 3) {
       toast({
         title: "არასაკმარისი ხუმარა",
         description: "თამაშის დასაწყებად მინიმუმ 3 ხუმარა არის საჭირო",
@@ -151,7 +178,7 @@ export const useGameActions = ({
       return;
     }
 
-    const hasJudge = players.some(p => p.is_judge);
+    const hasJudge = activePlayers.some(p => p.is_judge);
     if (!hasJudge) {
       toast({
         title: "მსაჯული აკლია",
@@ -179,7 +206,7 @@ export const useGameActions = ({
 
       // Validate the chosen pack has enough reply cards before we start — the
       // category filter can otherwise silently starve the deal RPC.
-      const comedianCount = players.filter((p) => !p.is_judge).length;
+      const comedianCount = activePlayers.filter((p) => !p.is_judge).length;
       let supplyQuery = supabase
         .from("cards")
         .select("*", { count: "exact", head: true })

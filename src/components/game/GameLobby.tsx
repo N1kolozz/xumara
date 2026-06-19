@@ -12,22 +12,35 @@ interface GameLobbyProps {
   room: Room;
   players: Player[];
   currentPlayer: Player;
+  onlinePlayerIds: string[];
+  presenceReady: boolean;
   onStartGame: (maxRounds: number, pack: string | null) => void;
   onLeaveGame: () => void;
 }
 
-const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: GameLobbyProps) => {
+const GameLobby = ({ room, players, currentPlayer, onlinePlayerIds, presenceReady, onStartGame, onLeaveGame }: GameLobbyProps) => {
   const { toast } = useToast();
   const [maxRounds, setMaxRounds] = useState(5);
 
-  const canStart = players.length >= 3;
+  // Show only players still connected to the room (Realtime Presence). A player
+  // who closes their tab drops out within seconds, so everyone else sees them
+  // leave in real time instead of a stale row lingering until the DB prune.
+  // Before presence has synced (empty list) fall back to the full DB list, and
+  // always keep ourselves visible.
+  const onlineSet = new Set(onlinePlayerIds);
+  const visiblePlayers =
+    onlineSet.size === 0
+      ? players
+      : players.filter((p) => onlineSet.has(p.id) || p.id === currentPlayer.id);
+
+  // Gate readiness on presence too, so we never flash "ready" off a stale list.
+  const canStart = presenceReady && visiblePlayers.length >= 3;
   const joinUrl = `${window.location.origin}/?pin=${room.pin}`;
 
   const setRoundValue = (value: number) => setMaxRounds(Math.max(1, Math.min(10, value)));
 
   const copyRoomPin = () => {
     navigator.clipboard.writeText(room.pin);
-    toast({ title: "კოდი დაკოპირდა", description: `PIN: ${room.pin}` });
   };
 
   const renderPlayerRow = (player: Player) => (
@@ -132,12 +145,18 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
               </div>
             </div>
             <Badge variant={canStart ? "success" : "warning"}>
-              {canStart ? "ready" : `${3 - players.length} left`}
+              {!presenceReady ? "..." : canStart ? "ready" : `${3 - visiblePlayers.length} left`}
             </Badge>
           </div>
 
           <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto">
-            {players.map(renderPlayerRow)}
+            {!presenceReady ? (
+              <div className="flex h-full items-center justify-center py-6">
+                <div className="h-6 w-6 animate-spin rounded-full border-2 border-primary/20 border-t-primary" />
+              </div>
+            ) : (
+              visiblePlayers.map(renderPlayerRow)
+            )}
           </div>
         </div>
 
@@ -182,7 +201,7 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
           {currentPlayer.is_host ? (
             <Button onClick={() => onStartGame(maxRounds, null)} disabled={!canStart} size="lg" className="h-14 w-full">
               <Play className="h-5 w-5" />
-              {canStart ? `თამაშის დაწყება (${maxRounds})` : `დაელოდეთ ${3 - players.length} მოთამაშეს`}
+              {canStart ? `თამაშის დაწყება (${maxRounds})` : `დაელოდეთ ${3 - visiblePlayers.length} მოთამაშეს`}
             </Button>
           ) : (
             <div className="soft-panel p-4 text-center">

@@ -18,6 +18,8 @@ const Game = () => {
     setCurrentPlayer,
     loading,
     channelRef,
+    onlinePlayerIds,
+    presenceReady,
   } = useGameSession(roomId);
 
   const { handleStartGame, handleLeaveGame, handleReturnToLobby, handleRematch, handleEndToLobby } = useGameActions({
@@ -25,6 +27,7 @@ const Game = () => {
     room,
     currentPlayer,
     players,
+    onlinePlayerIds,
     setRoom,
     setCurrentPlayer,
     setPlayers,
@@ -54,6 +57,8 @@ const Game = () => {
       room={room}
       players={players}
       currentPlayer={currentPlayer}
+      onlinePlayerIds={onlinePlayerIds}
+      presenceReady={presenceReady}
       onStartGame={handleStartGame}
       onLeaveGame={handleLeaveGame}
     />

@@ -345,6 +345,14 @@ export type Database = {
         Args: { p_room_id: string; p_player_id: string }
         Returns: Json
       }
+      prune_absent_player: {
+        Args: { p_room_id: string; p_player_id: string }
+        Returns: Json
+      }
+      heartbeat: {
+        Args: { p_player_id: string }
+        Returns: undefined
+      }
     }
     Enums: {
       [_ in never]: never
