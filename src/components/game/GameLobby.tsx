@@ -1,10 +1,11 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { Copy, Crown, Gavel, LogOut, Minus, Play, Plus, Users } from "lucide-react";
+import { Copy, Crown, Gavel, Info, LogOut, Minus, Play, Plus, Users, X } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
+import { InfoModal } from "@/components/home/InfoModal";
 
 import { Player, Room } from "@/types/game";
 
@@ -21,6 +22,7 @@ interface GameLobbyProps {
 const GameLobby = ({ room, players, currentPlayer, onlinePlayerIds, presenceReady, onStartGame, onLeaveGame }: GameLobbyProps) => {
   const { toast } = useToast();
   const [maxRounds, setMaxRounds] = useState(5);
+  const [showInfo, setShowInfo] = useState(false);
 
   // Show only players still connected to the room (Realtime Presence). A player
   // who closes their tab drops out within seconds, so everyone else sees them
@@ -103,9 +105,15 @@ const GameLobby = ({ room, players, currentPlayer, onlinePlayerIds, presenceRead
             <p className="label-text">lobby</p>
             <h1 className="text-xl font-black leading-tight">ოთახი მზადაა</h1>
           </div>
-          <div className="icon-tile text-primary">
-            <Users className="h-5 w-5" />
-          </div>
+          <Button
+            variant="surface"
+            size="icon"
+            className="text-primary"
+            onClick={() => setShowInfo(true)}
+            aria-label="ინფორმაცია"
+          >
+            <Info className="h-5 w-5" />
+          </Button>
         </header>
 
         {/* ── PIN + QR + Stats ── */}
@@ -213,6 +221,41 @@ const GameLobby = ({ room, players, currentPlayer, onlinePlayerIds, presenceRead
           )}
         </div>
       </div>
+
+      {/* ── Info / how-to-play (same content as the home screen) ── */}
+      {showInfo && (
+        <div
+          className="fixed inset-0 z-50 flex items-center justify-center bg-black/60 p-4 backdrop-blur-sm"
+          onClick={(e) => {
+            if (e.target === e.currentTarget) setShowInfo(false);
+          }}
+        >
+          <div className="surface-panel flex max-h-[82%] w-full max-w-md flex-col overflow-hidden">
+            <div className="flex items-center justify-between gap-3 border-b border-white/10 p-4">
+              <div className="flex min-w-0 items-center gap-2.5">
+                <div className="icon-tile text-primary">
+                  <Info className="h-5 w-5" />
+                </div>
+                <div className="min-w-0">
+                  <p className="label-text">ინფორმაცია</p>
+                  <h2 className="truncate text-base font-black leading-tight">როგორ ვითამაშოთ</h2>
+                </div>
+              </div>
+              <Button
+                variant="surface"
+                size="icon"
+                onClick={() => setShowInfo(false)}
+                aria-label="დახურვა"
+              >
+                <X className="h-5 w-5" />
+              </Button>
+            </div>
+            <div className="no-scrollbar overflow-y-auto p-4">
+              <InfoModal />
+            </div>
+          </div>
+        </div>
+      )}
     </div>
   );
 };
