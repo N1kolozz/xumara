@@ -42,6 +42,14 @@ export default defineConfig(({ mode }) => ({
         // Fonts ship bundled (@fontsource-variable), so woff2 in the precache
         // glob covers them — no runtime caching of external font CDNs needed.
         globPatterns: ["**/*.{js,css,html,ico,png,svg,woff,woff2}"],
+        // Roll out new deploys without users having to manually clear the
+        // service worker: as soon as a new SW is precached it takes control
+        // (skipWaiting + clientsClaim) and old precaches are purged. Combined
+        // with registerType "autoUpdate", a fresh build reaches everyone on
+        // their next load instead of being pinned to the cached old bundle.
+        skipWaiting: true,
+        clientsClaim: true,
+        cleanupOutdatedCaches: true,
       },
     }),
   ].filter(Boolean),
