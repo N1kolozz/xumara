@@ -15,7 +15,7 @@ jobs:
         run: |
           code=$(curl -sS -o /dev/null -w "%{http_code}" \
             "${{ secrets.VITE_SUPABASE_URL }}/rest/v1/rooms?select=id&limit=1" \
-            -H "apikey: ${{ secrets.SUPABASE_ANON_KEY }}")
+            -H "apikey: ${{ secrets.VITE_SUPABASE_ANON_KEY }}")
           echo "Supabase responded with HTTP $code"
           # Fail the run on server/auth errors so it's visible in the Actions tab.
           if [ "$code" -ge 400 ]; then exit 1; fi
