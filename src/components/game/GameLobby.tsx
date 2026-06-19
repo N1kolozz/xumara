@@ -1,11 +1,10 @@
 import { useState } from "react";
 import { QRCodeSVG } from "qrcode.react";
-import { ChevronDown, Copy, Crown, Gavel, LogOut, Minus, Play, Plus, Users } from "lucide-react";
+import { Copy, Crown, Gavel, LogOut, Minus, Play, Plus, Users } from "lucide-react";
 
 import { Button } from "@/components/ui/button";
 import { Badge } from "@/components/ui/badge";
 import { useToast } from "@/hooks/use-toast";
-import { cn } from "@/lib/utils";
 
 import { Player, Room } from "@/types/game";
 
@@ -20,7 +19,6 @@ interface GameLobbyProps {
 const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: GameLobbyProps) => {
   const { toast } = useToast();
   const [maxRounds, setMaxRounds] = useState(5);
-  const [playersOpen, setPlayersOpen] = useState(false);
 
   const canStart = players.length >= 3;
   const joinUrl = `${window.location.origin}/?pin=${room.pin}`;
@@ -122,71 +120,26 @@ const GameLobby = ({ room, players, currentPlayer, onStartGame, onLeaveGame }: G
         </div>
 
         {/* ── Players ── */}
-        {currentPlayer.is_host ? (
-          // Host has rounds/CTA below, so the list collapses into a dropdown
-          // to keep the layout clean. Raise the whole panel while open so the
-          // dropdown stacks above the rounds panel below it.
-          <div className={cn("soft-panel mt-3 p-3", playersOpen && "relative z-[60]")}>
-            <div className="relative">
-              <button
-                type="button"
-                onClick={() => setPlayersOpen((o) => !o)}
-                aria-expanded={playersOpen}
-                className="flex w-full items-center gap-3"
-              >
-                <div className="icon-tile h-8 w-8 flex-shrink-0 rounded-xl text-secondary">
-                  <Users className="h-3.5 w-3.5" />
-                </div>
-                <div className="min-w-0 flex-1 text-left">
-                  <p className="label-text">players</p>
-                  <h2 className="text-sm font-extrabold leading-tight">მოთამაშეები</h2>
-                </div>
-                <Badge variant={canStart ? "success" : "warning"}>
-                  {canStart ? "ready" : `${3 - players.length} left`}
-                </Badge>
-                <span className="text-sm font-black">{players.length}/8</span>
-                <ChevronDown
-                  className={cn("h-4 w-4 flex-shrink-0 text-text-muted transition-transform", playersOpen && "rotate-180")}
-                />
-              </button>
-
-              {playersOpen && (
-                <>
-                  <button
-                    type="button"
-                    aria-label="დახურვა"
-                    className="fixed inset-0 z-40 cursor-default"
-                    onClick={() => setPlayersOpen(false)}
-                  />
-                  <div className="absolute left-0 right-0 top-full z-50 mt-2 max-h-[15rem] space-y-2 overflow-y-auto overscroll-contain rounded-2xl border border-white/[0.12] bg-[rgba(24,34,37,0.97)] p-2 shadow-[0_24px_60px_hsl(160_55%_3%/0.6)] backdrop-blur-2xl">
-                    {players.map(renderPlayerRow)}
-                  </div>
-                </>
-              )}
-            </div>
-          </div>
-        ) : (
-          <div className="soft-panel mt-3 flex min-h-0 flex-1 flex-col overflow-hidden p-4">
-            <div className="mb-3 flex items-center justify-between">
-              <div className="flex items-center gap-2">
-                <div className="icon-tile h-8 w-8 rounded-xl text-secondary">
-                  <Users className="h-3.5 w-3.5" />
-                </div>
-                <div>
-                  <p className="label-text">players</p>
-                  <h2 className="text-sm font-extrabold leading-tight">მოთამაშეები</h2>
-                </div>
+        <div className="soft-panel mt-3 flex min-h-0 flex-1 flex-col overflow-hidden p-4">
+          <div className="mb-3 flex items-center justify-between">
+            <div className="flex items-center gap-2">
+              <div className="icon-tile h-8 w-8 rounded-xl text-secondary">
+                <Users className="h-3.5 w-3.5" />
               </div>
-              <Badge variant={canStart ? "success" : "warning"}>
-                {canStart ? "ready" : `${3 - players.length} left`}
-              </Badge>
+              <div>
+                <p className="label-text">players</p>
+                <h2 className="text-sm font-extrabold leading-tight">მოთამაშეები</h2>
+              </div>
             </div>
-
-            <div className="min-h-0 flex-1 space-y-2 overflow-y-auto">
-              {players.map(renderPlayerRow)}
-            </div>
+            <Badge variant={canStart ? "success" : "warning"}>
+              {canStart ? "ready" : `${3 - players.length} left`}
+            </Badge>
           </div>
-        )}
+
+          <div className="no-scrollbar min-h-0 flex-1 space-y-2 overflow-y-auto">
+            {players.map(renderPlayerRow)}
+          </div>
+        </div>
 
         {/* ── Rounds (host only, compact inline) ── */}
         {currentPlayer.is_host && (

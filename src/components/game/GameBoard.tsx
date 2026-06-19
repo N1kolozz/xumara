@@ -68,8 +68,7 @@ const GameBoard = ({
   const [previewSubmission, setPreviewSubmission] = useState<Submission | null>(null);
   // Blank-card composer: null = closed, string = open with current draft text.
   const [blankInput, setBlankInput] = useState<string | null>(null);
-  // Reveal animation + live countdown clock.
-  const [revealedCount, setRevealedCount] = useState(0);
+  // Live countdown clock. (The card-reveal flip is CSS-driven — see below.)
   const [nowTs, setNowTs] = useState(() => Date.now());
   const [draggingCard, setDraggingCard] = useState<{ card: CardData; x: number; y: number } | null>(null);
   const tableDropRef = useRef<HTMLDivElement | null>(null);
@@ -131,18 +130,18 @@ const GameBoard = ({
     return () => window.clearInterval(id);
   }, []);
 
-  // Reveal cards one-by-one when the round enters the revealing phase.
+  // The one-by-one card flip is driven purely by CSS (staggered animation-delay
+  // on each table card — see referenceTableCardFlipper). This effect only fires
+  // a light haptic tick timed to match each card's flip, so the buzz stays in
+  // sync without any setState/re-render that could stutter the animation.
   useEffect(() => {
     if (gameState?.phase !== "revealing") return;
-    setRevealedCount(0);
     const total = submissions.filter((sub) => sub.cards).length;
-    let i = 0;
-    const id = window.setInterval(() => {
-      i += 1;
-      setRevealedCount(i);
-      if (i >= total) window.clearInterval(id);
-    }, REVEAL_PER_CARD_MS);
-    return () => window.clearInterval(id);
+    const timers: number[] = [];
+    for (let i = 0; i < total; i += 1) {
+      timers.push(window.setTimeout(() => vibrate(10), i * REVEAL_PER_CARD_MS));
+    }
+    return () => timers.forEach((t) => window.clearTimeout(t));
     // eslint-disable-next-line react-hooks/exhaustive-deps
   }, [gameState?.phase, gameState?.round_number]);
 
@@ -160,11 +159,6 @@ const GameBoard = ({
       vibrate(30);
     }
   }, [currentPhase, gameState?.round_number, isJudge]);
-
-  // A light tick as each table card flips over.
-  useEffect(() => {
-    if (currentPhase === "revealing" && revealedCount > 0) vibrate(10);
-  }, [currentPhase, revealedCount]);
 
   // Winner celebration — stronger buzz if it's you.
   useEffect(() => {
@@ -213,8 +207,11 @@ const GameBoard = ({
     void handleSubmitCard(cardId);
   };
 
-  const isRevealed = (index: number) =>
-    phase === "judging" || (phase === "revealing" && index < revealedCount);
+  // Cards flip face-up the moment the reveal choreography starts and stay up
+  // through judging. The stagger (and thus the one-by-one effect) lives entirely
+  // in CSS via each card's --reveal-delay, so it can never lose a race with the
+  // server's revealing→judging phase change.
+  const revealActive = phase === "revealing" || phase === "judging";
 
   const getFanCardStyle = (index: number) => {
     const relativeIndex = index - activeCardIndex;
@@ -426,9 +423,8 @@ const GameBoard = ({
 
             <div className={s.referenceTableCardLayer}>
               {tableCards.map((submission, index) => {
-                const revealed = isRevealed(index);
                 const cardText = submission.custom_text ?? submission.cards?.text_ge;
-                const canPickWinner = canJudgeCards && revealed;
+                const canPickWinner = canJudgeCards;
 
                 return (
                   <button
@@ -436,15 +432,30 @@ const GameBoard = ({
                     key={submission.id}
                     className={cn(
                       s.referenceTableCard,
-                      !revealed && s.referenceTableCardBack,
-                      revealed && phase === "revealing" && s.referenceTableCardFlipIn,
                       canPickWinner && s.referenceTableCardPickable,
                     )}
-                    style={getTableCardStyle(index, tableCards.length)}
+                    style={{
+                      ...getTableCardStyle(index, tableCards.length),
+                      // Stagger the flip only while revealing; a fresh judging
+                      // mount (e.g. a refresh) reveals all cards together.
+                      "--reveal-delay": `${phase === "revealing" ? index * REVEAL_PER_CARD_MS : 0}ms`,
+                    } as CSSProperties}
                     disabled={!canPickWinner}
                     onClick={() => canPickWinner && setPreviewSubmission(submission)}
                   >
-                    {revealed ? <span>{cardText}</span> : <span className={s.referenceTableCardBackMark}>?</span>}
+                    <div
+                      className={cn(
+                        s.referenceTableCardFlipper,
+                        revealActive && s.referenceTableCardFlipperRevealed,
+                      )}
+                    >
+                      <div className={cn(s.referenceTableCardFace, s.referenceTableCardFaceBack)}>
+                        <span className={s.referenceTableCardBackMark}>?</span>
+                      </div>
+                      <div className={cn(s.referenceTableCardFace, s.referenceTableCardFaceFront)}>
+                        <span>{cardText}</span>
+                      </div>
+                    </div>
                   </button>
                 );
               })}

@@ -17,7 +17,7 @@ export const HAND_SIZE = 5;
 // best-effort fallback RPC shortly after it passes. These durations are
 // mirrored in that migration's SQL — keep them in sync.
 export const SUBMIT_MS = 60_000;
-export const JUDGE_MS = 40_000;
+export const JUDGE_MS = 60_000;
 // Reveal pacing: cards flip one-by-one, then the judge can pick.
 export const REVEAL_BASE_MS = 700;
 export const REVEAL_PER_CARD_MS = 850;

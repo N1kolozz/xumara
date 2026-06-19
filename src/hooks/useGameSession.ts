@@ -161,12 +161,6 @@ export const useGameSession = (roomId: string | undefined) => {
         { event: "*", schema: "public", table: "players", filter: `room_id=eq.${roomId}` },
         async (payload) => {
           const currentPlayerId = getCurrentPlayerId();
-          if (payload.eventType === "INSERT" && payload.new) {
-            const newPlayer = payload.new as Player;
-            if (currentPlayerId && newPlayer.id !== currentPlayerId) {
-              toast({ title: "ახალი მოთამაშე", description: `${newPlayer.name} შემოუერთდა ოთახს` });
-            }
-          }
 
           const { data: playersData } = await supabase
             .from("players")

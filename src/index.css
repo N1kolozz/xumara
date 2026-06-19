@@ -267,4 +267,16 @@
   .pressable {
     @apply transition-transform duration-200 active:scale-[0.97];
   }
+
+  /* Hide the persistent default scrollbar while keeping scroll behavior. On
+     touch devices the OS overlay scrollbar still appears briefly while
+     scrolling. */
+  .no-scrollbar {
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .no-scrollbar::-webkit-scrollbar {
+    display: none;
+  }
 }

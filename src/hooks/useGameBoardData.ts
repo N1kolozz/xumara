@@ -1,6 +1,5 @@
 import { useState, useEffect, useRef, useCallback } from "react";
 import { supabase } from "@/integrations/supabase/client";
-import { useToast } from "@/hooks/use-toast";
 import { Room, Player, GameState, CardData, Submission } from "@/types/game";
 
 interface UseGameBoardDataProps {
@@ -17,7 +16,6 @@ export interface RoundWinner {
 }
 
 export const useGameBoardData = ({ room, players, currentPlayer, gameState }: UseGameBoardDataProps) => {
-  const { toast } = useToast();
   const [inboxCard, setInboxCard] = useState<CardData | null>(null);
   const [playerCards, setPlayerCards] = useState<CardData[]>([]);
   const [submissions, setSubmissions] = useState<Submission[]>([]);
@@ -197,16 +195,7 @@ export const useGameBoardData = ({ room, players, currentPlayer, gameState }: Us
         schema: "public",
         table: "game_state",
         filter: `room_id=eq.${room.id}`
-      }, (payload) => {
-        if (payload.eventType === "UPDATE" && payload.new.winner_name && payload.new.winner_score !== null) {
-          const isDraw = payload.new.winner_name.includes(",");
-          toast({
-            title: "თამაში დასრულდა!",
-            description: isDraw
-              ? `${payload.new.winner_name} მოთამაშეებს შორის დამთავრდა ფრე ${payload.new.winner_score} ქულით!`
-              : `${payload.new.winner_name} არის გამარჯვებული ${payload.new.winner_score} ქულით!`
-          });
-        }
+      }, () => {
         loadGameData();
       })
       .subscribe();
