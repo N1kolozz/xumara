@@ -53,6 +53,19 @@ export default defineConfig(() => ({
       },
     }),
   ].filter(Boolean),
+  build: {
+    rollupOptions: {
+      output: {
+        // Split the big, rarely-changing libraries into their own chunks so a
+        // routine app-code deploy doesn't invalidate them in the browser cache —
+        // returning users only re-download the small app chunk that changed.
+        manualChunks: {
+          "react-vendor": ["react", "react-dom", "react-router-dom"],
+          "supabase-vendor": ["@supabase/supabase-js"],
+        },
+      },
+    },
+  },
   resolve: {
     alias: {
       "@": path.resolve(__dirname, "./src"),

@@ -165,6 +165,16 @@ The PWA is configured for `autoUpdate` with `skipWaiting` + `clientsClaim` (see
 [`vite.config.ts`](vite.config.ts)), so a fresh build reaches users on their next load without a
 manual cache clear.
 
+**Bundle splitting:** the build is code-split rather than shipped as one file:
+
+- The home screen (`Index`) loads eagerly; the heavier **game route is lazy-loaded**
+  (`React.lazy` in [`src/App.tsx`](src/App.tsx)), so the game board, QR-code library, and game CSS are
+  only fetched when a player enters a room.
+- React/Router and the Supabase client are pinned to their own **`react-vendor` / `supabase-vendor`
+  chunks** (`manualChunks` in [`vite.config.ts`](vite.config.ts)). These rarely change, so a routine
+  app-code deploy lets returning users re-download only the small app chunk instead of the whole
+  bundle.
+
 CI ([`.github/workflows/ci.yml`](.github/workflows/ci.yml)) runs lint, type-check, and build on every
 push and PR.
 
