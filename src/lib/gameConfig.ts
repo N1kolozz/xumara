@@ -11,19 +11,16 @@ export const BLANK_CARD_TEXT = "✍️ შენი პასუხი";
 // as a permanent 6th slot. Must match deal_initial_cards in the migration.
 export const HAND_SIZE = 5;
 
-// Round-timer durations (ms). Expired phases are resolved server-side by the
-// pg_cron watchdog (resolve_expired_phases in the server_phase_watchdog
-// migration); clients render the countdown from phase_deadline and fire a
-// best-effort fallback RPC shortly after it passes. These durations are
-// mirrored in that migration's SQL — keep them in sync.
-export const SUBMIT_MS = 60_000;
-export const JUDGE_MS = 60_000;
-// Reveal pacing: cards flip one-by-one, then the judge can pick.
-export const REVEAL_BASE_MS = 700;
+// Per-card flip stagger (ms) for the reveal choreography. This is purely a
+// client-side animation value — it drives the one-by-one card flip and the
+// matching haptic tick in GameBoard.
+//
+// The authoritative round-timer durations (submit 60s, judge 60s, reveal
+// pacing) live in the SQL: see resolve_room_phase / submit_card in the
+// server_phase_watchdog and extend_judge_timer migrations. Clients never set a
+// deadline themselves — they render the countdown from game_state.phase_deadline
+// — so those durations deliberately do NOT live here.
 export const REVEAL_PER_CARD_MS = 850;
-
-export const revealDurationMs = (cardCount: number) =>
-  REVEAL_BASE_MS + Math.max(0, cardCount) * REVEAL_PER_CARD_MS;
 
 // Ephemeral reactions broadcast during reveal/judging (no DB storage).
 export const REACTION_EMOJIS = ["😂", "🔥", "💀", "👏", "❤️"] as const;

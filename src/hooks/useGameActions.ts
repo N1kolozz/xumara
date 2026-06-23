@@ -6,7 +6,6 @@ import { HAND_SIZE } from "@/lib/gameConfig";
 import React from "react";
 
 interface UseGameActionsProps {
-  roomId: string | undefined;
   room: Room | null;
   currentPlayer: Player | null;
   players: Player[];
@@ -19,7 +18,6 @@ interface UseGameActionsProps {
 }
 
 export const useGameActions = ({
-  roomId,
   room,
   currentPlayer,
   players,
@@ -51,9 +49,13 @@ export const useGameActions = ({
       if (isJudge || remainingComedians < 2) {
         await supabase.rpc("reset_room_to_lobby", { p_room_id: room.id, p_reset_scores: false });
 
-        const channel = supabase.channel(`room_${room.id}`);
-        await channel.subscribe();
-        await channel.send({
+        // Broadcast on the room channel useGameSession already keeps subscribed,
+        // NOT a freshly-created one. Spinning up a second channel with the same
+        // topic and then removeChannel-ing it tears down presence on the
+        // persistent channel too, which left the lobby under-counting players:
+        // everyone coming back from a game would see "1 left" instead of
+        // "ready" even with 3 people actually present.
+        await channelRef.current?.send({
           type: 'broadcast',
           event: 'return_to_lobby',
           payload: {
@@ -61,7 +63,6 @@ export const useGameActions = ({
             playerName: currentPlayer.name
           }
         });
-        await supabase.removeChannel(channel);
 
         setRoom({ ...room, status: "lobby" });
         setCurrentPlayer({ ...currentPlayer, in_game: false });
@@ -93,16 +94,10 @@ export const useGameActions = ({
     try {
       const isJudge = currentPlayer.is_judge;
 
-      if (channelRef.current) {
-        await channelRef.current.send({
-          type: 'broadcast',
-          event: 'player_left',
-          payload: {
-            playerId: currentPlayer.id,
-            playerName: currentPlayer.name,
-          }
-        });
-      }
+      // No "player_left" broadcast needed: leave_room deletes the player row,
+      // which other clients pick up through the players postgres_changes feed in
+      // useGameSession, and Realtime Presence hides the leaver from the lobby
+      // instantly. (The old broadcast just duplicated that refetch.)
 
       // Player removal, empty-room cleanup, mid-game teardown and host
       // reassignment all run atomically in leave_room (players/rooms are
@@ -115,9 +110,10 @@ export const useGameActions = ({
 
       const result = leaveResult as { returned_to_lobby?: boolean; reason?: string } | null;
       if (result?.returned_to_lobby) {
-        const channel = supabase.channel(`room_${room.id}`);
-        await channel.subscribe();
-        await channel.send({
+        // Reuse the persistent room channel (see the note in handleReturnToLobby)
+        // — a duplicate-topic transient channel disrupts presence for the
+        // players still in the room.
+        await channelRef.current?.send({
           type: 'broadcast',
           event: 'return_to_lobby',
           payload: {
@@ -125,7 +121,6 @@ export const useGameActions = ({
             playerName: currentPlayer.name
           }
         });
-        await supabase.removeChannel(channel);
       }
 
       sessionStorage.removeItem(`player_${room.id}`);
@@ -244,17 +239,11 @@ export const useGameActions = ({
         setPlayers(updatedPlayers as Player[]);
       }
 
-      const broadcastChannel = supabase.channel(`room:${room.id}:broadcast`);
-      await broadcastChannel.subscribe();
-      await broadcastChannel.send({
-        type: 'broadcast',
-        event: 'players_updated',
-        payload: { room_id: room.id }
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await supabase.removeChannel(broadcastChannel);
-
+      // The room flipping to "playing", the dealt hands and the new game_state
+      // all reach the other clients through the postgres_changes subscriptions
+      // in useGameSession, so there's nothing to broadcast here. (An earlier
+      // players_updated broadcast was sent on a channel topic no client
+      // subscribed to — it never did anything — so it's been removed.)
       const { data: updatedRoomData } = await supabase
         .from("rooms")
         .select("*")
