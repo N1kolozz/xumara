@@ -14,6 +14,7 @@ interface UseGameActionsProps {
   setCurrentPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
   setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
   setGameState: React.Dispatch<React.SetStateAction<GameState | null>>;
+  channelRef: React.MutableRefObject<ReturnType<typeof supabase.channel> | null>;
 }
 
 export const useGameActions = ({
@@ -25,6 +26,7 @@ export const useGameActions = ({
   setCurrentPlayer,
   setPlayers,
   setGameState,
+  channelRef,
 }: UseGameActionsProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -47,9 +49,13 @@ export const useGameActions = ({
       if (isJudge || remainingComedians < 2) {
         await supabase.rpc("reset_room_to_lobby", { p_room_id: room.id, p_reset_scores: false });
 
-        const channel = supabase.channel(`room_${room.id}`);
-        await channel.subscribe();
-        await channel.send({
+        // Broadcast on the room channel useGameSession already keeps subscribed,
+        // NOT a freshly-created one. Spinning up a second channel with the same
+        // topic and then removeChannel-ing it tears down presence on the
+        // persistent channel too, which left the lobby under-counting players:
+        // everyone coming back from a game would see "1 left" instead of
+        // "ready" even with 3 people actually present.
+        await channelRef.current?.send({
           type: 'broadcast',
           event: 'return_to_lobby',
           payload: {
@@ -57,7 +63,6 @@ export const useGameActions = ({
             playerName: currentPlayer.name
           }
         });
-        await supabase.removeChannel(channel);
 
         setRoom({ ...room, status: "lobby" });
         setCurrentPlayer({ ...currentPlayer, in_game: false });
@@ -105,9 +110,10 @@ export const useGameActions = ({
 
       const result = leaveResult as { returned_to_lobby?: boolean; reason?: string } | null;
       if (result?.returned_to_lobby) {
-        const channel = supabase.channel(`room_${room.id}`);
-        await channel.subscribe();
-        await channel.send({
+        // Reuse the persistent room channel (see the note in handleReturnToLobby)
+        // — a duplicate-topic transient channel disrupts presence for the
+        // players still in the room.
+        await channelRef.current?.send({
           type: 'broadcast',
           event: 'return_to_lobby',
           payload: {
@@ -115,7 +121,6 @@ export const useGameActions = ({
             playerName: currentPlayer.name
           }
         });
-        await supabase.removeChannel(channel);
       }
 
       sessionStorage.removeItem(`player_${room.id}`);
