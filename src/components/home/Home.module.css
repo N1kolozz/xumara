@@ -315,6 +315,9 @@
     overflow-y: auto;
     -webkit-overflow-scrolling: touch;
     overscroll-behavior: contain;
+    /* Scroll via touch but hide the scrollbar chrome. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
     border-radius: 1.75rem 1.75rem 0 0;
     border: 1px solid hsl(0 0% 100% / 0.1);
     border-bottom: none;
@@ -330,6 +333,10 @@
     opacity: 0;
     transition: transform 0.32s cubic-bezier(0.32, 0.72, 0, 1), opacity 0.25s ease;
     flex-shrink: 0;
+  }
+
+  .homeModalPanel::-webkit-scrollbar {
+    display: none;
   }
 
   .homeModalPanelVisible {

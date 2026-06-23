@@ -761,6 +761,14 @@
 
   .blankComposerInput {
     @apply w-full resize-none rounded-2xl border border-white/15 bg-white/[0.06] p-3 text-base font-bold text-foreground outline-none placeholder:text-text-muted;
+    /* Hide the scrollbar — the composer still scrolls via touch/drag, we just
+       don't want the chrome scrollbar track sitting over the text. */
+    scrollbar-width: none;
+    -ms-overflow-style: none;
+  }
+
+  .blankComposerInput::-webkit-scrollbar {
+    display: none;
   }
 
   .blankComposerInput:focus {
