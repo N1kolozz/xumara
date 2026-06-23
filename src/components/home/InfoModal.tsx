@@ -1,5 +1,3 @@
-import { Info } from "lucide-react";
-
 export const InfoModal = () => {
   return (
     <div className="space-y-6">

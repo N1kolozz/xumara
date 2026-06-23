@@ -201,27 +201,8 @@ export const useGameSession = (roomId: string | undefined) => {
           });
         }
       })
-      .on('broadcast', { event: 'players_updated' }, async () => {
-        const { data: playersData } = await supabase
-          .from("players")
-          .select("*")
-          .eq("room_id", roomId)
-          .order("joined_at", { ascending: true });
-
-        if (playersData) {
-          const typedPlayers = playersData as Player[];
-          setPlayers(typedPlayers);
-          playersRef.current = typedPlayers;
-          const currentPlayerId = getCurrentPlayerId();
-          if (currentPlayerId) {
-            const updatedCurrentPlayer = typedPlayers.find((p) => p.id === currentPlayerId);
-            if (updatedCurrentPlayer) setCurrentPlayer(updatedCurrentPlayer);
-          }
-        }
-      })
       .on('broadcast', { event: 'player_left' }, async (payload) => {
         const leftPlayerId = payload.payload?.playerId;
-        const leftPlayerName = payload.payload?.playerName;
         const currentPlayerId = getCurrentPlayerId();
 
         if (currentPlayerId && leftPlayerId === currentPlayerId) return;
@@ -246,7 +227,7 @@ export const useGameSession = (roomId: string | undefined) => {
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "players", filter: `room_id=eq.${roomId}` },
-        async (payload) => {
+        async () => {
           const currentPlayerId = getCurrentPlayerId();
 
           const { data: playersData } = await supabase

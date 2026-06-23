@@ -43,6 +43,7 @@ const GameLobby = ({ room, players, currentPlayer, onlinePlayerIds, presenceRead
 
   const copyRoomPin = () => {
     navigator.clipboard.writeText(room.pin);
+    toast({ title: "PIN დაკოპირდა", description: room.pin });
   };
 
   const renderPlayerRow = (player: Player) => (

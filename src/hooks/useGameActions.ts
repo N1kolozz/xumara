@@ -6,7 +6,6 @@ import { HAND_SIZE } from "@/lib/gameConfig";
 import React from "react";
 
 interface UseGameActionsProps {
-  roomId: string | undefined;
   room: Room | null;
   currentPlayer: Player | null;
   players: Player[];
@@ -19,7 +18,6 @@ interface UseGameActionsProps {
 }
 
 export const useGameActions = ({
-  roomId,
   room,
   currentPlayer,
   players,
@@ -244,17 +242,11 @@ export const useGameActions = ({
         setPlayers(updatedPlayers as Player[]);
       }
 
-      const broadcastChannel = supabase.channel(`room:${room.id}:broadcast`);
-      await broadcastChannel.subscribe();
-      await broadcastChannel.send({
-        type: 'broadcast',
-        event: 'players_updated',
-        payload: { room_id: room.id }
-      });
-
-      await new Promise(resolve => setTimeout(resolve, 500));
-      await supabase.removeChannel(broadcastChannel);
-
+      // The room flipping to "playing", the dealt hands and the new game_state
+      // all reach the other clients through the postgres_changes subscriptions
+      // in useGameSession, so there's nothing to broadcast here. (An earlier
+      // players_updated broadcast was sent on a channel topic no client
+      // subscribed to — it never did anything — so it's been removed.)
       const { data: updatedRoomData } = await supabase
         .from("rooms")
         .select("*")

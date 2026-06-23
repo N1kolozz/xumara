@@ -23,7 +23,6 @@ const Game = () => {
   } = useGameSession(roomId);
 
   const { handleStartGame, handleLeaveGame, handleReturnToLobby, handleRematch, handleEndToLobby } = useGameActions({
-    roomId,
     room,
     currentPlayer,
     players,
