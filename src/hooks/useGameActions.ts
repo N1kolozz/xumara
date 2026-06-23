@@ -14,7 +14,6 @@ interface UseGameActionsProps {
   setCurrentPlayer: React.Dispatch<React.SetStateAction<Player | null>>;
   setPlayers: React.Dispatch<React.SetStateAction<Player[]>>;
   setGameState: React.Dispatch<React.SetStateAction<GameState | null>>;
-  channelRef: React.MutableRefObject<ReturnType<typeof supabase.channel> | null>;
 }
 
 export const useGameActions = ({
@@ -26,7 +25,6 @@ export const useGameActions = ({
   setCurrentPlayer,
   setPlayers,
   setGameState,
-  channelRef,
 }: UseGameActionsProps) => {
   const navigate = useNavigate();
   const { toast } = useToast();
@@ -91,16 +89,10 @@ export const useGameActions = ({
     try {
       const isJudge = currentPlayer.is_judge;
 
-      if (channelRef.current) {
-        await channelRef.current.send({
-          type: 'broadcast',
-          event: 'player_left',
-          payload: {
-            playerId: currentPlayer.id,
-            playerName: currentPlayer.name,
-          }
-        });
-      }
+      // No "player_left" broadcast needed: leave_room deletes the player row,
+      // which other clients pick up through the players postgres_changes feed in
+      // useGameSession, and Realtime Presence hides the leaver from the lobby
+      // instantly. (The old broadcast just duplicated that refetch.)
 
       // Player removal, empty-room cleanup, mid-game teardown and host
       // reassignment all run atomically in leave_room (players/rooms are

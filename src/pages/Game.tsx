@@ -17,7 +17,6 @@ const Game = () => {
     currentPlayer,
     setCurrentPlayer,
     loading,
-    channelRef,
     onlinePlayerIds,
     presenceReady,
   } = useGameSession(roomId);
@@ -31,7 +30,6 @@ const Game = () => {
     setCurrentPlayer,
     setPlayers,
     setGameState,
-    channelRef,
   });
 
   if (loading || !room || !currentPlayer) {

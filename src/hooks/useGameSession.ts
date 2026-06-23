@@ -201,29 +201,11 @@ export const useGameSession = (roomId: string | undefined) => {
           });
         }
       })
-      .on('broadcast', { event: 'player_left' }, async (payload) => {
-        const leftPlayerId = payload.payload?.playerId;
-        const currentPlayerId = getCurrentPlayerId();
-
-        if (currentPlayerId && leftPlayerId === currentPlayerId) return;
-
-        await new Promise((resolve) => setTimeout(resolve, 300));
-        const { data: playersData } = await supabase
-          .from("players")
-          .select("*")
-          .eq("room_id", roomId)
-          .order("joined_at", { ascending: true });
-
-        if (playersData) {
-          const typedPlayers = playersData as Player[];
-          setPlayers(typedPlayers);
-          playersRef.current = typedPlayers;
-          if (currentPlayerId) {
-            const updatedCurrentPlayer = typedPlayers.find((p) => p.id === currentPlayerId);
-            if (updatedCurrentPlayer) setCurrentPlayer(updatedCurrentPlayer);
-          }
-        }
-      })
+      // Single source of truth for the player list: any insert/delete/update on
+      // a room player re-reads the list and re-checks presence. (A player_left
+      // broadcast used to also refetch here, but it duplicated this exact work —
+      // and fired before the DB delete had committed, hence its old 300ms hack —
+      // so it was removed in favour of this authoritative postgres_changes feed.)
       .on(
         "postgres_changes",
         { event: "*", schema: "public", table: "players", filter: `room_id=eq.${roomId}` },
